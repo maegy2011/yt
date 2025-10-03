@@ -21,24 +21,59 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { id, name, description, thumbnailUrl, category } = await request.json();
+    console.log('POST /api/channels - Starting request');
+    
+    const body = await request.json();
+    console.log('Request body:', body);
+    
+    const { id, name, description, thumbnailUrl, category } = body;
 
+    // Validate required fields
     if (!id || !name) {
+      console.log('Validation failed: Missing id or name');
       return NextResponse.json(
-        { error: 'Channel ID and name are required' },
+        { error: 'Channel ID and name are required', details: { id: !!id, name: !!name } },
         { status: 400 }
       );
     }
 
     // Validate channel ID format (should start with UC...)
     if (!id.startsWith('UC')) {
+      console.log('Validation failed: Invalid channel ID format');
       return NextResponse.json(
-        { error: 'Channel ID must start with UC...' },
+        { error: 'Channel ID must start with UC...', details: { providedId: id } },
         { status: 400 }
       );
     }
 
-    console.log('Creating channel with data:', { id, name, description, thumbnailUrl, category });
+    // Validate field lengths
+    if (name.length > 100) {
+      return NextResponse.json(
+        { error: 'Channel name is too long (max 100 characters)', details: { nameLength: name.length } },
+        { status: 400 }
+      );
+    }
+
+    if (id.length > 50) {
+      return NextResponse.json(
+        { error: 'Channel ID is too long (max 50 characters)', details: { idLength: id.length } },
+        { status: 400 }
+      );
+    }
+
+    console.log('Creating channel with data:', { id, name, description: description?.substring(0, 50), thumbnailUrl: !!thumbnailUrl, category });
+
+    // Test database connection first
+    try {
+      await db.$connect();
+      console.log('Database connection successful');
+    } catch (dbError) {
+      console.error('Database connection failed:', dbError);
+      return NextResponse.json(
+        { error: 'Database connection failed', details: dbError instanceof Error ? dbError.message : 'Unknown error' },
+        { status: 503 }
+      );
+    }
 
     const channel = await db.channel.create({
       data: {
@@ -58,17 +93,26 @@ export async function POST(request: NextRequest) {
     
     // Check for specific database errors
     if (error instanceof Error) {
-      if (error.message.includes('Unique constraint')) {
+      console.error('Error details:', error.message);
+      
+      if (error.message.includes('Unique constraint') || error.message.includes('duplicate key')) {
         return NextResponse.json(
-          { error: 'Channel with this ID already exists' },
+          { error: 'Channel with this ID already exists', details: error.message },
           { status: 409 }
         );
       }
       
       if (error.message.includes('database') || error.message.includes('connection')) {
         return NextResponse.json(
-          { error: 'Database connection error. Please check database configuration.' },
+          { error: 'Database connection error. Please check database configuration.', details: error.message },
           { status: 503 }
+        );
+      }
+      
+      if (error.message.includes('invalid input')) {
+        return NextResponse.json(
+          { error: 'Invalid data provided', details: error.message },
+          { status: 400 }
         );
       }
     }

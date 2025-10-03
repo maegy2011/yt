@@ -103,6 +103,17 @@ export default function AdminPage() {
       return;
     }
 
+    // Validate field lengths
+    if (newChannel.name.length > 100) {
+      alert('اسم القناة طويل جدًا (الحد الأقصى 100 حرف)');
+      return;
+    }
+
+    if (newChannel.id.length > 50) {
+      alert('معرف القناة طويل جدًا (الحد الأقصى 50 حرف)');
+      return;
+    }
+
     try {
       setAdding(true);
       console.log('Sending channel data:', newChannel);
@@ -126,13 +137,34 @@ export default function AdminPage() {
         const error = await response.json();
         console.error('Error response:', error);
         
-        // Handle specific error messages
+        // Handle specific error messages with detailed information
+        let errorMessage = error.error || 'فشل في إضافة القناة';
+        
+        if (error.details) {
+          if (typeof error.details === 'string') {
+            errorMessage += `\n\nالتفاصيل: ${error.details}`;
+          } else if (typeof error.details === 'object') {
+            errorMessage += `\n\nالتفاصيل: ${JSON.stringify(error.details, null, 2)}`;
+          }
+        }
+        
+        // Handle specific error types
         if (error.error === 'Channel with this ID already exists') {
-          alert('القناة بهذا المعرف موجودة بالفعل');
+          alert('القناة بهذا المعرف موجودة بالفعل\n\nالمعرف: ' + newChannel.id);
+        } else if (error.error === 'Database connection failed') {
+          alert('فشل الاتصال بقاعدة البيانات\n\nالتفاصيل: ' + (error.details || 'يرجى التحقق من إعدادات قاعدة البيانات'));
         } else if (error.error === 'Database connection error. Please check database configuration.') {
-          alert('خطأ في الاتصال بقاعدة البيانات. يرجى التحقق من الإعدادات.');
+          alert('خطأ في الاتصال بقاعدة البيانات\n\nالتفاصيل: ' + (error.details || 'يرجى التحقق من إعدادات قاعدة البيانات'));
+        } else if (error.error === 'Channel ID must start with UC...') {
+          alert('معرف القناة يجب أن يبدأ بـ UC...\n\nالمعرف المدخل: ' + (error.details?.providedId || newChannel.id));
+        } else if (error.error === 'Channel name is too long') {
+          alert('اسم القناة طويل جدًا\n\nالحد الأقصى: 100 حرف\nالطول الحالي: ' + (error.details?.nameLength || newChannel.name.length));
+        } else if (error.error === 'Channel ID is too long') {
+          alert('معرف القناة طويل جدًا\n\nالحد الأقصى: 50 حرف\nالطول الحالي: ' + (error.details?.idLength || newChannel.id.length));
+        } else if (error.error === 'Invalid data provided') {
+          alert('بيانات غير صالحة\n\nالتفاصيل: ' + (error.details || 'يرجى التحقق من البيانات المدخلة'));
         } else {
-          alert(error.error || `فشل في إضافة القناة: ${error.details || 'خطأ غير معروف'}`);
+          alert(errorMessage);
         }
       }
     } catch (error) {
