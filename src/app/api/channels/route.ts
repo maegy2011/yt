@@ -75,6 +75,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if table exists by trying to query it first
+    try {
+      console.log('Checking if channels table exists...');
+      await db.channel.findFirst();
+      console.log('Channels table exists');
+    } catch (tableError) {
+      console.error('Channels table might not exist:', tableError);
+      return NextResponse.json(
+        { 
+          error: 'Database table not found', 
+          details: 'The channels table does not exist. Please run database setup first.',
+          suggestion: 'Visit /api/setup-database to create the table'
+        },
+        { status: 500 }
+      );
+    }
+
     const channel = await db.channel.create({
       data: {
         id,
@@ -106,6 +123,17 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { error: 'Database connection error. Please check database configuration.', details: error.message },
           { status: 503 }
+        );
+      }
+      
+      if (error.message.includes('does not exist') || error.message.includes('table')) {
+        return NextResponse.json(
+          { 
+            error: 'Database table not found', 
+            details: error.message,
+            suggestion: 'Please run database setup first by visiting /api/setup-database'
+          },
+          { status: 500 }
         );
       }
       
