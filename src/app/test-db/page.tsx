@@ -69,6 +69,11 @@ export default function TestDatabasePage() {
     return response.json();
   };
 
+  const testDebugDatabase = async () => {
+    const response = await fetch('/api/debug-database');
+    return response.json();
+  };
+
   const testForceReset = async () => {
     const response = await fetch('/api/force-reset-database', {
       method: 'POST',
@@ -124,6 +129,15 @@ export default function TestDatabasePage() {
               >
                 <Play className="h-4 w-4 ml-2" />
                 فحص الاتصال
+              </Button>
+              
+              <Button
+                onClick={() => runTest('تصحيح قاعدة البيانات', testDebugDatabase)}
+                disabled={loading}
+                variant="secondary"
+              >
+                <Play className="h-4 w-4 ml-2" />
+                تصحيح قاعدة البيانات
               </Button>
               
               <Button
@@ -220,11 +234,12 @@ export default function TestDatabasePage() {
           <CardContent>
             <div className="space-y-2 text-sm">
               <p>1. ابدأ بفحص الاتصال بقاعدة البيانات</p>
-              <p>2. إذا كانت قاعدة البيانات تحتاج للإعداد، اضغط على "إعداد قاعدة البيانات"</p>
-              <p>3. إذا واجهت مشاكل مستمرة، استخدم "إعادة تعيين قاعدة البيانات"</p>
-              <p>4. إذا لم تنجح الطرق السابقة، استخدم "إعادة تعيين قسري" (يحذف كل شيء ويعيد الإنشاء)</p>
-              <p>5. اختبر إضافة قناة وجلب القنوات للتأكد من أن كل شيء يعمل</p>
-              <p>6. يمكنك مسح النتائج وبدء الاختبارات من جديد في أي وقت</p>
+              <p>2. استخدم "تصحيح قاعدة البيانات" للحصول على تقرير مفصل عن الحالة</p>
+              <p>3. إذا كانت قاعدة البيانات تحتاج للإعداد، اضغط على "إعداد قاعدة البيانات"</p>
+              <p>4. إذا واجهت مشاكل مستمرة، استخدم "إعادة تعيين قاعدة البيانات"</p>
+              <p>5. إذا لم تنجح الطرق السابقة، استخدم "إعادة تعيين قسري" (يحذف كل شيء ويعيد الإنشاء)</p>
+              <p>6. اختبر إضافة قناة وجلب القنوات للتأكد من أن كل شيء يعمل</p>
+              <p>7. يمكنك مسح النتائج وبدء الاختبارات من جديد في أي وقت</p>
             </div>
           </CardContent>
         </Card>

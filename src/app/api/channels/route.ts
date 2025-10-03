@@ -3,6 +3,41 @@ import { db } from '@/lib/db';
 
 export async function GET() {
   try {
+    // First check if table exists using raw SQL
+    try {
+      const tableCheck = await db.$queryRaw`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'channels'
+        ) as exists;
+      `;
+      
+      const tableExists = (tableCheck as any)[0].exists;
+      
+      if (!tableExists) {
+        console.log('Channels table does not exist');
+        return NextResponse.json(
+          { 
+            error: 'Database table not found', 
+            details: 'The channels table does not exist. Please run database setup first.',
+            suggestion: 'Visit /api/setup-database to create the table'
+          },
+          { status: 500 }
+        );
+      }
+    } catch (tableError) {
+      console.error('Error checking channels table:', tableError);
+      return NextResponse.json(
+        { 
+          error: 'Error checking database table', 
+          details: 'Failed to verify table existence. Please check database configuration.',
+          suggestion: 'Visit /api/setup-database to setup the database'
+        },
+        { status: 500 }
+      );
+    }
+
     const channels = await db.channel.findMany({
       orderBy: {
         addedAt: 'desc'
@@ -12,6 +47,21 @@ export async function GET() {
     return NextResponse.json(channels);
   } catch (error) {
     console.error('Error fetching channels:', error);
+    
+    // Check for specific database errors
+    if (error instanceof Error) {
+      if (error.message.includes('does not exist') || error.message.includes('table')) {
+        return NextResponse.json(
+          { 
+            error: 'Database table not found', 
+            details: error.message,
+            suggestion: 'Please run database setup first by visiting /api/setup-database'
+          },
+          { status: 500 }
+        );
+      }
+    }
+    
     return NextResponse.json(
       { error: 'Failed to fetch channels' },
       { status: 500 }
@@ -75,18 +125,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if table exists by trying to query it first
+    // Check if table exists using raw SQL instead of Prisma
     try {
       console.log('Checking if channels table exists...');
-      await db.channel.findFirst();
+      const tableCheck = await db.$queryRaw`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'channels'
+        ) as exists;
+      `;
+      
+      const tableExists = (tableCheck as any)[0].exists;
+      
+      if (!tableExists) {
+        console.log('Channels table does not exist');
+        return NextResponse.json(
+          { 
+            error: 'Database table not found', 
+            details: 'The channels table does not exist. Please run database setup first.',
+            suggestion: 'Visit /api/setup-database to create the table'
+          },
+          { status: 500 }
+        );
+      }
+      
       console.log('Channels table exists');
     } catch (tableError) {
-      console.error('Channels table might not exist:', tableError);
+      console.error('Error checking channels table:', tableError);
       return NextResponse.json(
         { 
-          error: 'Database table not found', 
-          details: 'The channels table does not exist. Please run database setup first.',
-          suggestion: 'Visit /api/setup-database to create the table'
+          error: 'Error checking database table', 
+          details: 'Failed to verify table existence. Please check database configuration.',
+          suggestion: 'Visit /api/setup-database to setup the database'
         },
         { status: 500 }
       );
