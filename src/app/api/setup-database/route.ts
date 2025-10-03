@@ -49,21 +49,76 @@ export async function GET() {
   }
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     console.log('POST /api/setup-database - Starting database setup...');
+    
+    // Get the request body to check if we should reset the database
+    const body = await request.json().catch(() => ({}));
+    const { reset = false } = body;
     
     // Test database connection
     await db.$connect();
     console.log('Database connected successfully');
+    
+    // If reset is requested, drop the existing table
+    if (reset) {
+      try {
+        console.log('Reset requested, dropping existing table...');
+        await db.$executeRawUnsafe('DROP TABLE IF EXISTS channels;');
+        console.log('Table dropped successfully');
+      } catch (dropError) {
+        console.log('Error dropping table (might not exist):', dropError);
+      }
+    }
     
     // Try to create the channels table if it doesn't exist
     try {
       // Check if table exists by trying to query it
       await db.channel.findFirst();
       console.log('Channels table already exists');
+      
+      // Check if the table has all required columns by trying to create a test record
+      try {
+        const testChannel = await db.channel.create({
+          data: {
+            id: 'UCsetup_test_12345',
+            name: 'قناة اختبار الإعداد',
+            description: 'قناة اختبار للتحقق من أن قاعدة البيانات تعمل',
+            category: 'اختبار'
+          }
+        });
+        
+        // Clean up the test channel
+        await db.channel.delete({
+          where: { id: 'UCsetup_test_12345' }
+        });
+        
+        console.log('Table structure is correct');
+      } catch (createError) {
+        console.log('Table structure needs to be updated');
+        
+        // Try to add missing columns one by one
+        const columnsToAdd = [
+          { name: 'created_at', definition: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
+          { name: 'updated_at', definition: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
+          { name: 'added_at', definition: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' }
+        ];
+        
+        for (const column of columnsToAdd) {
+          try {
+            const addColumnSQL = `ALTER TABLE channels ADD COLUMN IF NOT EXISTS ${column.name} ${column.definition};`;
+            await db.$executeRawUnsafe(addColumnSQL);
+            console.log(`Added column: ${column.name}`);
+          } catch (columnError) {
+            console.log(`Column ${column.name} might already exist or failed to add`);
+          }
+        }
+        
+        console.log('Table structure update completed');
+      }
     } catch (error) {
-      console.log('Channels table might not exist, attempting to create it...');
+      console.log('Channels table does not exist, attempting to create it...');
       
       // Create the table using raw SQL
       const createTableSQL = `
@@ -104,11 +159,12 @@ export async function POST() {
     
     return NextResponse.json({ 
       success: true, 
-      message: 'Database setup completed successfully',
+      message: reset ? 'Database reset and setup completed successfully' : 'Database setup completed successfully',
       details: {
         connection: 'OK',
-        table: 'Created or already exists',
-        test: 'Passed'
+        table: 'Created or updated',
+        test: 'Passed',
+        reset: reset
       }
     });
     

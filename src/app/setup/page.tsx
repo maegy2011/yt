@@ -31,11 +31,15 @@ export default function SetupPage() {
     }
   };
 
-  const setupDatabase = async () => {
+  const setupDatabase = async (reset = false) => {
     try {
       setSettingUp(true);
       const response = await fetch('/api/setup-database', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reset }),
       });
       const data = await response.json();
       setResult(data);
@@ -172,7 +176,7 @@ export default function SetupPage() {
         </Card>
 
         {/* Actions */}
-        <div className="flex gap-4 justify-center">
+        <div className="flex gap-4 justify-center flex-wrap">
           <Button
             onClick={checkDatabase}
             disabled={status === 'loading' || status === 'checking'}
@@ -183,7 +187,7 @@ export default function SetupPage() {
           
           {status === 'needs_setup' && (
             <Button
-              onClick={setupDatabase}
+              onClick={() => setupDatabase(false)}
               disabled={settingUp}
             >
               {settingUp ? (
@@ -196,7 +200,63 @@ export default function SetupPage() {
               )}
             </Button>
           )}
+          
+          {status === 'error' && (
+            <Button
+              onClick={() => setupDatabase(false)}
+              disabled={settingUp}
+              variant="secondary"
+            >
+              {settingUp ? (
+                <>
+                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  جاري الإعداد...
+                </>
+              ) : (
+                'محاولة الإعداد مرة أخرى'
+              )}
+            </Button>
+          )}
+          
+          {(status === 'error' || status === 'needs_setup') && (
+            <Button
+              onClick={() => setupDatabase(true)}
+              disabled={settingUp}
+              variant="destructive"
+            >
+              {settingUp ? (
+                <>
+                  <Loader2 className="h-4 w-4 ml-2 animate-spin" />
+                  جاري إعادة التعيين...
+                </>
+              ) : (
+                'إعادة تعيين قاعدة البيانات'
+              )}
+            </Button>
+          )}
         </div>
+
+        {/* Warning */}
+        {(status === 'error' || status === 'needs_setup') && (
+          <Card className="mt-6 bg-yellow-50 border-yellow-200">
+            <CardHeader>
+              <CardTitle className="text-yellow-800 flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" />
+                تحذير
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-yellow-700 text-sm">
+                  <strong>إعادة تعيين قاعدة البيانات</strong> ستحذف جميع القنوات الموجودة في قاعدة البيانات.
+                </p>
+                <p className="text-yellow-700 text-sm">
+                  استخدم هذا الخيار فقط إذا واجهت مشاكل مستمرة في إعداد قاعدة البيانات.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Next Steps */}
         {status === 'ready' && (
