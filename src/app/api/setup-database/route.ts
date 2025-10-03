@@ -1,9 +1,57 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
+export async function GET() {
+  try {
+    console.log('GET /api/setup-database - Checking database status...');
+    
+    // Test database connection
+    await db.$connect();
+    console.log('Database connected successfully');
+    
+    // Check if table exists
+    try {
+      await db.channel.findFirst();
+      console.log('Channels table exists');
+      
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Database is already set up',
+        details: {
+          connection: 'OK',
+          table: 'Exists',
+          status: 'Ready'
+        }
+      });
+    } catch (error) {
+      console.log('Channels table does not exist');
+      
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Database needs setup',
+        details: {
+          connection: 'OK',
+          table: 'Missing',
+          status: 'Needs setup',
+          suggestion: 'Send POST request to setup database'
+        }
+      });
+    }
+    
+  } catch (error) {
+    console.error('Database check failed:', error);
+    
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Database connection failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
 export async function POST() {
   try {
-    console.log('Starting database setup...');
+    console.log('POST /api/setup-database - Starting database setup...');
     
     // Test database connection
     await db.$connect();

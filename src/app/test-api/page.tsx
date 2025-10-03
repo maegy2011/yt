@@ -91,29 +91,31 @@ export default function TestAPIPage() {
     }
   };
 
-  const testInvalidChannel = async () => {
+  const testSetupDatabase = async () => {
     try {
       setLoading(true);
       setError('');
-      const testData = {
-        id: 'invalid_id', // Doesn't start with UC
-        name: 'قناة غير صالحة',
-        description: 'قناة بمعرف غير صالح',
-        category: 'اختبار'
-      };
-      
-      const response = await fetch('/api/channels', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testData),
-      });
-      
+      const response = await fetch('/api/setup-database');
       const data = await response.json();
-      setResults({ type: 'Add Invalid Channel', status: response.status, data, sent: testData });
+      setResults({ type: 'Setup Database Check', status: response.status, data });
     } catch (err) {
-      setError('Add invalid channel failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      setError('Setup database check failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testSetupDatabasePost = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await fetch('/api/setup-database', {
+        method: 'POST',
+      });
+      const data = await response.json();
+      setResults({ type: 'Setup Database POST', status: response.status, data });
+    } catch (err) {
+      setError('Setup database POST failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }
@@ -142,9 +144,25 @@ export default function TestAPIPage() {
           </button>
           
           <button
-            onClick={testAddChannel}
+            onClick={testSetupDatabase}
             disabled={loading}
             className="p-4 bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50"
+          >
+            فحص قاعدة البيانات
+          </button>
+          
+          <button
+            onClick={testSetupDatabasePost}
+            disabled={loading}
+            className="p-4 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:opacity-50"
+          >
+            إعداد قاعدة البيانات
+          </button>
+          
+          <button
+            onClick={testAddChannel}
+            disabled={loading}
+            className="p-4 bg-teal-500 text-white rounded hover:bg-teal-600 disabled:opacity-50"
           >
             إضافة قناة اختبار
           </button>
@@ -155,14 +173,6 @@ export default function TestAPIPage() {
             className="p-4 bg-yellow-500 text-white rounded hover:bg-yellow-600 disabled:opacity-50"
           >
             إضافة قناة مكررة
-          </button>
-          
-          <button
-            onClick={testInvalidChannel}
-            disabled={loading}
-            className="p-4 bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
-          >
-            إضافة قناة غير صالحة
           </button>
         </div>
 
@@ -208,12 +218,21 @@ export default function TestAPIPage() {
         <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded">
           <h3 className="font-bold mb-2">كيفية الاستخدام:</h3>
           <ol className="list-decimal list-inside space-y-1 text-sm">
+            <li>اضغط على "فحص قاعدة البيانات" للتحقق من حالة الجدول</li>
+            <li>إذا كانت تحتاج للإعداد، اضغط على "إعداد قاعدة البيانات"</li>
             <li>اضغط على "اختبار الصحة" للتحقق من حالة النظام</li>
             <li>اضغط على "عرض القنوات" لرؤية القنوات الحالية</li>
             <li>اضغط على "إضافة قناة اختبار" لإضافة قناة جديدة</li>
             <li>جرب الاختبارات الأخرى لفحص معالجة الأخطاء</li>
             <li>شاهد النتائج في الأسفل لفهم المشاكل</li>
           </ol>
+        </div>
+
+        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded">
+          <h3 className="font-bold mb-2">صفحة إعداد مخصصة:</h3>
+          <p className="text-sm">
+            يمكنك أيضاً استخدام صفحة الإعداد المخصصة: <a href="/setup" className="underline text-blue-600">/setup</a>
+          </p>
         </div>
       </div>
     </div>
