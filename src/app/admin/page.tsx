@@ -36,6 +36,8 @@ export default function AdminPage() {
     category: ''
   });
   const [adding, setAdding] = useState(false);
+  const [systemStatus, setSystemStatus] = useState<any>(null);
+  const [checkingStatus, setCheckingStatus] = useState(false);
 
   useEffect(() => {
     // Check if already authenticated
@@ -43,8 +45,24 @@ export default function AdminPage() {
     if (auth === 'true') {
       setIsAuthenticated(true);
       fetchChannels();
+      checkSystemStatus();
     }
   }, []);
+
+  const checkSystemStatus = async () => {
+    try {
+      setCheckingStatus(true);
+      const response = await fetch('/api/health');
+      if (response.ok) {
+        const status = await response.json();
+        setSystemStatus(status);
+      }
+    } catch (error) {
+      console.error('Error checking system status:', error);
+    } finally {
+      setCheckingStatus(false);
+    }
+  };
 
   const handleLogin = () => {
     // Simple password authentication (in production, use proper auth)
@@ -52,6 +70,7 @@ export default function AdminPage() {
       setIsAuthenticated(true);
       localStorage.setItem('adminAuth', 'true');
       fetchChannels();
+      checkSystemStatus();
     } else {
       alert('كلمة المرور غير صحيحة');
     }
@@ -106,11 +125,19 @@ export default function AdminPage() {
       } else {
         const error = await response.json();
         console.error('Error response:', error);
-        alert(error.error || 'فشل في إضافة القناة');
+        
+        // Handle specific error messages
+        if (error.error === 'Channel with this ID already exists') {
+          alert('القناة بهذا المعرف موجودة بالفعل');
+        } else if (error.error === 'Database connection error. Please check database configuration.') {
+          alert('خطأ في الاتصال بقاعدة البيانات. يرجى التحقق من الإعدادات.');
+        } else {
+          alert(error.error || `فشل في إضافة القناة: ${error.details || 'خطأ غير معروف'}`);
+        }
       }
     } catch (error) {
       console.error('Error adding channel:', error);
-      alert('فشل في إضافة القناة: ' + error.message);
+      alert('فشل في إضافة القناة: ' + (error instanceof Error ? error.message : 'خطأ غير معروف'));
     } finally {
       setAdding(false);
     }
@@ -202,6 +229,82 @@ export default function AdminPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* System Status */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>حالة النظام</span>
+              <Button 
+                onClick={checkSystemStatus} 
+                disabled={checkingStatus}
+                variant="outline"
+                size="sm"
+              >
+                {checkingStatus ? 'جاري الفحص...' : 'تحديث الحالة'}
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {systemStatus ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-3 border rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-3 h-3 rounded-full ${systemStatus.status === 'healthy' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span className="font-semibold">حالة النظام</span>
+                    </div>
+                    <p className={`text-sm ${systemStatus.status === 'healthy' ? 'text-green-600' : 'text-red-600'}`}>
+                      {systemStatus.status === 'healthy' ? 'يعمل بشكل جيد' : 'هناك مشكلة'}
+                    </p>
+                  </div>
+                  
+                  <div className="p-3 border rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-3 h-3 rounded-full ${systemStatus.database.connected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span className="font-semibold">قاعدة البيانات</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {systemStatus.database.connected ? 'متصل' : 'غير متصل'}
+                      {systemStatus.database.provider && ` (${systemStatus.database.provider})`}
+                    </p>
+                  </div>
+                  
+                  <div className="p-3 border rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-3 h-3 rounded-full ${systemStatus.youtube.apiKey === 'configured' ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+                      <span className="font-semibold">YouTube API</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {systemStatus.youtube.apiKey === 'configured' 
+                        ? (systemStatus.youtube.isDemo ? 'وضع التجريب' : 'مكون')
+                        : 'غير مكون'
+                      }
+                    </p>
+                  </div>
+                </div>
+                
+                {systemStatus.status !== 'healthy' && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800">
+                      <strong>تنبيه:</strong> هناك مشكلة في النظام. يرجى التحقق من متغيرات البيئة وإعدادات قاعدة البيانات.
+                    </p>
+                  </div>
+                )}
+                
+                {systemStatus.youtube.isDemo && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      <strong>ملاحظة:</strong> النظام يعمل في وضع التجريب. لإظهار الفيديوهات الحقيقية، يرجى إضافة مفتاح YouTube API صحيح في متغيرات البيئة.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">جاري تحميل حالة النظام...</p>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Add Channel Section */}
         <Card className="mb-8">
           <CardHeader>
