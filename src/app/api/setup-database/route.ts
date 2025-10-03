@@ -9,29 +9,89 @@ export async function GET() {
     await db.$connect();
     console.log('Database connected successfully');
     
-    // Check if table exists
+    // Check if table exists using raw SQL
     try {
-      await db.channel.findFirst();
-      console.log('Channels table exists');
+      const tableCheck = await db.$queryRaw`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'channels'
+        ) as exists;
+      `;
       
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Database is already set up',
-        details: {
-          connection: 'OK',
-          table: 'Exists',
-          status: 'Ready'
+      const tableExists = (tableCheck as any)[0].exists;
+      
+      if (tableExists) {
+        console.log('Channels table exists');
+        
+        // Check if table has all required columns
+        const requiredColumns = ['created_at', 'updated_at', 'added_at'];
+        let missingColumns: string[] = [];
+        
+        for (const columnName of requiredColumns) {
+          const columnCheck = await db.$queryRaw`
+            SELECT EXISTS (
+              SELECT FROM information_schema.columns 
+              WHERE table_schema = 'public' 
+              AND table_name = 'channels' 
+              AND column_name = ${columnName}
+            ) as exists;
+          `;
+          
+          const columnExists = (columnCheck as any)[0].exists;
+          if (!columnExists) {
+            missingColumns.push(columnName);
+          }
         }
-      });
+        
+        if (missingColumns.length === 0) {
+          return NextResponse.json({ 
+            success: true, 
+            message: 'Database is already set up',
+            details: {
+              connection: 'OK',
+              table: 'Exists',
+              columns: 'Complete',
+              status: 'Ready'
+            }
+          });
+        } else {
+          return NextResponse.json({ 
+            success: false, 
+            message: 'Database needs column updates',
+            details: {
+              connection: 'OK',
+              table: 'Exists',
+              missingColumns: missingColumns,
+              status: 'Needs setup',
+              suggestion: 'Send POST request to update database'
+            }
+          });
+        }
+      } else {
+        console.log('Channels table does not exist');
+        
+        return NextResponse.json({ 
+          success: false, 
+          message: 'Database needs setup',
+          details: {
+            connection: 'OK',
+            table: 'Missing',
+            status: 'Needs setup',
+            suggestion: 'Send POST request to setup database'
+          }
+        });
+      }
+      
     } catch (error) {
-      console.log('Channels table does not exist');
+      console.log('Error checking table existence:', error);
       
       return NextResponse.json({ 
         success: false, 
         message: 'Database needs setup',
         details: {
           connection: 'OK',
-          table: 'Missing',
+          table: 'Unknown',
           status: 'Needs setup',
           suggestion: 'Send POST request to setup database'
         }
@@ -72,57 +132,28 @@ export async function POST(request: Request) {
       }
     }
     
-    // Try to create the channels table if it doesn't exist
+    // Check if table exists and has the correct structure using raw SQL
+    let tableExists = false;
     try {
-      // Check if table exists by trying to query it
-      await db.channel.findFirst();
-      console.log('Channels table already exists');
+      const tableCheck = await db.$queryRaw`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'channels'
+        ) as exists;
+      `;
       
-      // Check if the table has all required columns by trying to create a test record
-      try {
-        const testChannel = await db.channel.create({
-          data: {
-            id: 'UCsetup_test_12345',
-            name: 'قناة اختبار الإعداد',
-            description: 'قناة اختبار للتحقق من أن قاعدة البيانات تعمل',
-            category: 'اختبار'
-          }
-        });
-        
-        // Clean up the test channel
-        await db.channel.delete({
-          where: { id: 'UCsetup_test_12345' }
-        });
-        
-        console.log('Table structure is correct');
-      } catch (createError) {
-        console.log('Table structure needs to be updated');
-        
-        // Try to add missing columns one by one
-        const columnsToAdd = [
-          { name: 'created_at', definition: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
-          { name: 'updated_at', definition: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
-          { name: 'added_at', definition: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' }
-        ];
-        
-        for (const column of columnsToAdd) {
-          try {
-            const addColumnSQL = `ALTER TABLE channels ADD COLUMN IF NOT EXISTS ${column.name} ${column.definition};`;
-            await db.$executeRawUnsafe(addColumnSQL);
-            console.log(`Added column: ${column.name}`);
-          } catch (columnError) {
-            console.log(`Column ${column.name} might already exist or failed to add`);
-          }
-        }
-        
-        console.log('Table structure update completed');
-      }
+      tableExists = (tableCheck as any)[0].exists;
+      console.log('Table exists:', tableExists);
     } catch (error) {
-      console.log('Channels table does not exist, attempting to create it...');
-      
+      console.log('Error checking table existence:', error);
+    }
+    
+    if (!tableExists) {
+      console.log('Creating new table...');
       // Create the table using raw SQL
       const createTableSQL = `
-        CREATE TABLE IF NOT EXISTS channels (
+        CREATE TABLE channels (
           id VARCHAR(50) PRIMARY KEY,
           name VARCHAR(100) NOT NULL,
           description TEXT,
@@ -135,38 +166,83 @@ export async function POST(request: Request) {
       `;
       
       await db.$executeRawUnsafe(createTableSQL);
-      console.log('Channels table created successfully');
+      console.log('Table created successfully');
+    } else {
+      console.log('Table exists, checking structure...');
+      
+      // Check for missing columns
+      const requiredColumns = [
+        { name: 'created_at', definition: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
+        { name: 'updated_at', definition: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' },
+        { name: 'added_at', definition: 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' }
+      ];
+      
+      for (const column of requiredColumns) {
+        try {
+          // Check if column exists
+          const columnCheck = await db.$queryRaw`
+            SELECT EXISTS (
+              SELECT FROM information_schema.columns 
+              WHERE table_schema = 'public' 
+              AND table_name = 'channels' 
+              AND column_name = ${column.name}
+            ) as exists;
+          `;
+          
+          const columnExists = (columnCheck as any)[0].exists;
+          
+          if (!columnExists) {
+            console.log(`Adding column: ${column.name}`);
+            const addColumnSQL = `ALTER TABLE channels ADD COLUMN ${column.name} ${column.definition};`;
+            await db.$executeRawUnsafe(addColumnSQL);
+            console.log(`Column ${column.name} added successfully`);
+          } else {
+            console.log(`Column ${column.name} already exists`);
+          }
+        } catch (columnError) {
+          console.log(`Error checking/adding column ${column.name}:`, columnError);
+        }
+      }
     }
     
-    // Test by inserting a sample channel
-    const testChannel = await db.channel.create({
-      data: {
-        id: 'UCsetup_test_12345',
-        name: 'قناة اختبار الإعداد',
-        description: 'قناة اختبار للتحقق من أن قاعدة البيانات تعمل',
-        category: 'اختبار'
-      }
-    });
-    
-    console.log('Test channel created:', testChannel);
-    
-    // Clean up the test channel
-    await db.channel.delete({
-      where: { id: 'UCsetup_test_12345' }
-    });
-    
-    console.log('Test channel cleaned up');
-    
-    return NextResponse.json({ 
-      success: true, 
-      message: reset ? 'Database reset and setup completed successfully' : 'Database setup completed successfully',
-      details: {
-        connection: 'OK',
-        table: 'Created or updated',
-        test: 'Passed',
-        reset: reset
-      }
-    });
+    // Test the table structure using raw SQL instead of Prisma
+    try {
+      console.log('Testing table structure...');
+      
+      // Insert a test record using raw SQL
+      const testId = 'UCsetup_test_' + Date.now();
+      await db.$executeRaw`
+        INSERT INTO channels (id, name, description, category)
+        VALUES (${testId}, ${'قناة اختبار الإعداد'}, ${'قناة اختبار للتحقق من أن قاعدة البيانات تعمل'}, ${'اختبار'})
+      `;
+      
+      console.log('Test record inserted successfully');
+      
+      // Clean up the test record
+      await db.$executeRaw`DELETE FROM channels WHERE id = ${testId}`;
+      console.log('Test record cleaned up');
+      
+      return NextResponse.json({ 
+        success: true, 
+        message: reset ? 'Database reset and setup completed successfully' : 'Database setup completed successfully',
+        details: {
+          connection: 'OK',
+          table: tableExists ? 'Updated' : 'Created',
+          test: 'Passed',
+          reset: reset
+        }
+      });
+      
+    } catch (testError) {
+      console.error('Table structure test failed:', testError);
+      
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Table structure test failed',
+        details: testError instanceof Error ? testError.message : 'Unknown error',
+        stack: testError instanceof Error ? testError.stack : undefined
+      }, { status: 500 });
+    }
     
   } catch (error) {
     console.error('Database setup failed:', error);

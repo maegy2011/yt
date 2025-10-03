@@ -69,6 +69,13 @@ export default function TestDatabasePage() {
     return response.json();
   };
 
+  const testForceReset = async () => {
+    const response = await fetch('/api/force-reset-database', {
+      method: 'POST',
+    });
+    return response.json();
+  };
+
   const testGetChannels = async () => {
     const response = await fetch('/api/channels');
     return response.json();
@@ -134,6 +141,15 @@ export default function TestDatabasePage() {
               >
                 <Trash2 className="h-4 w-4 ml-2" />
                 إعادة تعيين قاعدة البيانات
+              </Button>
+              
+              <Button
+                onClick={() => runTest('إعادة تعيين قسري', testForceReset)}
+                disabled={loading}
+                variant="destructive"
+              >
+                <Trash2 className="h-4 w-4 ml-2" />
+                إعادة تعيين قسري
               </Button>
               
               <Button
@@ -206,8 +222,9 @@ export default function TestDatabasePage() {
               <p>1. ابدأ بفحص الاتصال بقاعدة البيانات</p>
               <p>2. إذا كانت قاعدة البيانات تحتاج للإعداد، اضغط على "إعداد قاعدة البيانات"</p>
               <p>3. إذا واجهت مشاكل مستمرة، استخدم "إعادة تعيين قاعدة البيانات"</p>
-              <p>4. اختبر إضافة قناة وجلب القنوات للتأكد من أن كل شيء يعمل</p>
-              <p>5. يمكنك مسح النتائج وبدء الاختبارات من جديد في أي وقت</p>
+              <p>4. إذا لم تنجح الطرق السابقة، استخدم "إعادة تعيين قسري" (يحذف كل شيء ويعيد الإنشاء)</p>
+              <p>5. اختبر إضافة قناة وجلب القنوات للتأكد من أن كل شيء يعمل</p>
+              <p>6. يمكنك مسح النتائج وبدء الاختبارات من جديد في أي وقت</p>
             </div>
           </CardContent>
         </Card>
