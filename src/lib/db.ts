@@ -7,19 +7,7 @@ const globalForPrisma = globalThis as unknown as {
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: ['query', 'error', 'warn'],
+    log: ['query'],
   })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
-
-// Test database connection
-export async function testConnection() {
-  try {
-    await db.$connect();
-    console.log('Database connected successfully');
-    return true;
-  } catch (error) {
-    console.error('Database connection failed:', error);
-    return false;
-  }
-}

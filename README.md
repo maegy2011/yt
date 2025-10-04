@@ -1,141 +1,141 @@
-# اليوتيوب الإسلامي
+# 🚀 Welcome to Z.ai Code Scaffold
 
-بوابتك الآمنة والموثوقة للمعرفة الإسلامية على يوتيوب، بدون إعلانات مشتتة أو محتوى غير لائق.
+A modern, production-ready web application scaffold powered by cutting-edge technologies, designed to accelerate your development with [Z.ai](https://chat.z.ai)'s AI-powered coding assistance.
 
-## المميزات
+## ✨ Technology Stack
 
-- 🏠 **الصفحة الرئيسية**: عرض القنوات المميزة وأحدث الفيديوهات
-- 🔍 **بحث آمن**: البحث يقتصر على المحتوى المعتمد فقط
-- 📺 **مشغل فيديو**: مشاهدة الفيديوهات مباشرة من يوتيوب
-- 📱 **تصميم متجاوب**: يعمل بشكل ممتاز على جميع الأجهزة
-- 🌐 **دعم اللغة العربية**: واجهة كاملة باللغة العربية مع دعم RTL
-- 🔧 **لوحة تحكم**: لإدارة القنوات المعتمدة
+This scaffold provides a robust foundation built with:
 
-## التقنيات المستخدمة
+### 🎯 Core Framework
+- **⚡ Next.js 15** - The React framework for production with App Router
+- **📘 TypeScript 5** - Type-safe JavaScript for better developer experience
+- **🎨 Tailwind CSS 4** - Utility-first CSS framework for rapid UI development
 
-- **Frontend**: Next.js 15, React, TypeScript, Tailwind CSS
-- **Backend**: Next.js API Routes, Prisma ORM
-- **Database**: SQLite
-- **External API**: YouTube Data API v3
+### 🧩 UI Components & Styling
+- **🧩 shadcn/ui** - High-quality, accessible components built on Radix UI
+- **🎯 Lucide React** - Beautiful & consistent icon library
+- **🌈 Framer Motion** - Production-ready motion library for React
+- **🎨 Next Themes** - Perfect dark mode in 2 lines of code
 
-## الإعداد والتشغيل
+### 📋 Forms & Validation
+- **🎣 React Hook Form** - Performant forms with easy validation
+- **✅ Zod** - TypeScript-first schema validation
 
-### 1. تثبيت الاعتماديات
+### 🔄 State Management & Data Fetching
+- **🐻 Zustand** - Simple, scalable state management
+- **🔄 TanStack Query** - Powerful data synchronization for React
+- **🌐 Axios** - Promise-based HTTP client
+
+### 🗄️ Database & Backend
+- **🗄️ Prisma** - Next-generation Node.js and TypeScript ORM
+- **🔐 NextAuth.js** - Complete open-source authentication solution
+
+### 🎨 Advanced UI Features
+- **📊 TanStack Table** - Headless UI for building tables and datagrids
+- **🖱️ DND Kit** - Modern drag and drop toolkit for React
+- **📊 Recharts** - Redefined chart library built with React and D3
+- **🖼️ Sharp** - High performance image processing
+
+### 🌍 Internationalization & Utilities
+- **🌍 Next Intl** - Internationalization library for Next.js
+- **📅 Date-fns** - Modern JavaScript date utility library
+- **🪝 ReactUse** - Collection of essential React hooks for modern development
+
+## 🎯 Why This Scaffold?
+
+- **🏎️ Fast Development** - Pre-configured tooling and best practices
+- **🎨 Beautiful UI** - Complete shadcn/ui component library with advanced interactions
+- **🔒 Type Safety** - Full TypeScript configuration with Zod validation
+- **📱 Responsive** - Mobile-first design principles with smooth animations
+- **🗄️ Database Ready** - Prisma ORM configured for rapid backend development
+- **🔐 Auth Included** - NextAuth.js for secure authentication flows
+- **📊 Data Visualization** - Charts, tables, and drag-and-drop functionality
+- **🌍 i18n Ready** - Multi-language support with Next Intl
+- **🚀 Production Ready** - Optimized build and deployment settings
+- **🤖 AI-Friendly** - Structured codebase perfect for AI assistance
+
+## 🚀 Quick Start
 
 ```bash
+# Install dependencies
 npm install
-```
 
-### 2. إعداد قاعدة البيانات
-
-```bash
-npm run db:push
-```
-
-### 3. إعداد مفتاح YouTube API
-
-1. اذهب إلى [Google Cloud Console](https://console.cloud.google.com/)
-2. أنشئ مشروعاً جديداً
-3. فعّل **YouTube Data API v3**
-4. من "Credentials"، أنشئ مفتاح **API Key**
-5. قم بتقييد المفتاح بالسماح فقط لواجهة برمجة التطبيقات `YouTube Data API v3`
-
-### 4. إضافة متغير البيئة
-
-أنشئ ملف `.env.local` في جذر المشروع وأضف:
-
-```
-YOUTUBE_API_KEY=your_youtube_api_key_here
-DATABASE_URL="file:./dev.db"
-```
-
-### 5. تشغيل المشروع
-
-```bash
+# Start development server
 npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
 ```
 
-## استخدام لوحة التحكم
+Open [http://localhost:3000](http://localhost:3000) to see your application running.
 
-1. اذهب إلى `/admin`
-2. استخدم كلمة المرور: `admin123`
-3. أضف القنوات الإسلامية المعتمدة باستخدام معرفات القنوات من يوتيوب
+## 🤖 Powered by Z.ai
 
-## إضافة القنوات
+This scaffold is optimized for use with [Z.ai](https://chat.z.ai) - your AI assistant for:
 
-لإضافة قناة جديدة:
+- **💻 Code Generation** - Generate components, pages, and features instantly
+- **🎨 UI Development** - Create beautiful interfaces with AI assistance  
+- **🔧 Bug Fixing** - Identify and resolve issues with intelligent suggestions
+- **📝 Documentation** - Auto-generate comprehensive documentation
+- **🚀 Optimization** - Performance improvements and best practices
 
-1. ابحث عن القناة على يوتيوب
-2. انسخ معرف القناة (Channel ID) من رابط القناة (يبدأ بـ UC...)
-3. اذهب إلى لوحة التحكم `/admin`
-4. اضغط على "إضافة قناة"
-5. أدخل معرف القناة والمعلومات المطلوبة
+Ready to build something amazing? Start chatting with Z.ai at [chat.z.ai](https://chat.z.ai) and experience the future of AI-powered development!
 
-## هيكل المشروع
+## 📁 Project Structure
 
 ```
 src/
-├── app/
-│   ├── api/           # مسارات API
-│   ├── admin/         # لوحة التحكم
-│   ├── channel/       # صفحات القنوات
-│   ├── video/         # صفحات الفيديوهات
-│   ├── layout.tsx     # التخطيط الرئيسي
-│   └── page.tsx       # الصفحة الرئيسية
-├── components/ui/     # مكونات واجهة المستخدم
-└── lib/              # المكتبات المساعدة
+├── app/                 # Next.js App Router pages
+├── components/          # Reusable React components
+│   └── ui/             # shadcn/ui components
+├── hooks/              # Custom React hooks
+└── lib/                # Utility functions and configurations
 ```
 
-## المساهمة
+## 🎨 Available Features & Components
 
-هذا المشروع مفتوح للمساهمة. إذا كنت ترغب في إضافة ميزات جديدة أو تحسين الميزات الحالية، فلا تتردد في إنشاء طلب سحب.
+This scaffold includes a comprehensive set of modern web development tools:
 
-## النشر على Vercel
+### 🧩 UI Components (shadcn/ui)
+- **Layout**: Card, Separator, Aspect Ratio, Resizable Panels
+- **Forms**: Input, Textarea, Select, Checkbox, Radio Group, Switch
+- **Feedback**: Alert, Toast (Sonner), Progress, Skeleton
+- **Navigation**: Breadcrumb, Menubar, Navigation Menu, Pagination
+- **Overlay**: Dialog, Sheet, Popover, Tooltip, Hover Card
+- **Data Display**: Badge, Avatar, Calendar
 
-### 1. ربط المشروع بـ GitHub
+### 📊 Advanced Data Features
+- **Tables**: Powerful data tables with sorting, filtering, pagination (TanStack Table)
+- **Charts**: Beautiful visualizations with Recharts
+- **Forms**: Type-safe forms with React Hook Form + Zod validation
 
-1. اضف المشروع إلى مستودع GitHub
-2. اذهب إلى [Vercel](https://vercel.com)
-3. استورد المشروع من GitHub
+### 🎨 Interactive Features
+- **Animations**: Smooth micro-interactions with Framer Motion
+- **Drag & Drop**: Modern drag-and-drop functionality with DND Kit
+- **Theme Switching**: Built-in dark/light mode support
 
-### 2. إعداد متغيرات البيئة على Vercel
+### 🔐 Backend Integration
+- **Authentication**: Ready-to-use auth flows with NextAuth.js
+- **Database**: Type-safe database operations with Prisma
+- **API Client**: HTTP requests with Axios + TanStack Query
+- **State Management**: Simple and scalable with Zustand
 
-في إعدادات المشروع على Vercel، أضف المتغيرات التالية:
+### 🌍 Production Features
+- **Internationalization**: Multi-language support with Next Intl
+- **Image Optimization**: Automatic image processing with Sharp
+- **Type Safety**: End-to-end TypeScript with Zod validation
+- **Essential Hooks**: 100+ useful React hooks with ReactUse for common patterns
 
-```
-DATABASE_URL=your_database_url
-YOUTUBE_API_KEY=your_youtube_api_key
-```
+## 🤝 Get Started with Z.ai
 
-#### لقاعدة البيانات:
-- **للتطوير المحلي**: `file:./dev.db`
-- **للنشر على Vercel**: استخدم قاعدة بيانات حقيقية مثل PostgreSQL أو MySQL
+1. **Clone this scaffold** to jumpstart your project
+2. **Visit [chat.z.ai](https://chat.z.ai)** to access your AI coding assistant
+3. **Start building** with intelligent code generation and assistance
+4. **Deploy with confidence** using the production-ready setup
 
-#### لمفتاح YouTube API:
-1. اذهب إلى [Google Cloud Console](https://console.cloud.google.com/)
-2. أنشئ مشروعاً جديداً
-3. فعّل **YouTube Data API v3**
-4. أنشئ مفتاح API وقيده بالسماح فقط لـ YouTube Data API v3
+---
 
-### 3. حل مشاكل الشائعة
-
-#### مشكلة Prisma Client:
-إذا واجهت خطأ `PrismaClientInitializationError`، تأكد من:
-- إضافة `postinstall` script في package.json (موجود مسبقاً)
-- تشغيل `prisma generate` قبل البناء
-- إعداد متغيرات البيئة بشكل صحيح
-
-#### مشكلة قاعدة البيانات:
-للنشر الإنتاجي، استخدم قاعدة بيانات حقيقية بدلاً من SQLite:
-- PostgreSQL (موصى به للإنتاج)
-- MySQL
-- PlanetScale
-- Supabase
-
-### 4. النشر التلقائي
-
-بعد ربط المشروع بـ GitHub، Vercel سيقوم بنشر التطبيق تلقائياً عند كل دفعة (push) إلى الفرع الرئيسي.
-
-## الرخصة
-
-هذا المشروع مرخص تحت رخصة MIT.
+Built with ❤️ for the developer community. Supercharged by [Z.ai](https://chat.z.ai) 🚀
