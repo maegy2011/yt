@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Cairo } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
-import SetupRedirect from "@/components/setup-redirect";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,22 +14,25 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
+const cairo = Cairo({
+  variable: "--font-cairo",
+  subsets: ["arabic"],
+});
+
 export const metadata: Metadata = {
-  title: "YT Islami - نظام إدارة الفيديوهات الإسلامية",
-  description: "نظام متكامل لإدارة ومشاركة الفيديوهات الإسلامية من يوتيوب",
-  keywords: ["YT Islami", "فيديوهات إسلامية", "يوتيوب", "إدارة المحتوى", "الإسلام"],
-  authors: [{ name: "YT Islami Team" }],
+  title: "YouTube Islami - فيديوهات إسلامية",
+  description: "منصة فيديوهات إسلامية مختارة بعناية وآمنة للعائلة",
+  keywords: ["إسلامي", "فيديو", "يوتيوب", "تعليم", "قرآن", "سنة"],
+  authors: [{ name: "YouTube Islami Team" }],
   openGraph: {
-    title: "YT Islami - نظام إدارة الفيديوهات الإسلامية",
-    description: "نظام متكامل لإدارة ومشاركة الفيديوهات الإسلامية من يوتيوب",
-    url: "https://ytislami.com",
-    siteName: "YT Islami",
+    title: "YouTube Islami - فيديوهات إسلامية",
+    description: "منصة فيديوهات إسلامية مختارة بعناية وآمنة للعائلة",
     type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "YT Islami - نظام إدارة الفيديوهات الإسلامية",
-    description: "نظام متكامل لإدارة ومشاركة الفيديوهات الإسلامية من يوتيوب",
   },
 };
 
@@ -41,11 +44,9 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${cairo.variable} antialiased bg-background text-foreground`}
       >
-        <SetupRedirect>
-          {children}
-        </SetupRedirect>
+        {children}
         <Toaster />
       </body>
     </html>

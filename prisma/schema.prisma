@@ -1,4 +1,4 @@
-// This is your Prisma schema file for YT Islami project
+// This is your Prisma schema file for YouTube Islami
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
@@ -11,89 +11,83 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  role         Role     @default(VIEWER)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password_hash String   @map("password_hash")
+  role          String   @default("viewer") // "admin" or "viewer"
+  created_at    DateTime @default(now()) @map("created_at")
+  updated_at    DateTime @updatedAt @map("updated_at")
 
   // Relations
-  addedChannels   WhitelistedChannel[]
-  addedVideos     WhitelistedVideo[]
-  auditLogs       AuditLog[]
+  added_videos   WhitelistedVideo[]
+  added_channels WhitelistedChannel[]
+  audit_logs     AuditLog[]
 
   @@map("users")
 }
 
 model WhitelistedChannel {
-  id           String   @id @default(cuid())
-  channelId    String   @unique
-  channelTitle String?
-  addedBy      String
-  addedAt      DateTime @default(now())
+  id            String   @id @default(cuid())
+  channel_id    String   @unique @map("channel_id")
+  channel_title String?  @map("channel_title")
+  added_by      String   @map("added_by")
+  added_at      DateTime @default(now()) @map("added_at")
 
   // Relations
-  addedByUser  User               @relation(fields: [addedBy], references: [id])
-  videos       WhitelistedVideo[]
+  videos  WhitelistedVideo[]
+  adder   User             @relation(fields: [added_by], references: [id])
 
   @@map("whitelisted_channels")
 }
 
 model WhitelistedVideo {
   id           String   @id @default(cuid())
-  videoId      String   @unique
+  video_id     String   @unique @map("video_id")
   title        String?
+  channel_id   String?  @map("channel_id")
   description  String?
-  thumbnails   Json?
-  duration     String?
-  channelId    String?
-  addedBy      String
-  addedAt      DateTime @default(now())
-  isActive     Boolean  @default(true)
-  manualTags   Json?    // Store tags as JSON array
-  lastFetched  DateTime?
+  thumbnails   Json?    // Store thumbnail URLs as JSON
+  duration     String?  // ISO 8601 duration format
+  added_by     String   @map("added_by")
+  added_at     DateTime @default(now()) @map("added_at")
+  is_active    Boolean  @default(true) @map("is_active")
+  manual_tags  String?  @map("manual_tags") // Comma-separated tags stored as string
 
   // Relations
-  addedByUser  User                @relation(fields: [addedBy], references: [id])
-  channel      WhitelistedChannel? @relation(fields: [channelId], references: [channelId])
+  channel WhitelistedChannel? @relation(fields: [channel_id], references: [channel_id])
+  adder   User               @relation(fields: [added_by], references: [id])
 
   @@map("whitelisted_videos")
 }
 
 model ApiQuotaLog {
-  id             BigInt   @id @default(autoincrement())
-  date           DateTime @default(now())
-  usedUnits      Int
-  remainingUnits Int
-  recordedAt     DateTime @default(now())
+  id             Int      @id @default(autoincrement()) @map("id")
+  date           DateTime @map("date")
+  used_units     Int      @map("used_units")
+  remaining_units Int?    @map("remaining_units")
+  recorded_at    DateTime @default(now()) @map("recorded_at")
 
   @@map("apiquotalogs")
 }
 
 model AuditLog {
-  id         String   @id @default(cuid())
-  userId     String?
-  action     String
-  targetType String
-  targetId   String
-  details    Json?
-  createdAt  DateTime @default(now())
+  id          Int      @id @default(autoincrement()) @map("id")
+  user_id     String?  @map("user_id")
+  action      String   @map("action")
+  target_type String?  @map("target_type")
+  target_id   String?  @map("target_id")
+  details     Json?    @map("details")
+  created_at  DateTime @default(now()) @map("created_at")
 
   // Relations
-  user User? @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [user_id], references: [id])
 
   @@map("audit_logs")
 }
 
 model Setting {
-  key   String @id
-  value Json?
+  key   String @id @map("key")
+  value Json   @map("value")
 
   @@map("settings")
-}
-
-enum Role {
-  ADMIN
-  VIEWER
 }

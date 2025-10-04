@@ -1,102 +1,73 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { requireAdmin } from '@/lib/auth';
+import { NextResponse } from 'next/server'
+import { requireAdmin } from '@/lib/session'
+import { QuotaManager } from '@/lib/quota'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    // Verify admin authentication
-    const decoded = requireAdmin(request);
+    // Check if user is admin
+    await requireAdmin()
 
-    // Get current month quota usage
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-    
-    const quotaLogs = await db.apiQuotaLog.findMany({
-      where: {
-        date: {
-          gte: new Date(currentYear, currentMonth, 1),
-          lt: new Date(currentYear, currentMonth + 1, 1),
-        },
-      },
-      orderBy: { recordedAt: 'desc' },
-    });
-
-    // Calculate quota usage
-    const usedQuota = quotaLogs.reduce((sum, log) => sum + log.usedUnits, 0);
-    
-    // Get total quota setting
-    const quotaSetting = await db.setting.findUnique({
-      where: { key: 'api_quota_total' }
-    });
-
-    const totalQuota = quotaSetting?.value ? parseInt(quotaSetting.value as string) : 10000;
-    const remainingQuota = totalQuota - usedQuota;
-    const usagePercentage = (usedQuota / totalQuota) * 100;
-
-    // Get recent quota logs (last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const recentLogs = await db.apiQuotaLog.findMany({
-      where: {
-        recordedAt: {
-          gte: sevenDaysAgo,
-        },
-      },
-      orderBy: { recordedAt: 'desc' },
-      take: 50,
-    });
-
-    // Get daily usage for the last 7 days
-    const dailyUsage = [];
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
-      
-      const nextDate = new Date(date);
-      nextDate.setDate(nextDate.getDate() + 1);
-      
-      const dayLogs = await db.apiQuotaLog.findMany({
-        where: {
-          recordedAt: {
-            gte: date,
-            lt: nextDate,
-          },
-        },
-      });
-
-      const dayUsage = dayLogs.reduce((sum, log) => sum + log.usedUnits, 0);
-      
-      dailyUsage.push({
-        date: date.toISOString().split('T')[0],
-        usage: dayUsage,
-      });
-    }
+    const [quota, history, alerts] = await Promise.all([
+      QuotaManager.getCurrentQuota(),
+      QuotaManager.getQuotaHistory(),
+      QuotaManager.checkQuotaAlerts()
+    ])
 
     return NextResponse.json({
-      quota: {
-        total: totalQuota,
-        used: usedQuota,
-        remaining: remainingQuota,
-        percentage: usagePercentage,
-      },
-      recentLogs,
-      dailyUsage,
-    });
+      quota,
+      history,
+      alerts
+    })
   } catch (error) {
-    console.error('Error fetching quota data:', error);
+    console.error('Error fetching quota data:', error)
     
     if (error instanceof Error && error.message === 'Admin access required') {
       return NextResponse.json(
         { error: 'Admin access required' },
         { status: 403 }
-      );
+      )
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to fetch quota data' },
       { status: 500 }
-    );
+    )
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    // Check if user is admin
+    const admin = await requireAdmin()
+
+    const { total } = await request.json()
+
+    if (!total || typeof total !== 'number' || total <= 0) {
+      return NextResponse.json(
+        { error: 'Invalid quota total' },
+        { status: 400 }
+      )
+    }
+
+    await QuotaManager.updateQuotaTotal(total)
+
+    return NextResponse.json({
+      message: 'Quota total updated successfully',
+      total
+    })
+  } catch (error) {
+    console.error('Error updating quota total:', error)
+    
+    if (error instanceof Error && error.message === 'Admin access required') {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      )
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to update quota total' },
+      { status: 500 }
+    )
   }
 }

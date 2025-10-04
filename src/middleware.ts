@@ -1,73 +1,69 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { getSession } from '@/lib/session'
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  
-  // Skip middleware for static files and API routes
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/static') ||
-    pathname.includes('.')
-  ) {
-    return NextResponse.next();
-  }
+  const { pathname } = request.nextUrl
 
-  // Check if user is authenticated
-  const token = request.cookies.get('auth-token')?.value;
-  let isAuthenticated = false;
-  let userRole = null;
-
-  if (token) {
-    try {
-      // Verify token (simplified check - in production, verify JWT signature)
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      isAuthenticated = true;
-      userRole = payload.role;
-    } catch (error) {
-      // Invalid token
-      isAuthenticated = false;
-    }
-  }
-
-  // For setup check, we'll rely on the client-side SetupRedirect component
-  // This avoids database connection issues in middleware
-  // The middleware will only handle authentication and route protection
-
-  // Admin route protection
-  if (pathname.startsWith('/admin')) {
-    if (!isAuthenticated) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
+  try {
+    // Check if setup is complete by calling the setup check API
+    const setupResponse = await fetch(`${request.nextUrl.origin}/api/setup/check`, {
+      headers: {
+        'Cookie': request.headers.get('cookie') || ''
+      }
+    })
     
-    if (userRole !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/', request.url));
+    const setupData = await setupResponse.json()
+    const setupComplete = setupData.setupComplete
+
+    // If setup is not complete and not on setup page, redirect to setup
+    if (!setupComplete && pathname !== '/setup') {
+      return NextResponse.redirect(new URL('/setup', request.url))
     }
-  }
 
-  // Login page redirect if already authenticated
-  if (pathname === '/login' && isAuthenticated) {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
+    // If setup is complete and on setup page, redirect to login
+    if (setupComplete && pathname === '/setup') {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
 
-  // Setup page redirect if already authenticated and setup is complete
-  if (pathname === '/setup' && isAuthenticated) {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
+    // Protect admin routes
+    if (pathname.startsWith('/admin')) {
+      const user = await getSession()
+      
+      if (!user) {
+        return NextResponse.redirect(new URL('/login', request.url))
+      }
+      
+      if (user.role !== 'admin') {
+        return NextResponse.redirect(new URL('/', request.url))
+      }
+    }
 
-  return NextResponse.next();
+    // Protect login page - redirect if already logged in
+    if (pathname === '/login') {
+      const user = await getSession()
+      if (user) {
+        if (user.role === 'admin') {
+          return NextResponse.redirect(new URL('/admin', request.url))
+        } else {
+          return NextResponse.redirect(new URL('/', request.url))
+        }
+      }
+    }
+
+    return NextResponse.next()
+  } catch (error) {
+    console.error('Middleware error:', error)
+    // If there's an error checking setup, assume setup is not complete
+    if (pathname !== '/setup') {
+      return NextResponse.redirect(new URL('/setup', request.url))
+    }
+    return NextResponse.next()
+  }
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|public/).*)',
   ],
-};
+}
