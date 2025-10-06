@@ -4,10 +4,10 @@ import {
   SECURITY_CONSTANTS,
   isValidUrl,
   sanitizeInput,
-  validateSearchParams,
   sanitizeVideoData,
   isValidThumbnailUrl,
-  isValidDate
+  isValidDate,
+  isValidVideoId
 } from '@/lib/security'
 
 // ترتيب القنوات المطلوب
@@ -390,44 +390,17 @@ function extractDuration(entry: any): string {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
-  const query = searchParams.get('q')?.toLowerCase().trim()
-  const timeFilter = searchParams.get('timeFilter') || 'all'
-  const page = parseInt(searchParams.get('page') || '1')
-  const limit = parseInt(searchParams.get('limit') || '24')
+  const videoId = searchParams.get('id')
 
-  // Security validation
-  const validation = validateSearchParams(query || '', page, limit)
-  if (!validation.isValid) {
-    return NextResponse.json({ error: validation.error }, { status: 400 })
-  }
-
-  if (!query) {
-    return NextResponse.json({
-      videos: [],
-      channels: [],
-      pagination: {
-        currentPage: page,
-        totalPages: 0,
-        totalVideos: 0,
-        hasNextPage: false,
-        hasPreviousPage: false
-      }
-    })
+  // Validate video ID
+  if (!videoId || !isValidVideoId(videoId)) {
+    return NextResponse.json({ error: 'Invalid video ID' }, { status: 400 })
   }
 
   try {
-    const allVideos: any[] = []
-    const channelData: any[] = []
-    
-    // Fetch data from all channels
+    // Search through all channels to find the specific video
     for (const channel of CHANNELS) {
       try {
-        // Security validation for channel URL
-        if (!isValidUrl(channel.url)) {
-          console.warn(`Invalid channel URL detected: ${channel.url}`)
-          continue
-        }
-        
         // Extract channel ID from URL
         const identifier = extractChannelId(channel.url)
         if (!identifier) continue
@@ -438,9 +411,7 @@ export async function GET(request: NextRequest) {
 
         // Get channel metadata
         const channelMetadata = await getChannelMetadata(actualChannelId)
-        if (channelMetadata) {
-          channelData.push(channelMetadata)
-        }
+        if (!channelMetadata) continue
         
         // Construct RSS feed URL
         const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${actualChannelId}`
@@ -459,117 +430,104 @@ export async function GET(request: NextRequest) {
 
         if (!result.feed || !result.feed.entry) continue
 
-        const videos = result.feed.entry.map((entry: any) => {
+        // Look for the specific video by ID
+        const videoEntry = result.feed.entry.find((entry: any) => 
+          entry['yt:videoId'] && entry['yt:videoId'][0] === videoId
+        )
+
+        if (videoEntry) {
           // Extract view count from media community if available
           let viewCount = ''
-          if (entry['media:group'] && entry['media:group'][0]['media:community']) {
-            const community = entry['media:group'][0]['media:community'][0]
+          if (videoEntry['media:group'] && videoEntry['media:group'][0]['media:community']) {
+            const community = videoEntry['media:group'][0]['media:community'][0]
             if (community['media:statistics'] && community['media:statistics'][0].$.views) {
               viewCount = formatViewCount(community['media:statistics'][0].$.views)
             }
           }
           
-          // Fix publish date and generate realistic view count
-          const fixedPublishDate = fixPublishDate(entry.published[0])
+          // Fix publish date if it's in the future
+          const fixedPublishDate = fixPublishDate(videoEntry.published[0])
+          
+          // Generate realistic view count if not available or if it seems too low
           if (!viewCount || viewCount === '0' || viewCount === '1') {
             viewCount = generateRealisticViewCount(fixedPublishDate)
           }
           
-          // Sanitize all string fields to prevent XSS
-          const sanitizedVideo = sanitizeVideoData({
-            id: entry['yt:videoId'][0],
-            title: entry.title[0],
-            thumbnail: entry['media:group'][0]['media:thumbnail'][0].$.url,
-            channelName: channelMetadata?.name || entry.author[0].name[0],
-            channelLogo: channelMetadata?.logo,
-            channelId: channelMetadata?.id,
+          const video = sanitizeVideoData({
+            id: videoEntry['yt:videoId'][0],
+            title: videoEntry.title[0],
+            thumbnail: videoEntry['media:group'][0]['media:thumbnail'][0].$.url,
+            channelName: channelMetadata.name || videoEntry.author[0].name[0],
+            channelLogo: channelMetadata.logo,
+            channelId: channelMetadata.id,
             publishedAt: fixedPublishDate,
-            duration: extractDuration(entry),
+            duration: extractDuration(videoEntry),
             viewCount: viewCount,
-            description: entry['media:group'][0]['media:description'] 
-              ? entry['media:group'][0]['media:description'][0]
-              : ''
+            description: videoEntry['media:group'][0]['media:description'] ? videoEntry['media:group'][0]['media:description'][0] : ''
           })
           
           // Validate thumbnail URL
-          if (!isValidThumbnailUrl(sanitizedVideo.thumbnail)) {
-            console.warn(`Invalid thumbnail URL for video ${sanitizedVideo.id}`)
-            return null
+          if (!isValidThumbnailUrl(video.thumbnail)) {
+            console.warn(`Invalid thumbnail URL for video ${video.id}`)
+            continue
           }
-          
-          return sanitizedVideo
-        }).filter(video => video !== null) // Filter out invalid videos
 
-        allVideos.push(...videos)
+          // Get related videos from the same channel
+          const relatedVideos = result.feed.entry
+            .filter((entry: any) => entry['yt:videoId'] && entry['yt:videoId'][0] !== videoId)
+            .slice(0, 12)
+            .map((entry: any) => {
+              let relatedViewCount = ''
+              if (entry['media:group'] && entry['media:group'][0]['media:community']) {
+                const community = entry['media:group'][0]['media:community'][0]
+                if (community['media:statistics'] && community['media:statistics'][0].$.views) {
+                  relatedViewCount = formatViewCount(community['media:statistics'][0].$.views)
+                }
+              }
+              
+              // Fix publish date and generate realistic view count for related videos too
+              const relatedFixedDate = fixPublishDate(entry.published[0])
+              if (!relatedViewCount || relatedViewCount === '0' || relatedViewCount === '1') {
+                relatedViewCount = generateRealisticViewCount(relatedFixedDate)
+              }
+              
+              const relatedVideo = sanitizeVideoData({
+                id: entry['yt:videoId'][0],
+                title: entry.title[0],
+                thumbnail: entry['media:group'][0]['media:thumbnail'][0].$.url,
+                channelName: channelMetadata.name || entry.author[0].name[0],
+                channelLogo: channelMetadata.logo,
+                channelId: channelMetadata.id,
+                publishedAt: relatedFixedDate,
+                duration: extractDuration(entry),
+                viewCount: relatedViewCount,
+                description: entry['media:group'][0]['media:description'] ? entry['media:group'][0]['media:description'][0] : ''
+              })
+              
+              // Validate thumbnail URL
+              if (!isValidThumbnailUrl(relatedVideo.thumbnail)) {
+                console.warn(`Invalid thumbnail URL for related video ${relatedVideo.id}`)
+                return null
+              }
+              
+              return relatedVideo
+            }).filter(video => video !== null) // Filter out invalid videos
+
+          return NextResponse.json({
+            video,
+            channel: channelMetadata,
+            relatedVideos
+          })
+        }
       } catch (error) {
         console.error(`Error fetching data for channel ${channel.id}:`, error)
       }
     }
 
-    // Filter videos based on search query
-    let filteredVideos = allVideos.filter(video =>
-      video.title.toLowerCase().includes(query) ||
-      video.channelName.toLowerCase().includes(query) ||
-      (video.description && video.description.toLowerCase().includes(query))
-    )
-
-    // Apply time filter
-    if (timeFilter !== 'all') {
-      const now = new Date()
-      const filterDate = new Date()
-      
-      switch (timeFilter) {
-        case 'today':
-          filterDate.setHours(0, 0, 0, 0)
-          break
-        case 'week':
-          filterDate.setDate(now.getDate() - 7)
-          break
-        case 'month':
-          filterDate.setMonth(now.getMonth() - 1)
-          break
-        case 'year':
-          filterDate.setFullYear(now.getFullYear() - 1)
-          break
-      }
-
-      filteredVideos = filteredVideos.filter(video => {
-        const videoDate = new Date(video.publishedAt)
-        return videoDate >= filterDate
-      })
-    }
-
-    // Sort by publish date (newest first)
-    filteredVideos.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-
-    // Apply pagination
-    const startIndex = (page - 1) * limit
-    const endIndex = startIndex + limit
-    const paginatedVideos = filteredVideos.slice(startIndex, endIndex)
-
-    return NextResponse.json({
-      videos: paginatedVideos,
-      channels: channelData,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(filteredVideos.length / limit),
-        totalVideos: filteredVideos.length,
-        hasNextPage: endIndex < filteredVideos.length,
-        hasPreviousPage: page > 1
-      }
-    })
+    // If we get here, the video wasn't found in any channel
+    return NextResponse.json({ error: 'Video not found' }, { status: 404 })
   } catch (error) {
-    console.error('Error searching videos:', error)
-    return NextResponse.json({
-      videos: [],
-      channels: [],
-      pagination: {
-        currentPage: page,
-        totalPages: 0,
-        totalVideos: 0,
-        hasNextPage: false,
-        hasPreviousPage: false
-      }
-    })
+    console.error('Error fetching video:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
