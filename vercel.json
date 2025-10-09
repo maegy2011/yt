@@ -1,25 +1,13 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ],
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
   "env": {
     "NEXT_PUBLIC_APP_URL": "https://your-app-url.vercel.app",
     "NODE_ENV": "production"
   },
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
-  "installCommand": "npm install",
-  "framework": "nextjs",
   "functions": {
     "app/**/*.{js,ts}": {
       "maxDuration": 30
