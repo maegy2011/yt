@@ -44,74 +44,72 @@
 }
 
 :root {
-  --radius: 0.5rem;
-  /* YouTube Light Theme Colors */
-  --background: #ffffff;
-  --foreground: #030303;
-  --card: #ffffff;
-  --card-foreground: #030303;
-  --popover: #ffffff;
-  --popover-foreground: #030303;
-  --primary: #FF0000; /* YouTube Red */
-  --primary-foreground: #ffffff;
-  --secondary: #f1f1f1; /* YouTube Light Gray */
-  --secondary-foreground: #030303;
-  --muted: #f9f9f9; /* Very Light Gray */
-  --muted-foreground: #606060; /* YouTube Gray Text */
-  --accent: #e5e5e5; /* Light Border Gray */
-  --accent-foreground: #030303;
-  --destructive: #FF0000;
-  --border: #e5e5e5; /* Light Border */
-  --input: #f1f1f1;
-  --ring: #FF0000; /* YouTube Red */
-  --chart-1: #FF0000;
-  --chart-2: #FF6B6B;
-  --chart-3: #4D4D4D;
-  --chart-4: #606060;
-  --chart-5: #999999;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #030303;
-  --sidebar-primary: #FF0000;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f1f1;
-  --sidebar-accent-foreground: #030303;
-  --sidebar-border: #e5e5e5;
-  --sidebar-ring: #FF0000;
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
 .dark {
-  /* YouTube Dark Theme Colors */
-  --background: #0f0f0f; /* YouTube Dark Background */
-  --foreground: #f1f1f1;
-  --card: #1f1f1f; /* YouTube Dark Card */
-  --card-foreground: #f1f1f1;
-  --popover: #1f1f1f;
-  --popover-foreground: #f1f1f1;
-  --primary: #FF0000; /* YouTube Red */
-  --primary-foreground: #ffffff;
-  --secondary: #272727; /* YouTube Dark Secondary */
-  --secondary-foreground: #f1f1f1;
-  --muted: #1f1f1f;
-  --muted-foreground: #aaaaaa; /* YouTube Dark Gray Text */
-  --accent: #272727;
-  --accent-foreground: #f1f1f1;
-  --destructive: #FF0000;
-  --border: #272727; /* Dark Border */
-  --input: #272727;
-  --ring: #FF0000; /* YouTube Red */
-  --chart-1: #FF0000;
-  --chart-2: #FF6B6B;
-  --chart-3: #4D4D4D;
-  --chart-4: #606060;
-  --chart-5: #999999;
-  --sidebar: #0f0f0f;
-  --sidebar-foreground: #f1f1f1;
-  --sidebar-primary: #FF0000;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #272727;
-  --sidebar-accent-foreground: #f1f1f1;
-  --sidebar-border: #272727;
-  --sidebar-ring: #FF0000;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
 }
 
 @layer base {
@@ -121,98 +119,4 @@
   body {
     @apply bg-background text-foreground;
   }
-}
-
-/* YouTube-specific custom styles */
-.youtube-header {
-  background: linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(0,0,0,0.7));
-}
-
-.youtube-card {
-  transition: all 0.2s ease;
-  border: 1px solid var(--border);
-}
-
-.youtube-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.youtube-thumbnail {
-  position: relative;
-  overflow: hidden;
-  background: #000;
-}
-
-.youtube-thumbnail::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.7));
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.youtube-thumbnail:hover::before {
-  opacity: 1;
-}
-
-.youtube-badge {
-  background: rgba(0,0,0,0.8);
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 500;
-  padding: 2px 4px;
-  border-radius: 2px;
-}
-
-.youtube-button {
-  background: #FF0000;
-  color: white;
-  border: none;
-  border-radius: 18px;
-  padding: 8px 16px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.youtube-button:hover {
-  background: #CC0000;
-  transform: scale(1.05);
-}
-
-.youtube-search {
-  border-radius: 40px;
-  border: 1px solid var(--border);
-}
-
-.youtube-channel-tab {
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s ease;
-}
-
-.youtube-channel-tab.active {
-  border-bottom-color: #FF0000;
-  color: #FF0000;
-}
-
-/* Custom scrollbar for YouTube theme */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: var(--muted);
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--muted-foreground);
-  border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--foreground);
 }

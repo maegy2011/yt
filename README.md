@@ -1,141 +1,291 @@
-# 🚀 Welcome to Z.ai Code Scaffold
+# 🎥 YouTube Player & Hadith Encyclopedia
 
-A modern, production-ready web application scaffold powered by cutting-edge technologies, designed to accelerate your development with [Z.ai](https://chat.z.ai)'s AI-powered coding assistance.
+تطبيق ويب عربي متكامل يجمع بين مشغل يوتيوب متقدم وموسوعة الأحاديث النبوية، مصمم للعمل على Vercel.
 
-## ✨ Technology Stack
+## ✨ المميزات الرئيسية
 
-This scaffold provides a robust foundation built with:
+### 🎥 مشغل يوتيوب المتقدم
+- **مشغل مخصص**: واجهة مستخدم عربية بالكامل مع تحكم كامل بالفيديو
+- **مزامنة الملاحظات**: إضافة ملاحظات متزامنة مع أوقات الفيديو
+- **إدارة القنوات**: إضافة وإدارة قنوات يوتيوب المفضلة
+- **التصفح السهل**: عرض الفيديوهات في شبكات أو قوائم مع البحث المتقدم
+- **المفضلة والمشاهدة**: حفظ الفيديوهات المفضلة وتتبع المشاهدة
 
-### 🎯 Core Framework
-- **⚡ Next.js 15** - The React framework for production with App Router
-- **📘 TypeScript 5** - Type-safe JavaScript for better developer experience
-- **🎨 Tailwind CSS 4** - Utility-first CSS framework for rapid UI development
+### 📚 موسوعة الأحاديث النبوية
+- **بحث متقدم**: البحث في الأحاديث النبوية من مصادر موثوقة
+- **حديث اليوم**: حديث عشوائي وحديث اليوم اليومي
+- **التصفيف والتصنيف**: حسب المصنف والحكم والراوي
+- **نظام المفضلة**: حفظ الأحاديث المفضلة ومشاركتها
+- **واجهة عربية**: بالكامل مع دعم كامل للغة العربية
 
-### 🧩 UI Components & Styling
-- **🧩 shadcn/ui** - High-quality, accessible components built on Radix UI
-- **🎯 Lucide React** - Beautiful & consistent icon library
-- **🌈 Framer Motion** - Production-ready motion library for React
-- **🎨 Next Themes** - Perfect dark mode in 2 lines of code
+### 🎨 واجهة المستخدم
+- **تصميم عربي**: مصمم خصيصًا للمستخدمين العرب
+- **وضع الليل والنهار**: دعم كامل للوضع المظلم
+- **متجاوب**: يعمل بشكل مثالي على جميع الأجهزة
+- **سريع**: مُحسَّن للأداء مع Vercel
 
-### 📋 Forms & Validation
-- **🎣 React Hook Form** - Performant forms with easy validation
-- **✅ Zod** - TypeScript-first schema validation
+## 🚀 التقنيات المستخدمة
 
-### 🔄 State Management & Data Fetching
-- **🐻 Zustand** - Simple, scalable state management
-- **🔄 TanStack Query** - Powerful data synchronization for React
-- **🌐 Axios** - Promise-based HTTP client
+### 🏗️ الإطار الأساسي
+- **⚡ Next.js 15** - إطار React للإنتاج مع App Router
+- **📘 TypeScript 5** - JavaScript آمن للنوع
+- **🎨 Tailwind CSS 4** - إطار عمل CSS للأداء
 
-### 🗄️ Database & Backend
-- **🗄️ Prisma** - Next-generation Node.js and TypeScript ORM
-- **🔐 NextAuth.js** - Complete open-source authentication solution
+### 🧩 مكونات واجهة المستخدم
+- **🧩 shadcn/ui** - مكونات عالية الجودة
+- **🎯 Lucide React** - مكتبة الأيقونات
+- **🎨 Framer Motion** - مكتبة الحركة للإنتاج
 
-### 🎨 Advanced UI Features
-- **📊 TanStack Table** - Headless UI for building tables and datagrids
-- **🖱️ DND Kit** - Modern drag and drop toolkit for React
-- **📊 Recharts** - Redefined chart library built with React and D3
-- **🖼️ Sharp** - High performance image processing
+### 🔄 إدارة البيانات
+- **🗄️ Prisma** - ORM لـ Node.js و TypeScript
+- **🌐 Axios** - عميل HTTP قائم على الوعود
+- **💾 Local Storage** - تخزين البيانات محليًا
 
-### 🌍 Internationalization & Utilities
-- **🌍 Next Intl** - Internationalization library for Next.js
-- **📅 Date-fns** - Modern JavaScript date utility library
-- **🪝 ReactUse** - Collection of essential React hooks for modern development
+### 🎨 الميزات المتقدمة
+- **📝 محرر نصوص غني** - محرر نصوص متقدم
+- **🎵 WebSocket** - دعم الاتصال الفوري
+- **🖼️ معالجة الصور** - تحسين الصور والأداء
 
-## 🎯 Why This Scaffold?
+## 🚀 البدء السريع
 
-- **🏎️ Fast Development** - Pre-configured tooling and best practices
-- **🎨 Beautiful UI** - Complete shadcn/ui component library with advanced interactions
-- **🔒 Type Safety** - Full TypeScript configuration with Zod validation
-- **📱 Responsive** - Mobile-first design principles with smooth animations
-- **🗄️ Database Ready** - Prisma ORM configured for rapid backend development
-- **🔐 Auth Included** - NextAuth.js for secure authentication flows
-- **📊 Data Visualization** - Charts, tables, and drag-and-drop functionality
-- **🌍 i18n Ready** - Multi-language support with Next Intl
-- **🚀 Production Ready** - Optimized build and deployment settings
-- **🤖 AI-Friendly** - Structured codebase perfect for AI assistance
+### المتطلبات
+- Node.js 18 أو أحدث
+- npm أو yarn
+- حساب Vercel
 
-## 🚀 Quick Start
+### التثبيت المحلي
 
 ```bash
-# Install dependencies
+# استنساخ المستودع
+git clone <your-repo-url>
+cd <project-name>
+
+# تثبيت الاعتماديات
 npm install
 
-# Start development server
+# إعداد متغيرات البيئة
+cp .env.example .env.local
+
+# تحرير .env.local وإضافة:
+# NEXT_PUBLIC_YOUTUBE_API_KEY=your_api_key_here
+# DATABASE_URL="file:./custom.db"
+
+# بدء خادم التطوير
 npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see your application running.
+افتح [http://localhost:3000](http://localhost:3000) لرؤية التطبيق يعمل.
 
-## 🤖 Powered by Z.ai
+### النشر على Vercel
 
-This scaffold is optimized for use with [Z.ai](https://chat.z.ai) - your AI assistant for:
+#### الطريقة 1: عبر واجهة Vercel (موصى بها)
 
-- **💻 Code Generation** - Generate components, pages, and features instantly
-- **🎨 UI Development** - Create beautiful interfaces with AI assistance  
-- **🔧 Bug Fixing** - Identify and resolve issues with intelligent suggestions
-- **📝 Documentation** - Auto-generate comprehensive documentation
-- **🚀 Optimization** - Performance improvements and best practices
+1. **ادفع الكود إلى GitHub**
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git remote add origin <your-github-repo>
+   git push -u origin main
+   ```
 
-Ready to build something amazing? Start chatting with Z.ai at [chat.z.ai](https://chat.z.ai) and experience the future of AI-powered development!
+2. **استيراد إلى Vercel**
+   - اذهب إلى [vercel.com](https://vercel.com)
+   - انقر على "New Project"
+   - اختر مستودع GitHub الخاص بك
+   - Vercel سيكتشف الإعدادات تلقائيًا
 
-## 📁 Project Structure
+3. **إعداد متغيرات البيئة**
+   في لوحة تحكم Vercel:
+   - اذهب إلى Settings > Environment Variables
+   - أضف المتغيرات التالية:
+     ```
+     NEXT_PUBLIC_YOUTUBE_API_KEY=your_youtube_api_key
+     DATABASE_URL=file:./custom.db
+     NODE_ENV=production
+     ```
+
+4. **النشر**
+   - انقر على "Deploy"
+   - سيتم نشر تطبيقك تلقائيًا
+
+#### الطريقة 2: عبر Vercel CLI
+
+```bash
+# تثبيت Vercel CLI
+npm i -g vercel
+
+# تسجيل الدخول إلى Vercel
+vercel login
+
+# النشر
+vercel --prod
+
+# اتبع التعليمات لإعداد متغيرات البيئة
+```
+
+## ⚙️ الإعدادات
+
+### متغيرات البيئة
+
+انسخ `.env.example` إلى `.env.local` وقم بتحديث القيم:
+
+```env
+# مفتاح API لـ YouTube (مطلوب)
+NEXT_PUBLIC_YOUTUBE_API_KEY=your_youtube_api_key_here
+
+# إعدادات قاعدة البيانات
+DATABASE_URL="file:./custom.db"
+
+# رابط التطبيق
+NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
+
+# بيئة التشغيل
+NODE_ENV=production
+```
+
+### الحصول على مفتاح YouTube API
+
+1. اذهب إلى [Google Cloud Console](https://console.cloud.google.com/)
+2. أنشئ مشروع جديدًا
+3. فعّل "YouTube Data API v3"
+4. أنشئ بيانات اعتماد API
+5. انسخ مفتاح API وأضفه إلى متغيرات البيئة
+
+## 📁 هيكل المشروع
 
 ```
 src/
-├── app/                 # Next.js App Router pages
-├── components/          # Reusable React components
-│   └── ui/             # shadcn/ui components
-├── hooks/              # Custom React hooks
-└── lib/                # Utility functions and configurations
+├── app/                    # صفحات Next.js App Router
+│   ├── api/               # واجهات برمجة التطبيقات
+│   ├── hadith/            # صفحة الأحاديث
+│   ├── video/             # صفحة الفيديو
+│   ├── layout.tsx         # التخطيط الرئيسي
+│   └── page.tsx           # الصفحة الرئيسية
+├── components/            # مكونات React قابلة لإعادة الاستخدام
+│   ├── ui/               # مكونات shadcn/ui
+│   ├── hadith-search.tsx  # مكون البحث عن الأحاديث
+│   ├── custom-youtube-player.tsx  # مشغل يوتيوب المخصص
+│   └── *-manager.tsx     # مكونات إدارة الملاحظات
+├── hooks/                 # خطاط React المخصصة
+├── lib/                   # وظائف الأداة والتكوينات
+│   ├── hadith-api.ts      # واجهة برمجة تطبيقات الأحاديث
+│   ├── youtube-api.ts     # تتبع استخدام YouTube API
+│   ├── db.ts             # إعدادات قاعدة البيانات
+│   └── socket.ts         # إعدادات WebSocket
+└── public/                # الملفات العامة
 ```
 
-## 🎨 Available Features & Components
+## 🎨 المكونات المتاحة
 
-This scaffold includes a comprehensive set of modern web development tools:
+### 🧩 مكونات واجهة المستخدم (shadcn/ui)
+- **التصميم**: Card, Separator, Aspect Ratio
+- **النماذج**: Input, Textarea, Select, Checkbox
+- **التغذية الراجعة**: Alert, Skeleton
+- **التنقل**: Dialog, Sheet, Tabs
+- **عرض البيانات**: Badge
 
-### 🧩 UI Components (shadcn/ui)
-- **Layout**: Card, Separator, Aspect Ratio, Resizable Panels
-- **Forms**: Input, Textarea, Select, Checkbox, Radio Group, Switch
-- **Feedback**: Alert, Toast (Sonner), Progress, Skeleton
-- **Navigation**: Breadcrumb, Menubar, Navigation Menu, Pagination
-- **Overlay**: Dialog, Sheet, Popover, Tooltip, Hover Card
-- **Data Display**: Badge, Avatar, Calendar
+### 📊 الميزات المتقدمة
+- **مشغل فيديو**: مشغل يوتيوب مخصص مع تحكم كامل
+- **محرر نصوص**: محرر نصوص غني مع تنسيق
+- **البحث**: بحث متقدم في الأحاديث والفيديوهات
+- **المزامنة**: ملاحظات متزامنة مع الفيديو
 
-### 📊 Advanced Data Features
-- **Tables**: Powerful data tables with sorting, filtering, pagination (TanStack Table)
-- **Charts**: Beautiful visualizations with Recharts
-- **Forms**: Type-safe forms with React Hook Form + Zod validation
+## 🔧 التطوير
 
-### 🎨 Interactive Features
-- **Animations**: Smooth micro-interactions with Framer Motion
-- **Drag & Drop**: Modern drag-and-drop functionality with DND Kit
-- **Theme Switching**: Built-in dark/light mode support
+### أوامر التطوير
 
-### 🔐 Backend Integration
-- **Authentication**: Ready-to-use auth flows with NextAuth.js
-- **Database**: Type-safe database operations with Prisma
-- **API Client**: HTTP requests with Axios + TanStack Query
-- **State Management**: Simple and scalable with Zustand
+```bash
+# بدء خادم التطوير
+npm run dev
 
-### 🌍 Production Features
-- **Internationalization**: Multi-language support with Next Intl
-- **Image Optimization**: Automatic image processing with Sharp
-- **Type Safety**: End-to-end TypeScript with Zod validation
-- **Essential Hooks**: 100+ useful React hooks with ReactUse for common patterns
+# بناء للإنتاج
+npm run build
 
-## 🤝 Get Started with Z.ai
+# بدء خادم الإنتاج
+npm start
 
-1. **Clone this scaffold** to jumpstart your project
-2. **Visit [chat.z.ai](https://chat.z.ai)** to access your AI coding assistant
-3. **Start building** with intelligent code generation and assistance
-4. **Deploy with confidence** using the production-ready setup
+# فحص الكود
+npm run lint
+
+# دفع قاعدة البيانات
+npm run db:push
+```
+
+### إضافة مكونات جديدة
+
+1. استخدم `npx shadcn-ui@latest add [component-name]` لإضافة مكونات shadcn/ui
+2. ضع المكونات المخصصة في `src/components/`
+3. استخدم الأدوات المساعدة في `src/lib/`
+
+## 🌐 النشر
+
+### Vercel
+
+1. **اتصل بمستودع GitHub**
+2. **أضف متغيرات البيئة في Vercel**
+3. **انقر Deploy**
+
+المشروع مُعد مسبقًا لـ Vercel مع:
+- تحسينات الأداء
+- إعدادات الأمان
+- دعم WebSocket
+- تحسين الصور
+
+### متغيرات البيئة للإنتاج
+
+في Vercel، أضف هذه المتغيرات:
+- `NEXT_PUBLIC_YOUTUBE_API_KEY` - مفتاح YouTube API
+- `DATABASE_URL` - رابط قاعدة البيانات
+- `NODE_ENV=production` - بيئة الإنتاج
+
+## 🐛 حل المشكلات الشائعة
+
+### مشاكل البناء
+
+```bash
+# حذف node_modules وإعادة التثبيت
+rm -rf node_modules package-lock.json
+npm install
+
+# حذف .next وإعادة البناء
+rm -rf .next
+npm run build
+```
+
+### مشاكل API
+
+- تأكد من أن مفتاح YouTube API صالح
+- تحقق من حصص API اليومية
+- تأكد من إعدادات CORS في Vercel
+
+### مشاكل قاعدة البيانات
+
+- تأكد من وجود ملف قاعدة البيانات
+- تحقق من صلاحيات الكتابة
+- استخدم `npm run db:push` لمزامنة المخطط
+
+## 📝 المساهمة
+
+1. Fork المستودع
+2. أنشئ فرعًا (`git checkout -b feature/amazing-feature`)
+3. اCommit التغييرات (`git commit -m 'Add amazing feature'`)
+4. ادفع الفرع (`git push origin feature/amazing-feature`)
+5. افتح Pull Request
+
+## 📄 الترخيص
+
+هذا المشروع مرخص بموجب ترخيص MIT - راجع ملف [LICENSE](LICENSE) للتفاصيل.
+
+## 🤞 الدعم
+
+إذا واجهت أي مشكلة أو كان لديك سؤال:
+
+1. تحقق من [Issues](https://github.com/your-repo/issues)
+2. أنشأ issue جديد
+3. أو تواصل عبر البريد الإلكتروني
 
 ---
 
-Built with ❤️ for the developer community. Supercharged by [Z.ai](https://chat.z.ai) 🚀
+**مبني بـ ❤️ للمجتمع العربي** 🇸🇦  
+مُحسَّن للعمل على **Vercel** ⚡

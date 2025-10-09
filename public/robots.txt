@@ -1,3 +1,24 @@
+# =============================================
+# SEO and Crawling Configuration
+# =============================================
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://your-app.vercel.app/sitemap.xml
+
+# Crawl-delay (optional)
+Crawl-delay: 1
+
+# Block common bot paths
+Disallow: /api/
+Disallow: /_next/
+Disallow: /static/
+Disallow: /admin/
+Disallow: /private/
+
+# Allow specific search engines
 User-agent: Googlebot
 Allow: /
 
@@ -10,5 +31,15 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
-Allow: /
+# Block bad bots
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /

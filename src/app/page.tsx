@@ -1,1443 +1,1434 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search, Filter, Clock, Eye, Calendar, RefreshCw, AlertCircle, Keyboard, Heart } from 'lucide-react'
-import LiteYouTubeEmbed from 'react-lite-youtube-embed'
-import 'react-lite-youtube-embed/dist/LiteYouTubeEmbed.css'
-import { VideoListSkeleton } from '@/components/video-card-skeleton'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { usePreferences } from '@/hooks/use-preferences'
-import { FavoriteButton } from '@/components/favorite-button'
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Search, Menu, Grid, List, Clock, Settings, Plus, Trash2, BarChart3, Database, RefreshCw, Video, Play, Loader2, Youtube, BookOpen, Heart, Film, FileText, Share2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { CustomYouTubePlayer } from "@/components/custom-youtube-player";
+import { LoadingSpinner, LoadingOverlay, LoadingCard } from "@/components/ui/loading-spinner";
+import { NotesManager } from "@/components/notes-manager";
+import { EnhancedNotesManager } from "@/components/enhanced-notes-manager";
+import { VideoSyncNotes } from "@/components/video-sync-notes";
+import { HadithSearch } from "@/components/hadith-search";
+import { 
+  youtubeApiTracker, 
+  trackChannelListCall, 
+  trackVideoListCall, 
+  canMakeChannelListCall, 
+  canMakeVideoListCall,
+  YOUTUBE_API_QUOTA_COSTS,
+  type QuotaUsage
+} from "@/lib/youtube-api";
 
 interface Video {
-  id: string
-  title: string
-  thumbnail: string
-  channelName: string
-  channelLogo?: string
-  publishedAt: string
-  duration?: string
-  viewCount?: string
-  description?: string
+  id: string;
+  title: string;
+  thumbnail: string;
+  duration: string;
+  channelTitle: string;
+  channelId: string;
+  publishedAt: string;
+}
+
+interface WatchedVideo extends Video {
+  watchedAt: string;
+}
+
+interface FavoriteVideo extends Video {
+  favoritedAt: string;
+  notes?: string;
 }
 
 interface Channel {
-  id: string
-  name: string
-  url: string
-  logo?: string
-  banner?: string
-  subscriberCount?: string
-  videoCount?: string
-  videos: Video[]
+  id: string;
+  title: string;
+  thumbnail: string;
+  description: string;
+  subscriberCount: string;
+  videoCount: string;
 }
 
-interface PaginationData {
-  currentPage: number
-  totalPages: number
-  totalVideos: number
-  hasNextPage: boolean
-  hasPreviousPage: boolean
+interface Note {
+  id: string;
+  videoId: string;
+  videoTitle: string;
+  channelTitle: string;
+  channelThumbnail: string;
+  content: string;
+  timestamp?: number;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
-interface ApiResponse {
-  videos: Video[]
-  pagination: PaginationData
+interface CacheData {
+  videos: Video[];
+  channels: Channel[];
+  lastUpdated: string;
+  apiCalls: number;
+  quotaRemaining: number;
 }
-
-const CHANNELS = [
-  {
-    id: 'twjehdm',
-    name: 'قناة توحيد',
-    url: 'https://youtube.com/@twjehdm?si=lGJSUqw1_M6T1d5z'
-  },
-  {
-    id: 'wmngovksa',
-    name: 'قناة وزارة التعليم',
-    url: 'https://youtube.com/@wmngovksa?si=Wjm404d8mRvb40yx'
-  },
-  {
-    id: 'othmanalkamees',
-    name: 'قناة عثمان الكميس',
-    url: 'https://youtube.com/@othmanalkamees?si=uTV5BKqPz4E_oPb5'
-  },
-  {
-    id: 'alhewenytube',
-    name: 'قناة الحوين',
-    url: 'https://www.youtube.com/channel/UC43bHWI3eZwfxOONWdQBi-w'
-  }
-]
-
-type TimeFilter = 'all' | 'today' | 'week' | 'month' | 'year'
-
-const VIDEOS_PER_PAGE = 24
 
 export default function Home() {
-  const router = useRouter()
-  const [channels, setChannels] = useState<Channel[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null)
-  const [activeChannel, setActiveChannel] = useState<string>('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
-  const [filteredVideos, setFilteredVideos] = useState<Video[]>([])
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [apiError, setApiError] = useState<string | null>(null)
-  const [isSearching, setIsSearching] = useState(false)
-  const [searchMode, setSearchMode] = useState(false)
-  const [switchingChannel, setSwitchingChannel] = useState(false)
-  const [selectingVideo, setSelectingVideo] = useState(false)
+  const router = useRouter();
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [watchedVideos, setWatchedVideos] = useState<WatchedVideo[]>([]);
+  const [favoriteVideos, setFavoriteVideos] = useState<FavoriteVideo[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [apiKey, setApiKey] = useState("");
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [channelInput, setChannelInput] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredVideos, setFilteredVideos] = useState<Video[]>([]);
+  const [currentVideo, setCurrentVideo] = useState<Video | null>(null);
+  const [isVideoPlayerOpen, setIsVideoPlayerOpen] = useState(false);
+  const [isChannelManagerOpen, setIsChannelManagerOpen] = useState(false);
+  const [isFetchingChannelInfo, setIsFetchingChannelInfo] = useState(false);
+  const [apiQuota, setApiQuota] = useState(10000); // Default YouTube API quota
+  const [apiCalls, setApiCalls] = useState(0);
+  const [quotaUsage, setQuotaUsage] = useState<QuotaUsage | null>(null);
+  const [cacheData, setCacheData] = useState<CacheData | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isAppLoading, setIsAppLoading] = useState(true);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
   
-  // Preferences hook
-  const { preferences, updatePreference, isLoading: prefsLoading } = usePreferences()
-  
-  // Keyboard navigation
+  const { toast } = useToast();
+
+  // Load data from localStorage on component mount
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Skip if user is typing in an input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return
-      }
-
-      // Ctrl/Cmd + K to focus search
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault()
-        const searchInput = document.querySelector('input[type="text"]') as HTMLInputElement
-        if (searchInput) {
-          searchInput.focus()
-          searchInput.select()
-        }
-      }
-
-      // Ctrl/Cmd + F to open favorites
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-        e.preventDefault()
-        router.push('/favorites')
-      }
-
-      // Ctrl/Cmd + R to refresh
-      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
-        e.preventDefault()
-        refreshData()
-      }
-
-      // Arrow key navigation for videos
-      if (filteredVideos.length > 0) {
-        const currentIndex = selectedVideo 
-          ? filteredVideos.findIndex(v => v.id === selectedVideo.id)
-          : -1
-
-        switch (e.key) {
-          case 'ArrowRight':
-            e.preventDefault()
-            if (currentIndex < filteredVideos.length - 1) {
-              setSelectedVideo(filteredVideos[currentIndex + 1])
-            }
-            break
-          case 'ArrowLeft':
-            e.preventDefault()
-            if (currentIndex > 0) {
-              setSelectedVideo(filteredVideos[currentIndex - 1])
-            }
-            break
-          case 'ArrowDown':
-            e.preventDefault()
-            if (currentIndex < filteredVideos.length - 4) {
-              setSelectedVideo(filteredVideos[currentIndex + 4])
-            }
-            break
-          case 'ArrowUp':
-            e.preventDefault()
-            if (currentIndex > 3) {
-              setSelectedVideo(filteredVideos[currentIndex - 4])
-            }
-            break
-          case 'Enter':
-            if (selectedVideo) {
-              e.preventDefault()
-              router.push(`/video/${selectedVideo.id}`)
-            }
-            break
-        }
-      }
-
-      // Number keys to switch channels (1-4)
-      if (e.key >= '1' && e.key <= '4' && channels.length >= parseInt(e.key)) {
-        const channelIndex = parseInt(e.key) - 1
-        if (channels[channelIndex]) {
-          e.preventDefault()
-          handleChannelChange(channels[channelIndex].id)
-        }
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [filteredVideos, selectedVideo, channels, router])
-  
-  // Function definitions moved here to avoid initialization issues
-  const refreshData = async () => {
-    setRefreshing(true)
-    setApiError(null)
-    setCurrentPage(1)
-    setHasMore(true)
-    setAllVideos([])
-    
-    // Refetch initial data
-    try {
-      const channelsData: Channel[] = []
-      let hasData = false
+    const initializeApp = async () => {
+      setIsAppLoading(true);
       
-      for (const channel of CHANNELS) {
-        try {
-          const response = await fetch(`/api/youtube/channel/${channel.id}?page=1&limit=${VIDEOS_PER_PAGE}`)
-          if (response.ok) {
-            const data: ApiResponse & { channel?: any } = await response.json()
-            if (data.videos.length > 0) {
-              hasData = true
-              const channelInfo = data.channel || {}
-              channelsData.push({
-                ...channel,
-                name: channelInfo.name || channel.name,
-                logo: channelInfo.logo,
-                banner: channelInfo.banner,
-                subscriberCount: channelInfo.subscriberCount,
-                videoCount: channelInfo.videoCount,
-                videos: data.videos.map((video: any) => ({
-                  ...video,
-                  duration: video.duration || '',
-                  viewCount: video.viewCount || '',
-                  channelLogo: video.channelLogo || channelInfo.logo
-                }))
-              })
-            } else {
-              channelsData.push({
-                ...channel,
-                videos: []
-              })
-            }
-          } else {
-            channelsData.push({
-              ...channel,
-              videos: []
-            })
-          }
-        } catch (error) {
-          console.error(`Error fetching data for channel ${channel.id}:`, error)
-          channelsData.push({
-            ...channel,
-            videos: []
-          })
-        }
-      }
-      
-      setChannels(channelsData)
-      
-      if (!hasData) {
-        setApiError('لا يمكن جلب البيانات من اليوتيوب حالياً. يرجى المحاولة مرة أخرى لاحقاً.')
-      }
-      
-      const firstChannelWithVideos = channelsData.find(c => c.videos.length > 0)
-      if (firstChannelWithVideos) {
-        setActiveChannel(firstChannelWithVideos.id)
-        setSelectedVideo(firstChannelWithVideos.videos[0])
-        setAllVideos(firstChannelWithVideos.videos)
-        setHasMore(firstChannelWithVideos.videos.length >= VIDEOS_PER_PAGE)
-      }
-    } catch (error) {
-      console.error('Error refreshing data:', error)
-      setApiError('حدث خطأ في جلب البيانات. يرجى المحاولة مرة أخرى.')
-    } finally {
-      setRefreshing(false)
-    }
-  }
+      const savedApiKey = localStorage.getItem("youtubeApiKey");
+      const savedChannels = localStorage.getItem("youtubeChannels");
+      const savedWatched = localStorage.getItem("watchedVideos");
+      const savedFavorites = localStorage.getItem("favoriteVideos");
+      const savedNotes = localStorage.getItem("notes");
+      const savedCache = localStorage.getItem("cacheData");
+      const savedApiCalls = localStorage.getItem("apiCalls");
 
-  const handleChannelChange = async (channelId: string) => {
-    setSwitchingChannel(true)
-    setActiveChannel(channelId)
-    setCurrentPage(1)
-    setHasMore(true)
-    setAllVideos([])
-    setSearchMode(false)
-    setSearchQuery('')
-    
-    // Save to preferences
-    updatePreference('lastWatchedChannel', channelId)
-    
-    // Simulate loading delay for better UX
-    await new Promise(resolve => setTimeout(resolve, 300))
-    
-    const channel = channels.find(c => c.id === channelId)
-    if (channel && channel.videos.length > 0) {
-      setAllVideos(channel.videos)
-      setSelectedVideo(channel.videos[0])
-      setHasMore(channel.videos.length >= VIDEOS_PER_PAGE)
-    }
-    
-    setSwitchingChannel(false)
-  }
-
-  const handleVideoSelect = async (video: Video) => {
-    if (selectingVideo) return
-    
-    setSelectingVideo(true)
-    
-    // Simulate loading delay for better UX
-    await new Promise(resolve => setTimeout(resolve, 200))
-    
-    setSelectedVideo(video)
-    setSelectingVideo(false)
-  }
-  
-  // Infinite scroll states
-  const [currentPage, setCurrentPage] = useState(1)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
-  const [allVideos, setAllVideos] = useState<Video[]>([])
-  
-  const observer = useRef<IntersectionObserver | null>(null)
-  const lastVideoRef = useCallback((node: HTMLDivElement) => {
-    if (loadingMore || !hasMore) return
-    
-    if (observer.current) observer.current.disconnect()
-    
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore && !loadingMore) {
-        console.log('Intersection detected, loading more videos...')
-        // Use a function reference instead of direct dependency
-        const loadMore = async () => {
-          if (!hasMore || loadingMore) return
-          
-          setLoadingMore(true)
-          
-          try {
-            if (searchMode && searchQuery.trim()) {
-              // Load more search results
-              await searchAllChannels(searchQuery, currentPage + 1)
-            } else {
-              // Load more videos from current channel
-              const nextPage = currentPage + 1
-              const response = await fetch(`/api/youtube/channel/${activeChannel}?page=${nextPage}&limit=${VIDEOS_PER_PAGE}`)
-              
-              if (response.ok) {
-                const data: ApiResponse = await response.json()
-                
-                if (data.videos.length > 0) {
-                  const newVideos = data.videos.map((video: any) => ({
-                    ...video,
-                    duration: video.duration || '',
-                    viewCount: video.viewCount || ''
-                  }))
-                  
-                  setAllVideos(prev => [...prev, ...newVideos])
-                  setCurrentPage(nextPage)
-                  setHasMore(data.pagination.hasNextPage)
-                } else {
-                  setHasMore(false)
-                }
-              } else {
-                setHasMore(false)
-              }
-            }
-          } catch (error) {
-            console.error('Error loading more videos:', error)
-            setHasMore(false)
-          } finally {
-            setLoadingMore(false)
-          }
-        }
-        
-        loadMore()
+      if (savedApiKey) setApiKey(savedApiKey);
+      if (savedChannels) setChannels(JSON.parse(savedChannels));
+      if (savedWatched) setWatchedVideos(JSON.parse(savedWatched));
+      if (savedFavorites) setFavoriteVideos(JSON.parse(savedFavorites));
+      if (savedNotes) setNotes(JSON.parse(savedNotes));
+      if (savedCache) {
+        const cache = JSON.parse(savedCache);
+        setCacheData(cache);
+        setVideos(cache.videos);
+        setFilteredVideos(cache.videos);
       }
-    }, {
-      rootMargin: '100px', // Start loading a bit earlier
-      threshold: 0.1
-    })
-    
-    if (node) observer.current.observe(node)
-  }, [loadingMore, hasMore, searchMode, searchQuery, currentPage, activeChannel])
+      if (savedApiCalls) setApiCalls(parseInt(savedApiCalls));
+
+      // Initialize quota tracker
+      const usage = youtubeApiTracker.getQuotaUsage();
+      setQuotaUsage(usage);
+      setApiQuota(usage.dailyQuota);
+      setApiCalls(usage.totalCalls);
+
+      // Check if mobile
+      setIsMobile(window.innerWidth < 768);
+      const handleResize = () => setIsMobile(window.innerWidth < 768);
+      window.addEventListener('resize', handleResize);
+      
+      // Simulate app loading
+      setTimeout(() => setIsAppLoading(false), 1000);
+      
+      return () => window.removeEventListener('resize', handleResize);
+    };
+
+    initializeApp();
+  }, []);
+
+  // Save data to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("youtubeChannels", JSON.stringify(channels));
+  }, [channels]);
+
+  // Update quota usage when it changes
+  useEffect(() => {
+    const usage = youtubeApiTracker.getQuotaUsage();
+    setQuotaUsage(usage);
+    setApiCalls(usage.totalCalls);
+  }, [apiCalls]);
 
   useEffect(() => {
-    fetchInitialData()
-  }, [])
+    localStorage.setItem("notes", JSON.stringify(notes));
+  }, [notes]);
 
-  // Initialize preferences when they're loaded
+  // Update cache when videos change
   useEffect(() => {
-    if (!prefsLoading) {
-      // Set time filter from preferences
-      if (preferences.timeFilter) {
-        setTimeFilter(preferences.timeFilter)
-      }
-      
-      // Set active channel from preferences if available
-      if (preferences.lastWatchedChannel) {
-        setActiveChannel(preferences.lastWatchedChannel)
-      } else if (CHANNELS.length > 0) {
-        setActiveChannel(CHANNELS[0].id)
-      }
+    if (videos.length > 0) {
+      const newCache: CacheData = {
+        videos,
+        channels,
+        lastUpdated: new Date().toISOString(),
+        apiCalls,
+        quotaRemaining: apiQuota - apiCalls
+      };
+      setCacheData(newCache);
+      localStorage.setItem("cacheData", JSON.stringify(newCache));
     }
-  }, [prefsLoading, preferences])
+  }, [videos, channels, apiCalls, apiQuota]);
+
+  // Save data to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("watchedVideos", JSON.stringify(watchedVideos));
+  }, [watchedVideos]);
 
   useEffect(() => {
-    if (searchQuery.trim()) {
-      // Search across all channels
-      const timeoutId = setTimeout(() => {
-        searchAllChannels(searchQuery)
-      }, 500) // Debounce search
-      
-      return () => clearTimeout(timeoutId)
+    localStorage.setItem("favoriteVideos", JSON.stringify(favoriteVideos));
+  }, [favoriteVideos]);
+
+  // Filter videos based on search query and channels
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredVideos(videos);
     } else {
-      // Normal filtering for current channel
-      setSearchMode(false)
-      filterVideos()
+      const filtered = videos.filter(video =>
+        (video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+         video.channelTitle.toLowerCase().includes(searchQuery.toLowerCase())) &&
+        channels.some(channel => channel.id === video.channelId)
+      );
+      setFilteredVideos(filtered);
     }
-  }, [searchQuery, timeFilter])
+  }, [searchQuery, videos, channels]);
 
-  useEffect(() => {
-    if (!searchQuery.trim() && !searchMode && allVideos.length > 0) {
-      filterVideos()
+  const saveSettings = () => {
+    localStorage.setItem("youtubeApiKey", apiKey);
+    // Update quota tracker with new daily quota
+    youtubeApiTracker.setDailyQuota(apiQuota);
+    toast({
+      title: "تم الحفظ",
+      description: "تم حفظ مفتاح API بنجاح",
+    });
+  };
+
+  const resetQuotaTracking = () => {
+    youtubeApiTracker.reset();
+    const usage = youtubeApiTracker.getQuotaUsage();
+    setQuotaUsage(usage);
+    setApiCalls(usage.totalCalls);
+    toast({
+      title: "تم إعادة التعيين",
+      description: "تم إعادة تعيين تتبع حصة API",
+    });
+  };
+
+  const fetchChannelInfo = async (channelId: string) => {
+    if (!apiKey) {
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال مفتاح API أولاً",
+        variant: "destructive",
+      });
+      return null;
     }
-  }, [allVideos, activeChannel])
 
-  const fetchInitialData = async () => {
+    // Check API quota using new tracker
+    if (!canMakeChannelListCall(100)) {
+      const warning = youtubeApiTracker.getQuotaWarning();
+      toast({
+        title: "خطأ",
+        description: warning || "حصة API غير كافية. يرجى استخدام مفتاح جديد غداً.",
+        variant: "destructive",
+      });
+      return null;
+    }
+
     try {
-      setApiError(null)
-      setLoading(true)
-      const channelsData: Channel[] = []
-      let hasData = false
-      
-      for (const channel of CHANNELS) {
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/channels?key=${apiKey}&id=${channelId}&part=snippet,statistics`
+      );
+      const data = await response.json();
+
+      if (data.items && data.items[0]) {
+        const channel = data.items[0];
+        trackChannelListCall(true); // Track successful call
+        return {
+          id: channel.id,
+          title: channel.snippet.title,
+          thumbnail: channel.snippet.thumbnails.high.url,
+          description: channel.snippet.description,
+          subscriberCount: parseInt(channel.statistics.subscriberCount).toLocaleString(),
+          videoCount: parseInt(channel.statistics.videoCount).toLocaleString(),
+        };
+      } else {
+        trackChannelListCall(false, "No channel items found");
+        return null;
+      }
+    } catch (error) {
+      trackChannelListCall(false, error instanceof Error ? error.message : "Unknown error");
+      toast({
+        title: "خطأ",
+        description: "فشل جلب معلومات القناة",
+        variant: "destructive",
+      });
+      return null;
+    }
+  };
+
+  const addChannel = async () => {
+    if (!channelInput.trim()) {
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال معرف القناة",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const channelId = channelInput.trim();
+    
+    // Check if channel already exists
+    if (channels.some(c => c.id === channelId)) {
+      toast({
+        title: "خطأ",
+        description: "القناة موجودة بالفعل",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsFetchingChannelInfo(true);
+    const channelInfo = await fetchChannelInfo(channelId);
+    setIsFetchingChannelInfo(false);
+
+    if (channelInfo) {
+      setChannels(prev => [...prev, channelInfo]);
+      setChannelInput("");
+      toast({
+        title: "نجاح",
+        description: `تمت إضافة قناة ${channelInfo.title} بنجاح`,
+      });
+    }
+  };
+
+  const removeChannel = (channelId: string) => {
+    const channel = channels.find(c => c.id === channelId);
+    setChannels(prev => prev.filter(c => c.id !== channelId));
+    toast({
+      title: "تم الحذف",
+      description: `تم حذف قناة ${channel?.title} بنجاح`,
+    });
+  };
+
+  const fetchVideos = async () => {
+    if (!apiKey || channels.length === 0) {
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال مفتاح API وإضافة قنوات يوتيوب",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check API quota using new tracker
+    const estimatedCalls = channels.length;
+    if (!canMakeVideoListCall(estimatedCalls * 2)) {
+      const warning = youtubeApiTracker.getQuotaWarning();
+      toast({
+        title: "خطأ",
+        description: warning || `حصة API غير كافية لجلب فيديوهات من ${channels.length} قنوات.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const allVideos: Video[] = [];
+      let successfulFetches = 0;
+
+      for (const channel of channels) {
         try {
-          const response = await fetch(`/api/youtube/channel/${channel.id}?page=1&limit=${VIDEOS_PER_PAGE}`)
-          if (response.ok) {
-            const data: ApiResponse & { channel?: any } = await response.json()
-            if (data.videos.length > 0) {
-              hasData = true
-              const channelInfo = data.channel || {}
-              channelsData.push({
-                ...channel,
-                name: channelInfo.name || channel.name,
-                logo: channelInfo.logo,
-                banner: channelInfo.banner,
-                subscriberCount: channelInfo.subscriberCount,
-                videoCount: channelInfo.videoCount,
-                videos: data.videos.map((video: any) => ({
-                  ...video,
-                  duration: video.duration || '',
-                  viewCount: video.viewCount || '',
-                  channelLogo: video.channelLogo || channelInfo.logo
-                }))
-              })
-            } else {
-              channelsData.push({
-                ...channel,
-                videos: []
-              })
-            }
-          } else {
-            channelsData.push({
-              ...channel,
-              videos: []
-            })
-          }
-        } catch (error) {
-          console.error(`Error fetching data for channel ${channel.id}:`, error)
-          channelsData.push({
-            ...channel,
-            videos: []
-          })
-        }
-      }
-      
-      setChannels(channelsData)
-      
-      // Only show error if no data at all
-      if (!hasData) {
-        setApiError('لا يمكن جلب البيانات من اليوتيوب حالياً. يرجى المحاولة مرة أخرى لاحقاً.')
-      }
-      
-      // Auto-select first video from first channel with videos
-      const firstChannelWithVideos = channelsData.find(c => c.videos.length > 0)
-      if (firstChannelWithVideos) {
-        setActiveChannel(firstChannelWithVideos.id)
-        setSelectedVideo(firstChannelWithVideos.videos[0])
-        setAllVideos(firstChannelWithVideos.videos)
-        setHasMore(firstChannelWithVideos.videos.length >= VIDEOS_PER_PAGE)
-      }
-    } catch (error) {
-      console.error('Error fetching channels data:', error)
-      setApiError('حدث خطأ في جلب البيانات. يرجى المحاولة مرة أخرى.')
-    } finally {
-      setLoading(false)
-    }
-  }
+          // Use videos.list endpoint instead of search.list
+          const response = await fetch(
+            `https://www.googleapis.com/youtube/v3/videos?key=${apiKey}&channelId=${channel.id}&part=snippet,contentDetails&maxResults=50&order=date`
+          );
+          const data = await response.json();
 
-  const searchAllChannels = async (query: string, page: number = 1) => {
-    if (!query.trim()) {
-      setSearchMode(false)
-      filterVideos()
-      return
-    }
-
-    setIsSearching(true)
-    setSearchMode(true)
-    
-    try {
-      const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(query)}&timeFilter=${timeFilter}&page=${page}&limit=${VIDEOS_PER_PAGE}`)
-      
-      if (response.ok) {
-        const data = await response.json()
-        
-        if (page === 1) {
-          setFilteredVideos(data.videos)
-        } else {
-          setFilteredVideos(prev => [...prev, ...data.videos])
-        }
-        
-        setHasMore(data.pagination.hasNextPage)
-        setCurrentPage(page)
-      } else {
-        setFilteredVideos([])
-        setHasMore(false)
-      }
-    } catch (error) {
-      console.error('Error searching videos:', error)
-      setFilteredVideos([])
-      setHasMore(false)
-    } finally {
-      setIsSearching(false)
-    }
-  }
-
-  const loadMoreVideos = async () => {
-    if (!hasMore || loadingMore) return
-    
-    setLoadingMore(true)
-    
-    try {
-      if (searchMode && searchQuery.trim()) {
-        // Load more search results
-        await searchAllChannels(searchQuery, currentPage + 1)
-      } else {
-        // Load more videos from current channel
-        const nextPage = currentPage + 1
-        const response = await fetch(`/api/youtube/channel/${activeChannel}?page=${nextPage}&limit=${VIDEOS_PER_PAGE}`)
-        
-        if (response.ok) {
-          const data: ApiResponse = await response.json()
-          
-          if (data.videos.length > 0) {
-            const newVideos = data.videos.map((video: any) => ({
-              ...video,
-              duration: video.duration || '',
-              viewCount: video.viewCount || ''
-            }))
+          if (data.items) {
+            trackVideoListCall(true); // Track successful call
+            successfulFetches++;
             
-            setAllVideos(prev => [...prev, ...newVideos])
-            setCurrentPage(nextPage)
-            setHasMore(data.pagination.hasNextPage)
+            const videosWithDetails = data.items.map((item: any) => {
+              const duration = item.contentDetails.duration;
+              const minutes = Math.floor(parseInt(duration.match(/(\d+)M/)?.[1] || 0));
+              const seconds = Math.floor(parseInt(duration.match(/(\d+)S/)?.[1] || 0));
+              const formattedDuration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+              return {
+                id: item.id,
+                title: item.snippet.title,
+                thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+                duration: formattedDuration,
+                channelTitle: item.snippet.channelTitle,
+                channelId: item.snippet.channelId,
+                publishedAt: item.snippet.publishedAt,
+              };
+            }).filter((video: Video | null): video is Video => video !== null);
+
+            allVideos.push(...videosWithDetails);
           } else {
-            setHasMore(false)
+            trackVideoListCall(false, "No video items found");
           }
-        } else {
-          setHasMore(false)
+        } catch (error) {
+          trackVideoListCall(false, error instanceof Error ? error.message : "Unknown error");
+          console.error(`Error fetching videos for channel ${channel.id}:`, error);
         }
       }
-    } catch (error) {
-      console.error('Error loading more videos:', error)
-      setHasMore(false)
-    } finally {
-      setLoadingMore(false)
-    }
-  }
 
-  const filterVideos = () => {
-    // Get all videos from all channels for search
-    let videos = allVideos
-    
-    // If search query exists, search across all channels
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      const allChannelsVideos = channels.flatMap(channel => channel.videos)
-      videos = allChannelsVideos.filter(video =>
-        video.title.toLowerCase().includes(query) ||
-        video.channelName.toLowerCase().includes(query) ||
-        (video.description && video.description.toLowerCase().includes(query))
-      )
-    } else {
-      // If no search query, use current channel's videos
-      const currentChannel = channels.find(c => c.id === activeChannel)
-      if (!currentChannel) return
-      videos = allVideos
-    }
-
-    // Apply time filter
-    if (timeFilter !== 'all') {
-      const now = new Date()
-      const filterDate = new Date()
+      setVideos(allVideos);
+      setFilteredVideos(allVideos);
       
-      switch (timeFilter) {
-        case 'today':
-          filterDate.setHours(0, 0, 0, 0)
-          break
-        case 'week':
-          filterDate.setDate(now.getDate() - 7)
-          break
-        case 'month':
-          filterDate.setMonth(now.getMonth() - 1)
-          break
-        case 'year':
-          filterDate.setFullYear(now.getFullYear() - 1)
-          break
-      }
-
-      videos = videos.filter(video => {
-        const videoDate = new Date(video.publishedAt)
-        return videoDate >= filterDate
-      })
+      // Update quota usage
+      const usage = youtubeApiTracker.getQuotaUsage();
+      setQuotaUsage(usage);
+      
+      toast({
+        title: "نجاح",
+        description: `تم جلب ${allVideos.length} فيديو من ${successfulFetches}/${channels.length} قنوات (تكلفة: ${usage.totalCost} من ${usage.dailyQuota})`,
+      });
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "فشل جلب الفيديوهات",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setFilteredVideos(videos)
-  }
+  const clearCache = () => {
+    localStorage.removeItem("cacheData");
+    setCacheData(null);
+    setVideos([]);
+    setFilteredVideos([]);
+    toast({
+      title: "نجاح",
+      description: "تم مسح الكاش بنجاح",
+    });
+  };
 
-  
-
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen)
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffTime = Math.abs(now.getTime() - date.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  const playVideo = async (video: Video) => {
+    setIsVideoLoading(true);
+    setCurrentVideo(video);
+    setIsVideoPlayerOpen(true);
+    addToWatched(video);
     
-    // For today, show time
-    if (diffDays === 0) {
-      const hours = date.getHours()
-      const minutes = date.getMinutes().toString().padStart(2, '0')
-      const period = hours >= 12 ? 'م' : 'ص'
-      const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
-      return `الساعة ${displayHours}:${minutes} ${period}`
+    // Simulate video loading - the custom player will handle actual loading
+    setTimeout(() => setIsVideoLoading(false), 500);
+  };
+
+  const playVideoWithSync = async (video: Video) => {
+    setIsVideoLoading(true);
+    setCurrentVideo(video);
+    setIsVideoPlayerOpen(true);
+    addToWatched(video);
+    
+    // Simulate video loading - the custom player will handle actual loading
+    setTimeout(() => setIsVideoLoading(false), 500);
+  };
+
+  const goToVideoPage = (video: Video) => {
+    addToWatched(video);
+    router.push(`/video/${video.id}`);
+  };
+
+  const addToWatched = (video: Video) => {
+    const alreadyWatched = watchedVideos.some(v => v.id === video.id);
+    if (!alreadyWatched) {
+      const watchedVideo: WatchedVideo = {
+        ...video,
+        watchedAt: new Date().toISOString(),
+      };
+      setWatchedVideos(prev => [watchedVideo, ...prev]);
     }
-    
-    if (diffDays === 1) return 'أمس'
-    if (diffDays < 7) return `منذ ${diffDays} أيام`
-    if (diffDays < 30) return `منذ ${Math.floor(diffDays / 7)} أسابيع`
-    if (diffDays < 365) return `منذ ${Math.floor(diffDays / 30)} أشهر`
-    return `منذ ${Math.floor(diffDays / 365)} سنوات`
-  }
+  };
 
-  const formatViewCount = (count: string) => {
-    if (!count) return ''
-    
-    const numMatch = count.match(/\d+/)
-    if (!numMatch) return count
-    
-    const num = parseInt(numMatch[0])
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-    return num.toString()
-  }
+  const addToFavorites = (video: Video) => {
+    const alreadyFavorited = favoriteVideos.some(v => v.id === video.id);
+    if (!alreadyFavorited) {
+      const favoriteVideo: FavoriteVideo = {
+        ...video,
+        favoritedAt: new Date().toISOString(),
+      };
+      setFavoriteVideos(prev => [favoriteVideo, ...prev]);
+      toast({
+        title: "تمت الإضافة",
+        description: "تمت إضافة الفيديو إلى المفضلة",
+      });
+    }
+  };
 
-  if (loading) {
+  const removeFromFavorites = (videoId: string) => {
+    setFavoriteVideos(prev => prev.filter(v => v.id !== videoId));
+    toast({
+      title: "تم الحذف",
+      description: "تم حذف الفيديو من المفضلة",
+    });
+  };
+
+  const removeFromWatched = (videoId: string) => {
+    setWatchedVideos(prev => prev.filter(v => v.id !== videoId));
+    toast({
+      title: "تم الحذف",
+      description: "تم حذف الفيديو من المشاهدة مؤخراً",
+    });
+  };
+
+  // Notes management functions
+  const addNote = (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newNote: Note = {
+      ...noteData,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setNotes(prev => [newNote, ...prev]);
+    toast({
+      title: "نجاح",
+      description: "تمت إضافة الملاحظة بنجاح",
+    });
+  };
+
+  const updateNote = (id: string, updateData: Partial<Note>) => {
+    setNotes(prev => prev.map(note => 
+      note.id === id 
+        ? { ...note, ...updateData, updatedAt: new Date().toISOString() }
+        : note
+    ));
+    toast({
+      title: "نجاح",
+      description: "تم تحديث الملاحظة بنجاح",
+    });
+  };
+
+  const deleteNote = (id: string) => {
+    setNotes(prev => prev.filter(note => note.id !== id));
+    toast({
+      title: "نجاح",
+      description: "تم حذف الملاحظة بنجاح",
+    });
+  };
+
+  const shareNote = (note: Note) => {
+    const noteText = `
+ملاحظة على درس: ${note.videoTitle}
+القناة: ${note.channelTitle}
+${note.timestamp ? `الطابع الزمني: ${Math.floor(note.timestamp / 60)}:${(note.timestamp % 60).toString().padStart(2, '0')}` : ''}
+المحتوى:
+${note.content.replace(/<[^>]*>/g, '')}
+${note.tags.length > 0 ? `الوسوم: ${note.tags.join(', ')}` : ''}
+    `.trim();
+
+    navigator.clipboard.writeText(noteText);
+    toast({
+      title: "نجاح",
+      description: "تم نسخ الملاحظة إلى الحافظة",
+    });
+  };
+
+  const shareVideo = (video: Video) => {
+    const videoUrl = `https://www.youtube.com/watch?v=${video.id}`;
+    const shareText = `شاهد هذا الدرس: ${video.title}\nالقناة: ${video.channelTitle}\nالرابط: ${videoUrl}`;
+    
+    navigator.clipboard.writeText(shareText);
+    toast({
+      title: "نجاح",
+      description: "تم نسخ معلومات الفيديو إلى الحافظة",
+    });
+  };
+
+  const getChannelInfo = (channelId: string) => {
+    return channels.find(c => c.id === channelId);
+  };
+
+  const VideoCard = ({ video, onPlay, onFavorite, onShare, onPlaySync }: { 
+    video: Video; 
+    onPlay: () => void; 
+    onFavorite: () => void;
+    onShare: () => void;
+    onPlaySync: () => void;
+  }) => {
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
+    const channelInfo = getChannelInfo(video.channelId);
+
     return (
-      <div className="min-h-screen bg-background">
-        {/* YouTube-style Header */}
-        <header className="sticky top-0 z-40 bg-background border-b border-border backdrop-blur-sm bg-opacity-95">
-          <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3">
-            <div className="flex items-center gap-2 sm:gap-4">
-              {/* Logo */}
-              <div className="flex items-center gap-1 sm:gap-2">
-                <div className="w-6 h-6 sm:w-7 sm:h-7 bg-primary rounded-full flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-xs sm:text-sm">ي</span>
+      <Card 
+        className="group cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 w-full overflow-hidden border-0 shadow-md hover:shadow-2xl"
+        onClick={onPlay}
+      >
+        <CardContent className="p-0">
+          <div className="relative overflow-hidden bg-gray-100 aspect-video">
+            {!imageLoaded && !imageError && (
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse" />
+            )}
+            <img
+              src={imageError ? '/placeholder-video.jpg' : video.thumbnail}
+              alt={video.title}
+              className={`w-full object-contain transition-transform duration-300 group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageError(true)}
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <Badge className="absolute bottom-3 right-3 bg-black/90 text-white text-xs font-medium px-2 py-1 rounded-full backdrop-blur-sm border border-white/20">
+              {video.duration}
+            </Badge>
+            <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-8 w-8 rounded-full bg-white/90 hover:bg-white text-gray-800 shadow-lg"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPlay();
+                }}
+              >
+                <Play className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="p-4 space-y-3">
+            <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-blue-600 transition-colors duration-200 leading-tight">
+              {video.title}
+            </h3>
+            <div className="flex items-center gap-2">
+              {channelInfo && (
+                <img 
+                  src={channelInfo.thumbnail} 
+                  alt={channelInfo.title}
+                  className="w-5 h-5 rounded-full object-cover"
+                />
+              )}
+              <p className="text-gray-600 text-xs line-clamp-1 flex items-center">
+                {video.channelTitle}
+              </p>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPlay();
+                }}
+                className="flex-1 h-8 text-xs font-medium transition-all duration-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200"
+              >
+                <Play className="w-3 h-3 mr-1.5" />
+                تشغيل
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFavorite();
+                }}
+                className={`h-8 w-8 transition-all duration-200 ${
+                  favoriteVideos.some(f => f.id === video.id) 
+                    ? 'bg-yellow-50 text-yellow-600 border-yellow-200 hover:bg-yellow-100' 
+                    : 'hover:bg-gray-50 hover:text-gray-600'
+                }`}
+              >
+                <Heart className={`w-3 h-3 ${favoriteVideos.some(f => f.id === video.id) ? 'fill-current' : ''}`} />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShare();
+                }}
+                className="h-8 w-8 transition-all duration-200 hover:bg-gray-50 hover:text-gray-600"
+              >
+                <Share2 className="w-3 h-3" />
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const VideoListItem = ({ video, onPlay, onFavorite, onShare }: { 
+    video: Video; 
+    onPlay: () => void; 
+    onFavorite: () => void;
+    onShare: () => void;
+  }) => {
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
+    const channelInfo = getChannelInfo(video.channelId);
+
+    return (
+      <Card 
+        className="group cursor-pointer hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 w-full overflow-hidden border-0 shadow-md hover:shadow-2xl"
+        onClick={onPlay}
+      >
+        <CardContent className="p-0">
+          <div className="flex">
+            <div className="relative w-32 sm:w-40 md:w-56 flex-shrink-0 overflow-hidden bg-gray-100 aspect-video">
+              {!imageLoaded && !imageError && (
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse" />
+              )}
+              <img
+                src={imageError ? '/placeholder-video.jpg' : video.thumbnail}
+                alt={video.title}
+                className={`w-full object-contain transition-transform duration-300 group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                onLoad={() => setImageLoaded(true)}
+                onError={() => setImageError(true)}
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <Badge className="absolute bottom-2 right-2 bg-black/90 text-white text-xs font-medium px-2 py-1 rounded-full backdrop-blur-sm border border-white/20">
+                {video.duration}
+              </Badge>
+              <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-7 w-7 rounded-full bg-white/90 hover:bg-white text-gray-800 shadow-lg"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPlay();
+                  }}
+                >
+                  <Play className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+            <div className="p-4 flex-1 min-w-0 space-y-3">
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-blue-600 transition-colors duration-200 leading-tight">
+                  {video.title}
+                </h3>
+                <div className="flex items-center gap-2">
+                  {channelInfo && (
+                    <img 
+                      src={channelInfo.thumbnail} 
+                      alt={channelInfo.title}
+                      className="w-4 h-4 rounded-full object-cover"
+                    />
+                  )}
+                  <p className="text-gray-600 text-xs line-clamp-1 flex items-center">
+                    {video.channelTitle}
+                  </p>
                 </div>
-                <h1 className="text-lg sm:text-xl font-bold">المنصة التعليمية</h1>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPlay();
+                  }}
+                  className="h-8 text-xs font-medium transition-all duration-200 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200"
+                >
+                  <Play className="w-3 h-3 mr-1.5" />
+                  تشغيل
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onFavorite();
+                  }}
+                  className={`h-8 w-8 transition-all duration-200 ${
+                    favoriteVideos.some(f => f.id === video.id) 
+                      ? 'bg-yellow-50 text-yellow-600 border-yellow-200 hover:bg-yellow-100' 
+                      : 'hover:bg-gray-50 hover:text-gray-600'
+                  }`}
+                >
+                  <Heart className={`w-3 h-3 ${favoriteVideos.some(f => f.id === video.id) ? 'fill-current' : ''}`} />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShare();
+                  }}
+                  className="h-8 w-8 transition-all duration-200 hover:bg-gray-50 hover:text-gray-600"
+                >
+                  <Share2 className="w-3 h-3" />
+                </Button>
               </div>
             </div>
           </div>
-        </header>
+        </CardContent>
+      </Card>
+    );
+  };
 
-        {/* Loading Content */}
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="text-center mb-8">
-            <RefreshCw className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-            <h2 className="text-xl font-semibold mb-2">جاري تحميل المنصة التعليمية</h2>
-            <p className="text-muted-foreground">يتم الآن تحميل القنوات والفيديوهات التعليمية...</p>
-          </div>
-          
-          {/* Loading Skeleton */}
-          <div className="w-full max-w-4xl px-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {Array.from({ length: 8 }).map((_, index) => (
-                <div key={index} className="bg-card rounded-lg overflow-hidden border border-border">
-                  <div className="aspect-video bg-muted animate-pulse" />
-                  <div className="p-3">
-                    <div className="h-4 bg-muted rounded animate-pulse mb-2" />
-                    <div className="h-3 bg-muted rounded animate-pulse w-3/4" />
+  const VideoPlayer = ({ video, isOpen, onClose }: { 
+    video: Video | null; 
+    isOpen: boolean; 
+    onClose: () => void;
+  }) => {
+    if (!video) return null;
+
+    const relatedVideos = videos.filter(v => 
+      v.channelId === video.channelId && v.id !== video.id
+    ).slice(0, 6);
+
+    const channelInfo = getChannelInfo(video.channelId);
+
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto p-0">
+          <div className="grid grid-cols-1 lg:grid-cols-3 min-h-screen">
+            {/* Video Player Section */}
+            <div className="lg:col-span-2 bg-black flex flex-col">
+              <div className="flex-1 relative">
+                {isVideoLoading ? (
+                  <div className="w-full h-full flex items-center justify-center bg-black">
+                    <LoadingSpinner size="lg" text="جاري تحميل الفيديو..." />
+                  </div>
+                ) : (
+                  <CustomYouTubePlayer
+                    videoId={video.id}
+                    title={video.title}
+                    autoPlay={true}
+                    className="w-full h-full"
+                  />
+                )}
+              </div>
+              
+              <div className="bg-white p-6 border-t">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <Youtube className="w-6 h-6 text-red-600 mt-1 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h2 className="text-xl font-bold text-gray-900 leading-tight">
+                        {video.title}
+                      </h2>
+                      <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
+                        <div className="flex items-center gap-2">
+                          {channelInfo && (
+                            <img 
+                              src={channelInfo.thumbnail} 
+                              alt={channelInfo.title}
+                              className="w-5 h-5 rounded-full object-cover"
+                            />
+                          )}
+                          <span className="font-medium">{video.channelTitle}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Film className="w-4 h-4 text-green-500" />
+                          <span>{video.duration}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              ))}
+              </div>
+            </div>
+
+            {/* Related Videos Section */}
+            <div className="bg-gray-50 border-l p-6 overflow-y-auto">
+              <div className="space-y-6">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-lg font-bold text-gray-900">فيديوهات مرتبطة</h3>
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                    {relatedVideos.length}
+                  </Badge>
+                </div>
+                
+                {relatedVideos.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Video className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-500">لا توجد فيديوهات مرتبطة</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {relatedVideos.map((relatedVideo) => (
+                      <RelatedVideoCard
+                        key={relatedVideo.id}
+                        video={relatedVideo}
+                        onClick={() => {
+                          setCurrentVideo(relatedVideo);
+                          addToWatched(relatedVideo);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    )
-  }
+        </DialogContent>
+      </Dialog>
+    );
+  };
 
-  if (isFullscreen && selectedVideo) {
+  const RelatedVideoCard = ({ video, onClick }: { 
+    video: Video; 
+    onClick: () => void;
+  }) => {
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
+    const channelInfo = getChannelInfo(video.channelId);
+
     return (
-      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
-        <div className="w-full h-full relative">
-          <Button
-            variant="secondary"
-            size="sm"
-            className="absolute top-4 right-4 z-10"
-            onClick={toggleFullscreen}
-          >
-            ✕
-          </Button>
-          <LiteYouTubeEmbed
-            id={selectedVideo.id}
-            title={selectedVideo.title}
-            thumbnail={selectedVideo.thumbnail}
-            params="rel=0&modestbranding=1&showinfo=0&controls=1&autoplay=1&iv_load_policy=3&cc_load_policy=1"
-            adNetwork={false}
-            playlist={false}
-            playlistCoverId=""
-            poster="hqdefault"
-            wrapperClass="yt-lite w-full h-full"
-            playerClass="lty-playbtn"
-            iframeClass="w-full h-full"
-            noCookie={true}
-          />
+      <Card 
+        key={video.id} 
+        className="cursor-pointer hover:shadow-lg transition-all duration-300 transform hover:scale-102 border-0 shadow-sm overflow-hidden"
+        onClick={onClick}
+      >
+        <CardContent className="p-0">
+          <div className="flex gap-3">
+            <div className="relative w-24 flex-shrink-0 overflow-hidden bg-gray-100 rounded-lg aspect-video">
+              {!imageLoaded && !imageError && (
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 animate-pulse rounded-lg" />
+              )}
+              <img
+                src={imageError ? '/placeholder-video.jpg' : video.thumbnail}
+                alt={video.title}
+                className={`w-full h-full object-contain transition-transform duration-300 hover:scale-110 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                onLoad={() => setImageLoaded(true)}
+                onError={() => setImageError(true)}
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+              <Badge className="absolute bottom-1 right-1 bg-black/90 text-white text-xs px-1.5 py-0.5 rounded-full">
+                {video.duration}
+              </Badge>
+            </div>
+            <div className="flex-1 min-w-0 py-2">
+              <h4 className="font-medium text-sm text-gray-900 line-clamp-2 leading-tight mb-1 group-hover:text-blue-600 transition-colors">
+                {video.title}
+              </h4>
+              <div className="flex items-center gap-1">
+                {channelInfo && (
+                  <img 
+                    src={channelInfo.thumbnail} 
+                    alt={channelInfo.title}
+                    className="w-3 h-3 rounded-full object-cover"
+                  />
+                )}
+                <p className="text-xs text-gray-600 line-clamp-1 flex items-center">
+                  {video.channelTitle}
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  if (isAppLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Youtube className="w-8 h-8 text-white" />
+          </div>
+          <LoadingSpinner size="lg" text="جاري تحميل المنصة التعليمية..." />
         </div>
       </div>
-    )
+    );
   }
-
-  const totalVideos = channels.reduce((sum, channel) => sum + channel.videos.length, 0)
-  
-  // Calculate total videos across all channels including loaded videos
-  const totalLoadedVideos = allVideos.length + channels.reduce((sum, channel) => {
-    return sum + (channel.id === activeChannel ? 0 : channel.videos.length)
-  }, 0)
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* YouTube-style Header */}
-      <header className="sticky top-0 z-40 bg-background border-b border-border backdrop-blur-sm bg-opacity-95">
-        <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3">
+    <div className="min-h-screen bg-gray-50">
+      <LoadingOverlay isLoading={isVideoLoading} text="جاري تحميل الفيديو..." />
+      
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b sticky top-0 z-50">
+        <div className="flex items-center justify-between p-2 sm:p-4">
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Logo */}
-            <div className="flex items-center gap-1 sm:gap-2">
-              <div className="w-6 h-6 sm:w-7 sm:h-7 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-xs sm:text-sm">ي</span>
-              </div>
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-10 sm:w-10">
+                  <Menu className="w-4 h-4 sm:w-6 sm:h-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80">
+                <div className="space-y-6">
+                  
+                  {/* API Quota Display */}
+                  <Card className="p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <BarChart3 className="w-5 h-5 text-blue-600" />
+                      <h3 className="font-semibold">حصة API</h3>
+                    </div>
+                    <div className="space-y-2">
+                      {quotaUsage ? (
+                        <>
+                          <div className="flex justify-between text-sm">
+                            <span>المكالمات:</span>
+                            <span>{quotaUsage.totalCalls}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>التكلفة:</span>
+                            <span>{quotaUsage.totalCost}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>المتبقي:</span>
+                            <span>{quotaUsage.remainingQuota}</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full transition-all duration-300 ${
+                                (quotaUsage.totalCost / quotaUsage.dailyQuota) > 0.9 
+                                  ? 'bg-red-600' 
+                                  : (quotaUsage.totalCost / quotaUsage.dailyQuota) > 0.75 
+                                    ? 'bg-yellow-600' 
+                                    : 'bg-blue-600'
+                              }`}
+                              style={{ width: `${Math.min(100, (quotaUsage.totalCost / quotaUsage.dailyQuota) * 100)}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-gray-600">
+                            {((quotaUsage.totalCost / quotaUsage.dailyQuota) * 100).toFixed(1)}% مستخدم
+                          </p>
+                          {youtubeApiTracker.getQuotaWarning() && (
+                            <p className="text-xs text-orange-600 font-medium">
+                              {youtubeApiTracker.getQuotaWarning()}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm text-gray-500">جاري التحميل...</p>
+                      )}
+                    </div>
+                  </Card>
+
+                  {/* Cache Info */}
+                  {cacheData && (
+                    <Card className="p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Database className="w-5 h-5 text-green-600" />
+                        <h3 className="font-semibold">الكاش</h3>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>الفيديوهات:</span>
+                          <span>{cacheData.videos.length}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>آخر تحديث:</span>
+                          <span>{new Date(cacheData.lastUpdated).toLocaleDateString()}</span>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={clearCache}
+                          className="w-full mt-2"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          مسح الكاش
+                        </Button>
+                      </div>
+                    </Card>
+                  )}
+                  
+                  {/* Detailed Quota Breakdown */}
+                  {quotaUsage && Object.keys(quotaUsage.callsByEndpoint).length > 0 && (
+                    <Card className="p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <BarChart3 className="w-5 h-5 text-purple-600" />
+                        <h3 className="font-semibold">تفصيل الاستخدام</h3>
+                      </div>
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {Object.entries(quotaUsage.callsByEndpoint).map(([endpoint, data]) => (
+                          <div key={endpoint} className="flex justify-between text-sm">
+                            <span className="font-medium">{endpoint}:</span>
+                            <span>{data.count}x ({data.cost})</span>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  )}
+                  
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start">
+                        <Settings className="w-4 h-4 mr-2" />
+                        الإعدادات
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>الإعدادات</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="apiKey">مفتاح YouTube API</Label>
+                          <Textarea
+                            id="apiKey"
+                            value={apiKey}
+                            onChange={(e) => setApiKey(e.target.value)}
+                            placeholder="أدخل مفتاح YouTube API هنا"
+                            className="mt-2"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="apiQuota">الحصة اليومية لـ API</Label>
+                          <Input
+                            id="apiQuota"
+                            type="number"
+                            value={apiQuota}
+                            onChange={(e) => setApiQuota(parseInt(e.target.value) || 10000)}
+                            placeholder="10000"
+                            className="mt-2"
+                          />
+                          <p className="text-xs text-gray-600 mt-1">
+                            الحصة الافتراضية هي 10000 طلب يومياً
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button onClick={saveSettings} className="flex-1">
+                            حفظ الإعدادات
+                          </Button>
+                          <Button onClick={resetQuotaTracking} variant="outline" className="flex-1">
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            إعادة تعيين الحصة
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start">
+                        <Plus className="w-4 h-4 mr-2" />
+                        إدارة القنوات
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>إدارة القنوات</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="أدخل معرف القناة"
+                            value={channelInput}
+                            onChange={(e) => setChannelInput(e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button onClick={addChannel} disabled={isFetchingChannelInfo}>
+                            {isFetchingChannelInfo ? <LoadingSpinner size="sm" /> : "إضافة"}
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                          {channels.length === 0 ? (
+                            <p className="text-gray-500 text-center py-4">لا توجد قنوات مضافة</p>
+                          ) : (
+                            channels.map((channel) => (
+                              <Card key={channel.id} className="p-3">
+                                <div className="flex items-center gap-3">
+                                  <img
+                                    src={channel.thumbnail}
+                                    alt={channel.title}
+                                    className="w-12 h-12 rounded-full object-contain"
+                                  />
+                                  <div className="flex-1">
+                                    <h4 className="font-medium text-sm">{channel.title}</h4>
+                                    <p className="text-xs text-gray-600">
+                                      {channel.subscriberCount} مشترك • {channel.videoCount} فيديو
+                                    </p>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeChannel(channel.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </Card>
+                            ))
+                          )}
+                        </div>
+                        
+                        <Button onClick={fetchVideos} className="w-full" disabled={loading}>
+                          {loading ? <LoadingSpinner size="sm" /> : "جلب الفيديوهات"}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
+                  {/* Hadith Encyclopedia Link */}
+                  <Button 
+                    variant="outline" 
+                    className="w-full justify-start"
+                    onClick={() => window.location.href = '/hadith'}
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    الموسوعة الحديثية
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+            
+            <div className="flex items-center gap-2">
+              <Youtube className="w-6 h-6 text-red-600" />
               <h1 className="text-lg sm:text-xl font-bold">المنصة التعليمية</h1>
             </div>
-            
-            {/* Search Bar - Hidden on mobile, shown on md+ */}
-            <div className="hidden md:flex items-center max-w-md flex-1 mx-2 sm:mx-4">
-              <div className="relative w-full">
-                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder={searchMode ? "ابحث في جميع القنوات..." : "ابحث في الفيديوهات..."}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10 youtube-search h-9 sm:h-10" // Slightly larger for better touch
-                  disabled={totalLoadedVideos === 0}
-                />
-                {isSearching && (
-                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                    <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
-                  </div>
-                )}
-                {/* Search loading message */}
-                {isSearching && searchQuery && (
-                  <div className="absolute left-12 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground whitespace-nowrap">
-                    جاري البحث في "{searchQuery}"...
-                  </div>
-                )}
-              </div>
+          </div>
+          
+          <div className="flex-1 max-w-xs sm:max-w-2xl mx-2 sm:mx-4">
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                type="text"
+                placeholder="بحث في الفيديوهات..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pr-10 h-8 sm:h-10 text-sm"
+              />
             </div>
           </div>
-
-          <div className="flex items-center gap-1 sm:gap-3">
-            {/* Filter Dropdown - Hidden on small screens */}
-            <div className="hidden sm:flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <Select value={timeFilter} onValueChange={(value: TimeFilter) => {
-                setTimeFilter(value)
-                updatePreference('timeFilter', value)
-              }} disabled={totalLoadedVideos === 0}>
-                <SelectTrigger className="w-32 sm:w-40">
-                  <SelectValue placeholder="الوقت" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">الكل</SelectItem>
-                  <SelectItem value="today">اليوم</SelectItem>
-                  <SelectItem value="week">أسبوع</SelectItem>
-                  <SelectItem value="month">شهر</SelectItem>
-                  <SelectItem value="year">سنة</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {/* Favorites Button */}
+          
+          <div className="flex items-center gap-1 sm:gap-2">
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/favorites')}
-              className="gap-1 sm:gap-2 h-9 sm:h-10 px-2 sm:px-3" // Larger on mobile
+              variant={viewMode === "grid" ? "default" : "ghost"}
+              size="icon"
+              onClick={() => setViewMode("grid")}
+              className="h-8 w-8 sm:h-10 sm:w-10"
             >
-              <Heart className="h-4 w-4" />
-              <span className="hidden sm:inline">المفضلة</span>
+              <Grid className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
-            
-            {/* Refresh Button */}
             <Button
-              variant="outline"
-              size="sm"
-              onClick={refreshData}
-              disabled={refreshing}
-              className="gap-1 sm:gap-2 h-9 sm:h-10 px-2 sm:px-3" // Larger on mobile
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="icon"
+              onClick={() => setViewMode("list")}
+              className="h-8 w-8 sm:h-10 sm:w-10"
             >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">
-                {refreshing ? 'جاري التحديث...' : 'تحديث'}
-              </span>
-              <span className="sm:hidden">
-                {refreshing ? 'تحديث...' : 'تحديث'}
-              </span>
+              <List className="w-4 h-4 sm:w-5 sm:h-5" />
             </Button>
-
-            {/* Theme Toggle */}
-            <div className="h-9 sm:h-10 flex items-center"> {/* Larger touch area */}
-              <ThemeToggle />
-            </div>
-
-            {/* Keyboard Shortcuts Help - Hidden on small screens */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                alert('اختصارات لوحة المفاتيح:\n\n' +
-                      'Ctrl/Cmd + K: التركيز على البحث\n' +
-                      'Ctrl/Cmd + F: فتح المفضلة\n' +
-                      'Ctrl/Cmd + R: تحديث المحتوى\n' +
-                      '1-4: التبديل بين القنوات\n' +
-                      '←→↑↓: التنقل بين الفيديوهات\n' +
-                      'Enter: تشغيل الفيديو المحدد')
-              }}
-              className="gap-1 sm:gap-2 h-9 sm:h-10 px-2 sm:px-3 hidden sm:flex"
-              title="اختصارات لوحة المفاتيح"
-            >
-              <Keyboard className="h-4 w-4" />
-              <span className="hidden sm:inline">اختصارات</span>
-            </Button>
-
-            {/* Video Count Badge - Hidden on small screens */}
-            <Badge variant="secondary" className="hidden sm:flex">
-              {totalLoadedVideos} فيديو
-            </Badge>
-          </div>
-        </div>
-
-        {/* Mobile Search Bar - Full width below header */}
-        <div className="md:hidden px-3 pb-2">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              type="text"
-              placeholder="ابحث في الفيديوهات..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pr-10 youtube-search h-10 text-base"
-              disabled={totalLoadedVideos === 0}
-            />
-            {isSearching && (
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            )}
-            {/* Search loading message */}
-            {isSearching && searchQuery && (
-              <div className="absolute left-12 top-1/2 transform -translate-y-1/2 text-xs text-muted-foreground whitespace-nowrap">
-                جاري البحث في "{searchQuery}"...
-              </div>
-            )}
           </div>
         </div>
       </header>
 
-      {/* Error Message */}
-      {apiError && (
-        <div className="mx-4 mt-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-          <div className="flex items-center gap-2 text-destructive">
-            <AlertCircle className="h-4 w-4" />
-            <span>{apiError}</span>
-          </div>
-        </div>
-      )}
-
       {/* Main Content */}
-      <div className="flex">
-        {/* Sidebar - Channel Navigation */}
-        <aside className="hidden lg:block w-64 min-h-screen border-r border-border bg-muted/30">
-          <div className="p-4">
-            <h2 className="text-sm font-semibold text-muted-foreground mb-4">القنوات</h2>
-            <nav className="space-y-2">
-              {channels.map((channel) => (
-                <button
-                  key={channel.id}
-                  onClick={() => handleChannelChange(channel.id)}
-                  disabled={switchingChannel}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-right relative ${
-                    activeChannel === channel.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted'
-                  } ${switchingChannel ? 'opacity-70 cursor-not-allowed' : ''}`}
-                >
-                  {switchingChannel && activeChannel === channel.id && (
-                    <div className="absolute inset-0 bg-background/50 rounded-lg flex items-center justify-center">
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    </div>
-                  )}
-                  <div className="w-7 h-7 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                    {channel.logo ? (
-                      <Image
-                        src={channel.logo}
-                        alt={channel.name}
-                        width={28}
-                        height={28}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
-                        {channel.name.charAt(0)}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm truncate">{channel.name}</div>
-                    <div className="text-xs opacity-75">
-                      {channel.id === activeChannel ? allVideos.length : channel.videos.length} فيديو
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </nav>
-          </div>
-        </aside>
+      <main className="container mx-auto p-2 sm:p-4">
+        <Tabs defaultValue="videos" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-5 h-auto p-1">
+            <TabsTrigger value="videos" className="text-xs sm:text-sm py-2 px-1 sm:px-3 flex items-center gap-2">
+              <Video className="w-4 h-4" />
+              الفيديوهات ({filteredVideos.length})
+            </TabsTrigger>
+            <TabsTrigger value="watched" className="text-xs sm:text-sm py-2 px-1 sm:px-3 flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              المشاهدة ({watchedVideos.length})
+            </TabsTrigger>
+            <TabsTrigger value="favorites" className="text-xs sm:text-sm py-2 px-1 sm:px-3 flex items-center gap-2">
+              <Heart className="w-4 h-4" />
+              المفضلة ({favoriteVideos.length})
+            </TabsTrigger>
+            <TabsTrigger value="notes" className="text-xs sm:text-sm py-2 px-1 sm:px-3 flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              الملاحظات ({notes.length})
+            </TabsTrigger>
+            <TabsTrigger value="hadith" className="text-xs sm:text-sm py-2 px-1 sm:px-3 flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              الأحاديث
+            </TabsTrigger>
+            {currentVideo && (
+              <TabsTrigger value="sync" className="text-xs sm:text-sm py-2 px-1 sm:px-3 flex items-center gap-2">
+                <Play className="w-4 h-4" />
+                تشغيل بمزامنة
+              </TabsTrigger>
+            )}
+          </TabsList>
 
-        {/* Main Content Area */}
-        <main className="flex-1">
-          {/* Mobile Channel Tabs */}
-          <div className="lg:hidden border-b border-border">
-            <div className="flex overflow-x-auto px-2 sm:px-0">
-              {channels.map((channel) => (
-                <button
-                  key={channel.id}
-                  onClick={() => handleChannelChange(channel.id)}
-                  disabled={switchingChannel}
-                  className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 border-b-2 whitespace-nowrap transition-colors min-w-fit relative ${
-                    activeChannel === channel.id
-                      ? 'border-primary text-primary'
-                      : 'border-transparent hover:border-muted-foreground/50'
-                  } ${switchingChannel ? 'opacity-70' : ''}`}
-                >
-                  {switchingChannel && activeChannel === channel.id && (
-                    <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4 animate-spin absolute top-1 right-1" />
-                  )}
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                    {channel.logo ? (
-                      <Image
-                        src={channel.logo}
-                        alt={channel.name}
-                        width={16}
-                        height={16}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-[8px] sm:text-xs">
-                        {channel.name.charAt(0)}
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-xs sm:text-sm font-medium truncate">{channel.name}</span>
-                  <Badge variant="secondary" className="text-[10px] sm:text-xs px-1 sm:px-2">
-                    {channel.id === activeChannel ? allVideos.length : channel.videos.length}
-                  </Badge>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Content Grid */}
-          <div className="p-2 sm:p-4">
-            {/* Video Player Section */}
-            {selectedVideo && (
-              <div className="mb-8">
-                <div className="youtube-card bg-card rounded-lg overflow-hidden relative">
-                  {/* Loading Overlay */}
-                  {selectingVideo && (
-                    <div className="absolute inset-0 bg-black/50 z-10 flex items-center justify-center">
-                      <div className="text-white text-center">
-                        <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2" />
-                        <p className="text-sm">جاري تحميل الفيديو...</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Video Player Preview */}
-                  <div className="relative aspect-video bg-black overflow-hidden">
-                    <Image
-                      src={selectedVideo.thumbnail}
-                      alt={selectedVideo.title}
-                      fill
-                      className="object-cover w-full h-full"
-                    />
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                      <Button 
-                        onClick={() => router.push(`/video/${selectedVideo.id}`)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-full text-lg font-semibold"
-                        disabled={selectingVideo}
-                      >
-                        {selectingVideo ? (
-                          <>
-                            <RefreshCw className="h-4 w-4 animate-spin ml-2" />
-                            جاري التحميل...
-                          </>
-                        ) : (
-                          'تشغيل الفيديو'
-                        )}
-                      </Button>
-                    </div>
-                    {selectedVideo.duration && (
-                      <div className="absolute bottom-2 right-2 youtube-badge">
-                        {selectedVideo.duration}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Video Info */}
-                  <div className="p-3">
-                    <h2 className="text-lg font-semibold mb-3 line-clamp-2">
-                      {selectedVideo.title}
-                    </h2>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                          {selectedVideo.channelLogo ? (
-                            <Image
-                              src={selectedVideo.channelLogo}
-                              alt={selectedVideo.channelName}
-                              width={40}
-                              height={40}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
-                              {selectedVideo.channelName.charAt(0)}
-                            </div>
-                          )}
-                        </div>
-                        <div>
-                          <div className="font-medium text-sm">{selectedVideo.channelName}</div>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Eye className="h-3 w-3" />
-                              <span>{formatViewCount(selectedVideo.viewCount)}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              <span>{formatDate(selectedVideo.publishedAt)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push(`/video/${selectedVideo.id}`)}
-                        disabled={selectingVideo}
-                        className="gap-2"
-                      >
-                        {selectingVideo ? (
-                          <>
-                            <RefreshCw className="h-4 w-4 animate-spin" />
-                          </>
-                        ) : null}
-                        مشاهدة
-                      </Button>
-                    </div>
-                  </div>
+          <TabsContent value="videos" className="space-y-4">
+            {loading ? (
+              <div className={
+                viewMode === "grid" 
+                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
+                  : "space-y-4 sm:space-y-6"
+              }>
+                <LoadingCard count={8} />
+              </div>
+            ) : filteredVideos.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Video className="w-8 h-8 text-gray-400" />
                 </div>
+                <p className="text-gray-500">
+                  {channels.length === 0 
+                    ? "لا توجد قنوات مضافة. يرجى إضافة القنوات من إدارة القنوات."
+                    : "لا توجد فيديوهات. يرجى جلب الفيديوهات من إدارة القنوات."
+                  }
+                </p>
+              </div>
+            ) : (
+              <div className={
+                viewMode === "grid" 
+                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
+                  : "space-y-4 sm:space-y-6"
+              }>
+                {filteredVideos.map((video) => (
+                  viewMode === "grid" ? (
+                    <VideoCard
+                      key={video.id}
+                      video={video}
+                      onPlay={() => goToVideoPage(video)}
+                      onFavorite={() => addToFavorites(video)}
+                      onShare={() => shareVideo(video)}
+                      onPlaySync={() => playVideoWithSync(video)}
+                    />
+                  ) : (
+                    <VideoListItem
+                      key={video.id}
+                      video={video}
+                      onPlay={() => goToVideoPage(video)}
+                      onFavorite={() => addToFavorites(video)}
+                      onShare={() => shareVideo(video)}
+                    />
+                  )
+                ))}
               </div>
             )}
+          </TabsContent>
 
-            {/* Videos Grid */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">
-                  {searchMode ? 'نتائج البحث' : channels.find(c => c.id === activeChannel)?.name || 'الفيديوهات'}
-                </h2>
-                {(searchQuery || timeFilter !== 'all') && (
-                  <Badge variant="outline">
-                    {filteredVideos.length} نتيجة
-                  </Badge>
-                )}
+          <TabsContent value="watched" className="space-y-4">
+            {watchedVideos.length === 0 ? (
+              <div className="text-center py-8">
+                <Clock className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-500">لا توجد فيديوهات تمت مشاهدتها مؤخراً</p>
               </div>
+            ) : (
+              <div className="space-y-4 sm:space-y-6">
+                {watchedVideos.map((video) => (
+                  <VideoListItem
+                    key={video.id}
+                    video={video}
+                    onPlay={() => playVideo(video)}
+                    onFavorite={() => addToFavorites(video)}
+                    onShare={() => shareVideo(video)}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
-              {filteredVideos.length > 0 ? (
-                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
-                  {filteredVideos.map((video, index) => (
-                    <div
-                      key={`${video.id}-${video.publishedAt}-${index}`}
-                      className={`youtube-card bg-card rounded-lg overflow-hidden cursor-pointer transition-all hover:shadow-lg relative ${
-                        selectedVideo?.id === video.id ? 'ring-2 ring-primary' : ''
-                      } ${selectingVideo ? 'pointer-events-none' : ''}`}
-                      onClick={() => handleVideoSelect(video)}
-                      ref={index === filteredVideos.length - 1 ? lastVideoRef : null}
-                    >
-                      {/* Loading Overlay */}
-                      {selectingVideo && selectedVideo?.id === video.id && (
-                        <div className="absolute inset-0 bg-black/30 z-10 flex items-center justify-center rounded-lg">
-                          <RefreshCw className="h-6 w-6 animate-spin text-white" />
-                        </div>
-                      )}
-                      
-                      {/* Thumbnail */}
-                      <div className="youtube-thumbnail aspect-video relative overflow-hidden bg-muted group">
-                        <Image
-                          src={video.thumbnail}
-                          alt={video.title}
-                          fill
-                          className="object-cover w-full h-full"
-                          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                          priority={false}
-                        />
-                        {video.duration && (
-                          <div className="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1 py-0.5 rounded">
-                            {video.duration}
-                          </div>
-                        )}
-                        
-                        {/* Favorite button */}
-                        <div className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                          <FavoriteButton 
-                            video={video} 
-                            size="sm"
-                            className="bg-black/50 hover:bg-black/70"
-                          />
-                        </div>
-                      </div>
+          <TabsContent value="favorites" className="space-y-4">
+            {favoriteVideos.length === 0 ? (
+              <div className="text-center py-8">
+                <Heart className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-500">لا توجد فيديوهات مفضلة</p>
+              </div>
+            ) : (
+              <div className="space-y-4 sm:space-y-6">
+                {favoriteVideos.map((video) => (
+                  <VideoListItem
+                    key={video.id}
+                    video={video}
+                    onPlay={() => playVideo(video)}
+                    onFavorite={() => removeFromFavorites(video.id)}
+                    onShare={() => shareVideo(video)}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
-                      {/* Video Info */}
-                      <div className="p-2 sm:p-3">
-                        <h3 className="font-medium text-xs sm:text-sm line-clamp-2 mb-1 sm:mb-2 leading-tight">
-                          {video.title}
-                        </h3>
-                        
-                        <div className="flex items-center gap-1 mb-1">
-                          <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full overflow-hidden bg-muted flex-shrink-0">
-                            {video.channelLogo ? (
-                              <Image
-                                src={video.channelLogo}
-                                alt={video.channelName}
-                                width={16}
-                                height={16}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-[8px] sm:text-xs">
-                                {video.channelName.charAt(0)}
-                              </div>
-                            )}
-                          </div>
-                          <span className="text-[10px] sm:text-xs text-muted-foreground truncate">
-                            {video.channelName}
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <Eye className="h-2 w-2 sm:h-3 sm:w-3" />
-                            <span>{formatViewCount(video.viewCount)}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-2 w-2 sm:h-3 sm:w-3" />
-                            <span>{formatDate(video.publishedAt)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-muted-foreground">
-                  <div className="text-6xl mb-4">
-                    {isSearching ? (
-                      <div className="flex flex-col items-center">
-                        <RefreshCw className="h-16 w-16 animate-spin mb-2 text-primary" />
-                        <span className="text-2xl">🔍</span>
-                      </div>
-                    ) : allVideos.length === 0 ? (
-                      '📡'
-                    ) : (
-                      '🔍'
-                    )}
-                  </div>
-                  <p className="text-lg mb-2">
-                    {isSearching
-                      ? `جاري البحث عن "${searchQuery}"...`
-                      : allVideos.length === 0
-                      ? 'لا توجد فيديوهات متاحة حالياً'
-                      : searchQuery || timeFilter !== 'all'
-                      ? `لا توجد نتائج للبحث عن "${searchQuery}"`
-                      : 'لا توجد فيديوهات متاحة حالياً'
-                    }
-                  </p>
-                  {isSearching && (
-                    <p className="text-sm text-muted-foreground mb-4">
-                      يرجى الانتظار بينما نبحث في جميع القنوات...
-                    </p>
-                  )}
-                  {allVideos.length === 0 && !isSearching && (
-                    <Button
-                      variant="outline"
-                      onClick={refreshData}
-                      className="mt-4"
-                    >
-                      محاولة تحميل البيانات
-                    </Button>
-                  )}
-                </div>
-              )}
+          <TabsContent value="notes" className="space-y-4">
+            <EnhancedNotesManager
+              notes={notes}
+              onAddNote={addNote}
+              onUpdateNote={updateNote}
+              onDeleteNote={deleteNote}
+              onShareNote={shareNote}
+              currentVideo={currentVideo ? {
+                id: currentVideo.id,
+                title: currentVideo.title,
+                channelTitle: currentVideo.channelTitle,
+                thumbnail: currentVideo.thumbnail
+              } : undefined}
+            />
+          </TabsContent>
+          
+          {currentVideo && (
+            <TabsContent value="sync" className="space-y-4">
+              <VideoSyncNotes
+                videoId={currentVideo.id}
+                videoTitle={currentVideo.title}
+                videoUrl={`https://www.youtube.com/watch?v=${currentVideo.id}`}
+                notes={notes.filter(note => note.videoId === currentVideo.id).map(note => ({
+                  id: note.id,
+                  content: note.content,
+                  timestamp: note.timestamp || 0,
+                  tags: note.tags,
+                  type: 'note' as const,
+                  createdAt: note.createdAt
+                }))}
+                onAddNote={(note) => {
+                  const newNote = {
+                    ...note,
+                    videoId: currentVideo.id,
+                    videoTitle: currentVideo.title,
+                    channelTitle: currentVideo.channelTitle,
+                    channelThumbnail: currentVideo.thumbnail
+                  };
+                  addNote(newNote);
+                }}
+                onUpdateNote={(id, updateData) => {
+                  updateNote(id, updateData);
+                }}
+                onDeleteNote={(id) => {
+                  deleteNote(id);
+                }}
+                onShareNote={(note) => {
+                  const fullNote: Note = {
+                    id: note.id,
+                    videoId: currentVideo.id,
+                    videoTitle: currentVideo.title,
+                    channelTitle: currentVideo.channelTitle,
+                    channelThumbnail: currentVideo.thumbnail,
+                    content: note.content,
+                    timestamp: note.timestamp,
+                    tags: note.tags,
+                    createdAt: note.createdAt,
+                    updatedAt: new Date().toISOString()
+                  };
+                  shareNote(fullNote);
+                }}
+              />
+            </TabsContent>
+          )}
 
-              {/* Load More Button - Always show when hasMore is true */}
-              {hasMore && (
-                <div className="flex justify-center mt-6 sm:mt-8">
-                  <Button
-                    variant="outline"
-                    onClick={loadMoreVideos}
-                    disabled={loadingMore}
-                    className="flex items-center gap-2 min-w-[180px] sm:min-w-[200px] h-10 sm:h-auto"
-                  >
-                    {loadingMore ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        <span>جاري التحميل...</span>
-                      </>
-                    ) : (
-                      <>
-                        <RefreshCw className="h-4 w-4" />
-                        <span className="text-sm sm:text-base">تحميل المزيد</span>
-                      </>
-                    )}
-                  </Button>
-                </div>
-              )}
-
-              {/* Loading indicator for infinite scroll */}
-              {loadingMore && (
-                <div className="flex justify-center mt-6 sm:mt-8">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <RefreshCw className="h-6 w-6 animate-spin" />
-                    <span className="text-sm">
-                      {searchMode 
-                        ? `جاري تحميل المزيد من نتائج البحث عن "${searchQuery}"...` 
-                        : 'جاري تحميل المزيد من الفيديوهات...'
-                      }
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </main>
-      </div>
+          <TabsContent value="hadith" className="space-y-4">
+            <HadithSearch />
+          </TabsContent>
+        </Tabs>
+      </main>
+      
+      {/* Video Player Modal */}
+      <VideoPlayer
+        video={currentVideo}
+        isOpen={isVideoPlayerOpen}
+        onClose={() => setIsVideoPlayerOpen(false)}
+      />
     </div>
-  )
-}
-
-// Add custom styles for YouTube theme
-const styles = `
-  .youtube-card {
-    transition: all 0.2s ease;
-    border: 1px solid var(--border);
-  }
-
-  .youtube-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  }
-
-  .youtube-thumbnail {
-    position: relative;
-    overflow: hidden;
-    background: #000;
-  }
-
-  .youtube-thumbnail::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.7));
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-
-  .youtube-thumbnail:hover::before {
-    opacity: 1;
-  }
-
-  .youtube-badge {
-    background: rgba(0,0,0,0.8);
-    color: white;
-    font-size: 0.75rem;
-    font-weight: 500;
-    padding: 2px 4px;
-    border-radius: 2px;
-  }
-
-  .youtube-button {
-    background: #FF0000;
-    color: white;
-    border: none;
-    border-radius: 18px;
-    padding: 8px 16px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-  }
-
-  .youtube-button:hover {
-    background: #CC0000;
-    transform: scale(1.05);
-  }
-
-  .youtube-search {
-    border-radius: 40px;
-    border: 1px solid var(--border);
-  }
-
-  .youtube-channel-tab {
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s ease;
-  }
-
-  .youtube-channel-tab.active {
-    border-bottom-color: #FF0000;
-    color: #FF0000;
-  }
-
-  /* Custom scrollbar for YouTube theme */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: var(--muted);
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--muted-foreground);
-    border-radius: 4px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--foreground);
-  }
-
-  /* Lite YouTube Embed styles */
-  .yt-lite {
-    background-color: #000;
-    position: relative;
-    display: block;
-    contain: content;
-    background-position: center center;
-    background-size: cover;
-    cursor: pointer;
-    background-size: cover;
-    cursor: pointer;
-  }
-
-  .yt-lite::before {
-    content: '';
-    display: block;
-    padding-bottom: 56.25%;
-  }
-
-  .yt-lite > iframe {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    border: 0;
-  }
-
-  /* Mobile-specific styles */
-  @media (max-width: 640px) {
-    .youtube-card {
-      border-radius: 0.5rem;
-    }
-    
-    .youtube-thumbnail {
-      border-radius: 0.375rem 0.375rem 0 0;
-    }
-    
-    /* Ensure proper touch targets */
-    button, .clickable {
-      min-height: 44px;
-    }
-    
-    /* Improve text readability on mobile */
-    .text-xs {
-      font-size: 0.75rem;
-    }
-    
-    /* Better spacing for mobile */
-    .gap-1 {
-      gap: 0.25rem;
-    }
-    
-    .gap-2 {
-      gap: 0.5rem;
-    }
-  }
-  
-  /* Small mobile improvements */
-  @media (max-width: 480px) {
-    .youtube-card {
-      margin: 0 -0.125rem;
-    }
-    
-    .p-2 {
-      padding: 0.5rem;
-    }
-  }
-`
-
-// Inject styles into the document
-if (typeof document !== 'undefined') {
-  const styleSheet = document.createElement('style')
-  styleSheet.textContent = styles
-  document.head.appendChild(styleSheet)
+  );
 }
