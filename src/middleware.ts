@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { i18n } from './i18n-config'
 
-// This function can be marked `async` if using `await` inside
 export function middleware(request: NextRequest) {
-  // Security headers
   const response = NextResponse.next()
   
-  // Add security headers
-  response.headers.set('X-Frame-Options', 'DENY')
+  // Security headers
+  response.headers.set('X-Frame-Options', 'SAMEORIGIN')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('Referrer-Policy', 'origin-when-cross-origin')
   response.headers.set(
@@ -18,7 +15,6 @@ export function middleware(request: NextRequest) {
   
   // Performance headers
   response.headers.set('X-DNS-Prefetch-Control', 'on')
-  response.headers.set('X-Frame-Options', 'SAMEORIGIN')
   
   // Cache control for static assets
   if (request.nextUrl.pathname.startsWith('/_next/static')) {
@@ -33,16 +29,8 @@ export function middleware(request: NextRequest) {
   return response
 }
 
-// See "Matching Paths" below to learn more
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }
