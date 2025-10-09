@@ -91,6 +91,11 @@ Z_AI_API_KEY=your_z_ai_api_key_here
 - تم حل هذا الخطأ في الإصدار الحالي من `vercel.json`
 - تأكد من استخدام أحدث إصدار من الملف
 
+#### خطأ: `The pattern "api/**/*.{js,ts}" defined in functions doesn't match any Serverless Functions`
+- تم تحديث النمط ليتناسب مع هيكل Next.js App Router
+- النمط الصحيح: `src/app/api/**/route.ts` للـ API routes
+- النمط الصحيح: `src/app/**/page.tsx` للـ pages
+
 #### خطأ: YouTube API quota exceeded
 - تحقق من استخدام API في [Google Cloud Console](https://console.cloud.google.com/)
 - يمكنك طلب زيادة الحصة أو استخدام مفتاح API جديد

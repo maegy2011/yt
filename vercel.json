@@ -9,10 +9,10 @@
     "NODE_ENV": "production"
   },
   "functions": {
-    "app/**/*.{js,ts}": {
+    "src/app/api/**/route.ts": {
       "maxDuration": 30
     },
-    "api/**/*.{js,ts}": {
+    "src/app/**/page.tsx": {
       "maxDuration": 30
     }
   },
