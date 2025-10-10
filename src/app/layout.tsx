@@ -59,10 +59,6 @@ export const metadata: Metadata = {
     description: "تطبيق ويب عربي يجمع بين مشغل يوتيوب متقدم وموسوعة الأحاديث النبوية",
     images: ["https://your-app.vercel.app/og-image.png"],
   },
-  viewport: {
-    width: "device-width",
-    initialScale: 1,
-  },
   icons: {
     icon: "/logo.svg",
     apple: "/logo.svg",

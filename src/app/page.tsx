@@ -14,12 +14,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { CustomYouTubePlayer } from "@/components/custom-youtube-player";
+import { RobustYouTubePlayer } from "@/components/robust-youtube-player";
 import { LoadingSpinner, LoadingOverlay, LoadingCard } from "@/components/ui/loading-spinner";
 import { NotesManager } from "@/components/notes-manager";
 import { EnhancedNotesManager } from "@/components/enhanced-notes-manager";
 import { VideoSyncNotes } from "@/components/video-sync-notes";
 import { HadithSearch } from "@/components/hadith-search";
+import { YouTubeAPITest } from "@/components/youtube-api-test";
 import { 
   youtubeApiTracker, 
   trackChannelListCall, 
@@ -103,6 +104,9 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
   const [isAppLoading, setIsAppLoading] = useState(true);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [videosPerPage, setVideosPerPage] = useState(10); // Default videos per channel
+  const [hasMoreVideos, setHasMoreVideos] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   
   const { toast } = useToast();
 
@@ -118,6 +122,7 @@ export default function Home() {
       const savedNotes = localStorage.getItem("notes");
       const savedCache = localStorage.getItem("cacheData");
       const savedApiCalls = localStorage.getItem("apiCalls");
+      const savedVideosPerPage = localStorage.getItem("videosPerPage");
 
       if (savedApiKey) setApiKey(savedApiKey);
       if (savedChannels) setChannels(JSON.parse(savedChannels));
@@ -131,6 +136,7 @@ export default function Home() {
         setFilteredVideos(cache.videos);
       }
       if (savedApiCalls) setApiCalls(parseInt(savedApiCalls));
+      if (savedVideosPerPage) setVideosPerPage(parseInt(savedVideosPerPage));
 
       // Initialize quota tracker
       const usage = youtubeApiTracker.getQuotaUsage();
@@ -208,11 +214,12 @@ export default function Home() {
 
   const saveSettings = () => {
     localStorage.setItem("youtubeApiKey", apiKey);
+    localStorage.setItem("videosPerPage", videosPerPage.toString());
     // Update quota tracker with new daily quota
     youtubeApiTracker.setDailyQuota(apiQuota);
     toast({
       title: "تم الحفظ",
-      description: "تم حفظ مفتاح API بنجاح",
+      description: "تم حفظ الإعدادات بنجاح",
     });
   };
 
@@ -325,7 +332,7 @@ export default function Home() {
     });
   };
 
-  const fetchVideos = async () => {
+  const fetchVideos = async (loadMore = false) => {
     if (!apiKey || channels.length === 0) {
       toast({
         title: "خطأ",
@@ -347,69 +354,135 @@ export default function Home() {
       return;
     }
 
-    setLoading(true);
+    if (loadMore) {
+      setIsLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+    
     try {
-      const allVideos: Video[] = [];
+      const allVideos: Video[] = loadMore ? [...videos] : [];
       let successfulFetches = 0;
 
       for (const channel of channels) {
         try {
-          // Use videos.list endpoint instead of search.list
+          // Use search.list endpoint with channelId parameter
           const response = await fetch(
-            `https://www.googleapis.com/youtube/v3/videos?key=${apiKey}&channelId=${channel.id}&part=snippet,contentDetails&maxResults=50&order=date`
+            `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channel.id}&part=snippet&type=video&maxResults=${videosPerPage}&order=date`
           );
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error?.message || `HTTP ${response.status}`);
+          }
+          
           const data = await response.json();
 
-          if (data.items) {
+          if (data.items && data.items.length > 0) {
             trackVideoListCall(true); // Track successful call
             successfulFetches++;
             
-            const videosWithDetails = data.items.map((item: any) => {
-              const duration = item.contentDetails.duration;
-              const minutes = Math.floor(parseInt(duration.match(/(\d+)M/)?.[1] || 0));
-              const seconds = Math.floor(parseInt(duration.match(/(\d+)S/)?.[1] || 0));
-              const formattedDuration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            // Extract video IDs and get detailed information
+            const videoIds = data.items.map((item: any) => item.id.videoId).filter(Boolean);
+            
+            if (videoIds.length > 0) {
+              // Get video details including duration
+              const detailsResponse = await fetch(
+                `https://www.googleapis.com/youtube/v3/videos?key=${apiKey}&id=${videoIds.join(',')}&part=snippet,contentDetails`
+              );
+              
+              if (!detailsResponse.ok) {
+                const errorData = await detailsResponse.json();
+                throw new Error(errorData.error?.message || `HTTP ${detailsResponse.status}`);
+              }
+              
+              const detailsData = await detailsResponse.json();
+              
+              if (detailsData.items) {
+                const videosWithDetails = detailsData.items.map((item: any) => {
+                  const duration = item.contentDetails?.duration;
+                  let formattedDuration = "0:00";
+                  
+                  if (duration) {
+                    const minutes = Math.floor(parseInt(duration.match(/(\d+)M/)?.[1] || 0));
+                    const seconds = Math.floor(parseInt(duration.match(/(\d+)S/)?.[1] || 0));
+                    formattedDuration = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                  }
 
-              return {
-                id: item.id,
-                title: item.snippet.title,
-                thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
-                duration: formattedDuration,
-                channelTitle: item.snippet.channelTitle,
-                channelId: item.snippet.channelId,
-                publishedAt: item.snippet.publishedAt,
-              };
-            }).filter((video: Video | null): video is Video => video !== null);
+                  return {
+                    id: item.id,
+                    title: item.snippet.title,
+                    thumbnail: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+                    duration: formattedDuration,
+                    channelTitle: item.snippet.channelTitle,
+                    channelId: item.snippet.channelId,
+                    publishedAt: item.snippet.publishedAt,
+                  };
+                }).filter((video: Video | null): video is Video => video !== null);
 
-            allVideos.push(...videosWithDetails);
+                allVideos.push(...videosWithDetails);
+              }
+            }
           } else {
             trackVideoListCall(false, "No video items found");
           }
         } catch (error) {
           trackVideoListCall(false, error instanceof Error ? error.message : "Unknown error");
           console.error(`Error fetching videos for channel ${channel.id}:`, error);
+          
+          // Show specific error messages
+          let errorMessage = "فشل جلب الفيديوهات";
+          if (error instanceof Error) {
+            if (error.message.includes('API key invalid')) {
+              errorMessage = "مفتاح API غير صالح";
+            } else if (error.message.includes('quota exceeded')) {
+              errorMessage = "تم تجاوز حصة API اليومية";
+            } else if (error.message.includes('forbidden')) {
+              errorMessage = "الوصول ممنوع للـ API";
+            } else if (error.message.includes('HTTP 404')) {
+              errorMessage = "القناة غير موجودة";
+            }
+          }
+          
+          toast({
+            title: "خطأ",
+            description: errorMessage,
+            variant: "destructive",
+          });
         }
       }
 
       setVideos(allVideos);
       setFilteredVideos(allVideos);
       
+      // Check if we might have more videos (if we got the max requested, there might be more)
+      setHasMoreVideos(allVideos.length >= videosPerPage * channels.length);
+      
       // Update quota usage
       const usage = youtubeApiTracker.getQuotaUsage();
       setQuotaUsage(usage);
       
+      const message = loadMore 
+        ? `تم جلب ${allVideos.length - videos.length} فيديوهات إضافية`
+        : `تم جلب ${allVideos.length} فيديو من ${successfulFetches}/${channels.length} قنوات (تكلفة: ${usage.totalCost} من ${usage.dailyQuota})`;
+      
       toast({
         title: "نجاح",
-        description: `تم جلب ${allVideos.length} فيديو من ${successfulFetches}/${channels.length} قنوات (تكلفة: ${usage.totalCost} من ${usage.dailyQuota})`,
+        description: message,
       });
     } catch (error) {
+      console.error("Fetch videos error:", error);
       toast({
         title: "خطأ",
-        description: "فشل جلب الفيديوهات",
+        description: "فشل جلب الفيديوهات. يرجى التحقق من إعدادات API.",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      if (loadMore) {
+        setIsLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
   };
 
@@ -418,10 +491,20 @@ export default function Home() {
     setCacheData(null);
     setVideos([]);
     setFilteredVideos([]);
+    setHasMoreVideos(true);
     toast({
       title: "نجاح",
       description: "تم مسح الكاش بنجاح",
     });
+  };
+
+  const loadMoreVideos = async () => {
+    if (!hasMoreVideos || isLoadingMore) return;
+    
+    // Increase videos per page and fetch more
+    const newVideosPerPage = videosPerPage + 10;
+    setVideosPerPage(newVideosPerPage);
+    await fetchVideos(true);
   };
 
   const playVideo = async (video: Video) => {
@@ -795,6 +878,9 @@ ${note.tags.length > 0 ? `الوسوم: ${note.tags.join(', ')}` : ''}
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto p-0">
+          <DialogHeader className="sr-only">
+            <DialogTitle>{video.title}</DialogTitle>
+          </DialogHeader>
           <div className="grid grid-cols-1 lg:grid-cols-3 min-h-screen">
             {/* Video Player Section */}
             <div className="lg:col-span-2 bg-black flex flex-col">
@@ -804,7 +890,7 @@ ${note.tags.length > 0 ? `الوسوم: ${note.tags.join(', ')}` : ''}
                     <LoadingSpinner size="lg" text="جاري تحميل الفيديو..." />
                   </div>
                 ) : (
-                  <CustomYouTubePlayer
+                  <RobustYouTubePlayer
                     videoId={video.id}
                     title={video.title}
                     autoPlay={true}
@@ -1099,6 +1185,34 @@ ${note.tags.length > 0 ? `الوسوم: ${note.tags.join(', ')}` : ''}
                             الحصة الافتراضية هي 10000 طلب يومياً
                           </p>
                         </div>
+                        
+                        <div>
+                          <Label htmlFor="videosPerPage">عدد الفيديوهات لكل قناة</Label>
+                          <Input
+                            id="videosPerPage"
+                            type="number"
+                            min="1"
+                            max="50"
+                            value={videosPerPage}
+                            onChange={(e) => setVideosPerPage(Math.min(50, Math.max(1, parseInt(e.target.value) || 10)))}
+                            placeholder="10"
+                            className="mt-2"
+                          />
+                          <p className="text-xs text-gray-600 mt-1">
+                            عدد الفيديوهات التي يتم جلبها من كل قناة (1-50)
+                          </p>
+                        </div>
+                        
+                        <div className="border-t pt-4">
+                          <Label className="text-sm font-medium">اختبار YouTube API</Label>
+                          <p className="text-xs text-gray-600 mt-1">
+                            اختبر اتصال YouTube API وتشخيص المشاكل
+                          </p>
+                          <div className="mt-3">
+                            <YouTubeAPITest />
+                          </div>
+                        </div>
+                        
                         <div className="flex gap-2">
                           <Button onClick={saveSettings} className="flex-1">
                             حفظ الإعدادات
@@ -1167,7 +1281,7 @@ ${note.tags.length > 0 ? `الوسوم: ${note.tags.join(', ')}` : ''}
                           )}
                         </div>
                         
-                        <Button onClick={fetchVideos} className="w-full" disabled={loading}>
+                        <Button onClick={() => fetchVideos(false)} className="w-full" disabled={loading}>
                           {loading ? <LoadingSpinner size="sm" /> : "جلب الفيديوهات"}
                         </Button>
                       </div>
@@ -1306,6 +1420,36 @@ ${note.tags.length > 0 ? `الوسوم: ${note.tags.join(', ')}` : ''}
                     />
                   )
                 ))}
+                
+                {/* Load More Button */}
+                {hasMoreVideos && filteredVideos.length > 0 && (
+                  <div className="col-span-full flex justify-center mt-6">
+                    <Button
+                      onClick={loadMoreVideos}
+                      disabled={isLoadingMore}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isLoadingMore ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          جاري التحميل...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          تحميل المزيد ({videosPerPage} فيديو)
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+                
+                {/* No more videos message */}
+                {!hasMoreVideos && filteredVideos.length > 0 && (
+                  <div className="col-span-full text-center mt-6">
+                    <p className="text-gray-500">تم عرض جميع الفيديوهات المتاحة</p>
+                  </div>
+                )}
               </div>
             )}
           </TabsContent>
