@@ -69,7 +69,8 @@ export function VideoPlayerModal({ video, isOpen, onClose }: VideoPlayerModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] p-0">
+      <DialogContent className="max-w-6xl max-h-[90vh] p-0" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">{video.title}</DialogTitle>
         <div className="flex flex-col lg:flex-row h-full">
           {/* Video Player Section */}
           <div className="lg:w-2/3 bg-black">
