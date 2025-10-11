@@ -5,8 +5,14 @@ export async function GET() {
     const apiKey = process.env.YOUTUBE_API_KEY;
     
     if (!apiKey) {
-      return NextResponse.json({ error: 'YouTube API key not configured' }, { status: 500 });
+      console.error('YouTube API key not configured');
+      return NextResponse.json({ 
+        error: 'YouTube API key not configured',
+        details: 'Please add YOUTUBE_API_KEY to your environment variables'
+      }, { status: 500 });
     }
+
+    console.log('Attempting to fetch trending videos with API key:', apiKey ? 'Key exists' : 'No key');
 
     // Add cache headers for better performance
     const cacheHeaders = {
@@ -15,76 +21,88 @@ export async function GET() {
       'Vercel-CDN-Cache-Control': 'public, s-maxage=600'
     };
 
+    let videos = [];
+    
     // Use a popular search query to simulate trending videos
-    const trendingUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=trending&order=relevance&type=video&maxResults=12&key=${apiKey}`;
-    
-    const response = await fetch(trendingUrl, {
-      headers: {
-        'Accept': 'application/json',
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`YouTube API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
-
-    if (data.error) {
-      return NextResponse.json({ error: data.error.message }, { status: 500 });
-    }
-
-    // Get video details for view counts only if we have results
-    if (data.items && data.items.length > 0) {
-      const videoIds = data.items.map((item: any) => item.id.videoId).filter(Boolean).join(',');
+    try {
+      const trendingUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=trending&order=relevance&type=video&maxResults=12&key=${apiKey}`;
       
-      if (videoIds) {
-        const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds}&key=${apiKey}`;
-        
-        const detailsResponse = await fetch(detailsUrl, {
-          headers: {
-            'Accept': 'application/json',
-          }
-        });
-        
-        if (detailsResponse.ok) {
-          const detailsData = await detailsResponse.json();
-
-          const videos = data.items.map((item: any) => {
-            const videoDetails = detailsData.items?.find((detail: any) => detail.id === item.id.videoId);
-            const viewCount = videoDetails?.statistics?.viewCount || '0';
-            
-            return {
-              id: item.id.videoId,
-              title: item.snippet.title,
-              description: item.snippet.description,
-              thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
-              channelTitle: item.snippet.channelTitle,
-              publishedAt: new Date(item.snippet.publishedAt).toLocaleDateString('ar-SA'),
-              viewCount: formatViewCount(viewCount)
-            };
-          });
-
-          const apiResponse = NextResponse.json({ videos });
-          Object.entries(cacheHeaders).forEach(([key, value]) => {
-            apiResponse.headers.set(key, value);
-          });
-          
-          return apiResponse;
+      console.log('Fetching from trending endpoint:', trendingUrl);
+      
+      const response = await fetch(trendingUrl, {
+        headers: {
+          'Accept': 'application/json',
         }
-      }
-    }
+      });
+      
+      console.log('Trending endpoint response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Trending endpoint response data:', data);
 
-    // Fallback if details fetch fails
-    const videos = data.items.map((item: any) => ({
-      id: item.id.videoId,
-      title: item.snippet.title,
-      description: item.snippet.description,
-      thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
-      channelTitle: item.snippet.channelTitle,
-      publishedAt: new Date(item.snippet.publishedAt).toLocaleDateString('ar-SA'),
-      viewCount: '0'
-    }));
+        if (data.error) {
+          console.error('YouTube API error from trending endpoint:', data.error);
+          throw new Error(data.error.message);
+        }
+
+        // Get video details for view counts only if we have results
+        if (data.items && data.items.length > 0) {
+          const videoIds = data.items.map((item: any) => item.id.videoId).filter(Boolean).join(',');
+          
+          if (videoIds) {
+            const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds}&key=${apiKey}`;
+            
+            const detailsResponse = await fetch(detailsUrl, {
+              headers: {
+                'Accept': 'application/json',
+              }
+            });
+            
+            console.log('Details endpoint response status:', detailsResponse.status);
+            
+            if (detailsResponse.ok) {
+              const detailsData = await detailsResponse.json();
+              console.log('Details endpoint response data:', detailsData);
+
+              videos = data.items.map((item: any) => {
+                const videoDetails = detailsData.items?.find((detail: any) => detail.id === item.id.videoId);
+                const viewCount = videoDetails?.statistics?.viewCount || '0';
+                
+                return {
+                  id: item.id.videoId,
+                  title: item.snippet.title,
+                  description: item.snippet.description,
+                  thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+                  channelTitle: item.snippet.channelTitle,
+                  publishedAt: new Date(item.snippet.publishedAt).toLocaleDateString('ar-SA'),
+                  viewCount: formatViewCount(viewCount)
+                };
+              });
+            } else {
+              // Fallback without view counts
+              videos = data.items.map((item: any) => ({
+                id: item.id.videoId,
+                title: item.snippet.title,
+                description: item.snippet.description,
+                thumbnailUrl: item.snippet.thumbnails.high?.url || item.snippet.thumbnails.default?.url,
+                channelTitle: item.snippet.channelTitle,
+                publishedAt: new Date(item.snippet.publishedAt).toLocaleDateString('ar-SA'),
+                viewCount: '0'
+              }));
+            }
+          }
+        }
+      } else {
+        const errorText = await response.text();
+        console.error('Trending endpoint failed:', response.status, errorText);
+        throw new Error(`Trending endpoint failed: ${response.status}`);
+      }
+    } catch (error) {
+      console.error('Trending endpoint approach failed:', error);
+      // Return empty array to avoid breaking the UI
+      videos = [];
+    }
 
     const apiResponse = NextResponse.json({ videos });
     Object.entries(cacheHeaders).forEach(([key, value]) => {
@@ -95,8 +113,9 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching trending videos:', error);
     return NextResponse.json({ 
-      error: error instanceof Error ? error.message : 'Failed to fetch trending videos' 
-    }, { status: 500 });
+      error: error instanceof Error ? error.message : 'Failed to fetch trending videos',
+      videos: [] // Always return empty videos array to avoid UI breaking
+    }, { status: 200 }); // Return 200 even on error to prevent UI breaking
   }
 }
 
