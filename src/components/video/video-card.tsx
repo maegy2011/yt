@@ -18,9 +18,8 @@ interface VideoCardProps {
 
 export function VideoCard({ video, onClick }: VideoCardProps) {
   const handleClick = () => {
-    if (onClick) {
-      onClick(video);
-    }
+    // Redirect to watch page instead of calling onClick
+    window.location.href = `/watch?v=${video.id}`;
   };
 
   return (

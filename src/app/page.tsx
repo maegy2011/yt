@@ -1,12 +1,17 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Video as VideoIcon, TrendingUp, Home as HomeIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { 
+  Search, Video as VideoIcon, TrendingUp, Home as HomeIcon, 
+  Music, Gamepad2, Trophy, Mic, Film, Settings, User,
+  Menu, X, Heart, Clock, Star, Users
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { VideoGrid } from '@/components/video/video-card';
-import { VideoPlayerModal } from '@/components/video/video-player-modal';
+import { SettingsButton } from '@/components/settings/settings-button';
 import { useApiToast } from '@/hooks/use-api-toast';
+import { useSettings } from '@/contexts/settings-context';
 
 interface Video {
   id: string;
@@ -23,10 +28,22 @@ export default function Home() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
-  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
-  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { showError, showSuccess } = useApiToast();
+  const { settings } = useSettings();
 
+  // Video categories
+  const categories = [
+    { id: 'all', name: 'الكل', icon: VideoIcon },
+    { id: 'music', name: 'موسيقى', icon: Music },
+    { id: 'gaming', name: 'ألعاب', icon: Gamepad2 },
+    { id: 'sports', name: 'رياضة', icon: Trophy },
+    { id: 'entertainment', name: 'ترفيه', icon: Film },
+    { id: 'education', name: 'تعليم', icon: Star },
+  ];
+
+  // Enhanced search with safe search option
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       showError('الرجاء إدخال كلمة بحث');
@@ -35,7 +52,8 @@ export default function Home() {
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(searchQuery)}`);
+      const safeSearchParam = settings.safeSearch ? '&safeSearch=strict' : '';
+      const response = await fetch(`/api/youtube/search?q=${encodeURIComponent(searchQuery)}${safeSearchParam}`);
       const data = await response.json();
       
       if (!response.ok) {
@@ -65,7 +83,8 @@ export default function Home() {
   const loadTrendingVideos = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/youtube/trending');
+      const safeSearchParam = settings.safeSearch ? '?safeSearch=strict' : '';
+      const response = await fetch(`/api/youtube/trending${safeSearchParam}`);
       const data = await response.json();
       
       if (!response.ok) {
@@ -87,7 +106,8 @@ export default function Home() {
   const loadPopularVideos = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/youtube/popular');
+      const safeSearchParam = settings.safeSearch ? '?safeSearch=strict' : '';
+      const response = await fetch(`/api/youtube/popular${safeSearchParam}`);
       const data = await response.json();
       
       if (!response.ok) {
@@ -108,6 +128,7 @@ export default function Home() {
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
+    setSelectedCategory('all');
     if (tab === 'trending') {
       loadTrendingVideos();
     } else if (tab === 'popular') {
@@ -117,18 +138,34 @@ export default function Home() {
     }
   };
 
+  const handleCategoryChange = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    // Here you could filter videos by category
+    // For now, we'll just update the UI
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between px-4">
+          {/* Logo and Menu */}
           <div className="flex items-center space-x-4">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="lg:hidden"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
             <div className="flex items-center space-x-2">
               <VideoIcon className="h-8 w-8 text-red-600" />
               <span className="text-xl font-bold">ماي يوتيوب</span>
             </div>
           </div>
           
+          {/* Search Bar */}
           <div className="flex-1 max-w-2xl mx-8">
             <div className="flex items-center space-x-2">
               <Input
@@ -144,78 +181,205 @@ export default function Home() {
               </Button>
             </div>
           </div>
+          
+          {/* User Actions */}
+          <div className="flex items-center space-x-2">
+            <SettingsButton />
+            <Button variant="ghost" size="icon">
+              <User className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
-      {/* Navigation Tabs */}
-      <div className="border-b">
-        <div className="container mx-auto px-4">
-          <div className="flex space-x-1">
-            <Button
-              variant={activeTab === 'home' ? 'default' : 'ghost'}
-              onClick={() => handleTabChange('home')}
-              className="flex items-center space-x-2"
-            >
-              <HomeIcon className="h-4 w-4" />
-              <span>الرئيسية</span>
-            </Button>
-            <Button
-              variant={activeTab === 'trending' ? 'default' : 'ghost'}
-              onClick={() => handleTabChange('trending')}
-              className="flex items-center space-x-2"
-            >
-              <TrendingUp className="h-4 w-4" />
-              <span>الأكثر شيوعاً</span>
-            </Button>
-            <Button
-              variant={activeTab === 'popular' ? 'default' : 'ghost'}
-              onClick={() => handleTabChange('popular')}
-              className="flex items-center space-x-2"
-            >
-              <VideoIcon className="h-4 w-4" />
-              <span>الأشهر</span>
-            </Button>
-          </div>
-        </div>
-      </div>
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className={`fixed lg:static inset-y-0 right-0 z-40 w-64 bg-background border-l transform ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'} lg:translate-x-0 transition-transform duration-200 ease-in-out`}>
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-6 lg:hidden">
+              <h2 className="text-lg font-semibold">القائمة</h2>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            {/* Navigation */}
+            <nav className="space-y-2">
+              <Button
+                variant={activeTab === 'home' ? 'default' : 'ghost'}
+                onClick={() => handleTabChange('home')}
+                className="w-full justify-start"
+              >
+                <HomeIcon className="h-4 w-4 ml-2" />
+                الرئيسية
+              </Button>
+              <Button
+                variant={activeTab === 'trending' ? 'default' : 'ghost'}
+                onClick={() => handleTabChange('trending')}
+                className="w-full justify-start"
+              >
+                <TrendingUp className="h-4 w-4 ml-2" />
+                الأكثر شيوعاً
+              </Button>
+              <Button
+                variant={activeTab === 'popular' ? 'default' : 'ghost'}
+                onClick={() => handleTabChange('popular')}
+                className="w-full justify-start"
+              >
+                <VideoIcon className="h-4 w-4 ml-2" />
+                الأشهر
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => window.location.href = '/channels'}
+                className="w-full justify-start"
+              >
+                <Users className="h-4 w-4 ml-2" />
+                القنوات
+              </Button>
+            </nav>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-6">
-        {activeTab === 'home' && !videos.length && (
-          <div className="text-center py-12">
-            <VideoIcon className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-            <h2 className="text-2xl font-bold mb-2">مرحباً بك في ماي يوتيوب</h2>
-            <p className="text-muted-foreground mb-4">
-              ابحث عن فيديوهاتك المفضلة أو استكشف الأكثر شيوعاً والأشهر
-            </p>
+            <div className="mt-6 pt-6 border-t">
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">المفضلة</h3>
+              <nav className="space-y-2">
+                <Button variant="ghost" className="w-full justify-start">
+                  <Heart className="h-4 w-4 ml-2" />
+                  الإعجابات
+                </Button>
+                <Button variant="ghost" className="w-full justify-start">
+                  <Clock className="h-4 w-4 ml-2" />
+                  سجل المشاهدة
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start"
+                  onClick={() => window.location.href = '/channels'}
+                >
+                  <Users className="h-4 w-4 ml-2" />
+                  القنوات المشتركة
+                </Button>
+              </nav>
+            </div>
           </div>
-        )}
+        </aside>
 
-        {loading ? (
-          <VideoGrid videos={[]} loading={true} />
-        ) : (
-          <VideoGrid 
-            videos={videos} 
-            onVideoClick={(video) => {
-              setSelectedVideo(video);
-              setIsPlayerOpen(true);
-            }}
+        {/* Overlay for mobile */}
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
           />
         )}
 
-        {!loading && videos.length === 0 && activeTab !== 'home' && (
-          <div className="text-center py-12">
-            <VideoIcon className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-muted-foreground">لا توجد فيديوهات متاحة</p>
+        {/* Main Content */}
+        <main className="flex-1 min-w-0">
+          {/* Navigation Tabs */}
+          <div className="border-b">
+            <div className="container mx-auto px-4">
+              <div className="flex space-x-1">
+                <Button
+                  variant={activeTab === 'home' ? 'default' : 'ghost'}
+                  onClick={() => handleTabChange('home')}
+                  className="flex items-center space-x-2"
+                >
+                  <HomeIcon className="h-4 w-4" />
+                  <span>الرئيسية</span>
+                </Button>
+                <Button
+                  variant={activeTab === 'trending' ? 'default' : 'ghost'}
+                  onClick={() => handleTabChange('trending')}
+                  className="flex items-center space-x-2"
+                >
+                  <TrendingUp className="h-4 w-4" />
+                  <span>الأكثر شيوعاً</span>
+                </Button>
+                <Button
+                  variant={activeTab === 'popular' ? 'default' : 'ghost'}
+                  onClick={() => handleTabChange('popular')}
+                  className="flex items-center space-x-2"
+                >
+                  <VideoIcon className="h-4 w-4" />
+                  <span>الأشهر</span>
+                </Button>
+              </div>
+            </div>
           </div>
-        )}
-      </main>
 
-      <VideoPlayerModal
-        video={selectedVideo}
-        isOpen={isPlayerOpen}
-        onClose={() => setIsPlayerOpen(false)}
-      />
+          {/* Categories */}
+          {activeTab !== 'home' && (
+            <div className="border-b bg-background/50 backdrop-blur">
+              <div className="container mx-auto px-4 py-3">
+                <div className="flex items-center space-x-2 overflow-x-auto">
+                  {categories.map((category) => {
+                    const Icon = category.icon;
+                    return (
+                      <Button
+                        key={category.id}
+                        variant={selectedCategory === category.id ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => handleCategoryChange(category.id)}
+                        className="flex items-center space-x-1 whitespace-nowrap"
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{category.name}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Video Content */}
+          <div className="container mx-auto px-4 py-6">
+            {activeTab === 'home' && !videos.length && (
+              <div className="text-center py-12">
+                <div className="mb-8">
+                  <VideoIcon className="h-20 w-20 mx-auto mb-4 text-muted-foreground" />
+                  <h2 className="text-3xl font-bold mb-2">مرحباً بك في ماي يوتيوب</h2>
+                  <p className="text-lg text-muted-foreground mb-6">
+                    ابحث عن فيديوهاتك المفضلة أو استكشف الأكثر شيوعاً والأشهر
+                  </p>
+                  <div className="flex justify-center space-x-4">
+                    <Button 
+                      onClick={() => handleTabChange('trending')}
+                      className="flex items-center space-x-2"
+                    >
+                      <TrendingUp className="h-4 w-4" />
+                      <span>استكشف الأكثر شيوعاً</span>
+                    </Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => handleTabChange('popular')}
+                      className="flex items-center space-x-2"
+                    >
+                      <VideoIcon className="h-4 w-4" />
+                      <span>شاهد الأشهر</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {loading ? (
+              <VideoGrid videos={[]} loading={true} />
+            ) : (
+              <VideoGrid videos={videos} />
+            )}
+
+            {!loading && videos.length === 0 && activeTab !== 'home' && (
+              <div className="text-center py-12">
+                <VideoIcon className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">لا توجد فيديوهات متاحة</p>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

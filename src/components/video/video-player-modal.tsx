@@ -65,7 +65,12 @@ export function VideoPlayerModal({ video, isOpen, onClose }: VideoPlayerModalPro
     }
   };
 
-  if (!video) return null;
+  const handleVideoClick = () => {
+    if (video) {
+      // Redirect to watch page instead of opening modal
+      window.location.href = `/watch?v=${video.id}`;
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
