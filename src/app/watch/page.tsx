@@ -5,9 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { 
   ArrowLeft, 
   Share, 
-  ThumbsUp, 
-  ThumbsDown, 
-  Save, 
   MoreHorizontal,
   Play,
   Pause,
@@ -15,18 +12,18 @@ import {
   VolumeX,
   Maximize,
   Minimize,
-  Settings as SettingsIcon,
-  Heart,
-  Clock,
-  Star
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { useSettings } from '@/contexts/settings-context';
+import LiteYouTubeEmbed from 'react-lite-youtube-embed';
+import 'react-lite-youtube-embed/dist/LiteYouTubeEmbed.css';
 
 interface Video {
   id: string;
@@ -62,9 +59,6 @@ export default function WatchPage() {
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
-  const [dislikeCount, setDislikeCount] = useState(0);
-  const [userAction, setUserAction] = useState<'like' | 'dislike' | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
 
   useEffect(() => {
@@ -148,32 +142,6 @@ export default function WatchPage() {
     }
   };
 
-  const handleLike = () => {
-    if (userAction === 'like') {
-      setLikeCount(likeCount - 1);
-      setUserAction(null);
-    } else {
-      if (userAction === 'dislike') {
-        setDislikeCount(dislikeCount - 1);
-      }
-      setLikeCount(likeCount + 1);
-      setUserAction('like');
-    }
-  };
-
-  const handleDislike = () => {
-    if (userAction === 'dislike') {
-      setDislikeCount(dislikeCount - 1);
-      setUserAction(null);
-    } else {
-      if (userAction === 'like') {
-        setLikeCount(likeCount - 1);
-      }
-      setDislikeCount(dislikeCount + 1);
-      setUserAction('dislike');
-    }
-  };
-
   const handleShare = async () => {
     const url = window.location.href;
     try {
@@ -254,12 +222,17 @@ export default function WatchPage() {
         <div className="lg:w-2/3 p-4">
           {/* Video Player */}
           <div className="relative aspect-video bg-black rounded-lg overflow-hidden mb-4">
-            <iframe
-              src={`https://www.youtube.com/embed/${video.id}?autoplay=${settings.autoplay ? '1' : '0'}&mute=${isMuted ? '1' : '0'}`}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
+            <LiteYouTubeEmbed
+              id={video.id}
               title={video.title}
+              params={`autoplay=${settings.autoplay ? '1' : '0'}&modestbranding=1&rel=0&showinfo=0&ecver=2&controls=1`}
+              playlist={false}
+              poster="hqdefault"
+              activatedClass="lyt-activated"
+              adNetwork={false}
+              iframeClass=""
+              playerClass="lty-playbtn"
+              wrapperClass="yt-lite"
             />
             
             {/* Video Controls Overlay */}
@@ -305,38 +278,12 @@ export default function WatchPage() {
             {/* Action Buttons */}
             <div className="flex items-center gap-2 flex-wrap">
               <Button
-                variant={userAction === 'like' ? 'default' : 'outline'}
-                onClick={handleLike}
-                className="flex items-center gap-2"
-              >
-                <ThumbsUp className="h-4 w-4" />
-                <span>{likeCount > 0 ? likeCount : 'إعجاب'}</span>
-              </Button>
-              
-              <Button
-                variant={userAction === 'dislike' ? 'default' : 'outline'}
-                onClick={handleDislike}
-                className="flex items-center gap-2"
-              >
-                <ThumbsDown className="h-4 w-4" />
-                <span>{dislikeCount > 0 ? dislikeCount : 'عدم إعجاب'}</span>
-              </Button>
-              
-              <Button
                 variant="outline"
                 onClick={handleShare}
                 className="flex items-center gap-2"
               >
                 <Share className="h-4 w-4" />
                 <span>مشاركة</span>
-              </Button>
-              
-              <Button
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Save className="h-4 w-4" />
-                <span>حفظ</span>
               </Button>
               
               <Button variant="outline" size="icon">
@@ -390,11 +337,13 @@ export default function WatchPage() {
               <Card key={relatedVideo.id} className="cursor-pointer hover:shadow-md transition-shadow">
                 <CardContent className="p-3">
                   <div className="flex gap-3">
-                    <div className="relative">
-                      <img
+                    <div className="relative w-40 h-24">
+                      <Image
                         src={relatedVideo.thumbnailUrl}
                         alt={relatedVideo.title}
-                        className="w-40 h-24 object-cover rounded"
+                        fill
+                        className="object-cover rounded"
+                        sizes="(max-width: 768px) 160px, 320px"
                       />
                       {relatedVideo.duration && (
                         <Badge variant="secondary" className="absolute bottom-1 right-1 text-xs">

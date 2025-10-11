@@ -4,6 +4,8 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { SettingsProvider } from "@/contexts/settings-context";
 import { ChannelsProvider } from "@/contexts/channels-context";
+import { ThemeProvider } from "@/components/theme/theme-provider";
+import { SEOHead } from "@/components/seo/seo-head";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +34,9 @@ export const metadata: Metadata = {
     title: "ماي يوتيوب",
     description: "تطبيق ويب عربي لمشاهدة ومشاركة الفيديوهات",
   },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export default function RootLayout({
@@ -44,12 +49,19 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <SettingsProvider>
-          <ChannelsProvider>
-            {children}
-            <Toaster />
-          </ChannelsProvider>
-        </SettingsProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SettingsProvider>
+            <ChannelsProvider>
+              {children}
+              <Toaster />
+            </ChannelsProvider>
+          </SettingsProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

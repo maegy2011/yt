@@ -1,5 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Clock, Eye } from 'lucide-react';
+import Image from 'next/image';
 
 interface Video {
   id: string;
@@ -28,10 +29,12 @@ export function VideoCard({ video, onClick }: VideoCardProps) {
       onClick={handleClick}
     >
       <div className="aspect-video relative overflow-hidden">
-        <img
+        <Image
           src={video.thumbnailUrl}
           alt={video.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-200"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200" />
       </div>

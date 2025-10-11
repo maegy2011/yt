@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Share, ThumbsUp, ThumbsDown, Save } from 'lucide-react';
+import { X, Share } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -23,35 +23,6 @@ interface VideoPlayerModalProps {
 }
 
 export function VideoPlayerModal({ video, isOpen, onClose }: VideoPlayerModalProps) {
-  const [likeCount, setLikeCount] = useState(0);
-  const [dislikeCount, setDislikeCount] = useState(0);
-  const [userAction, setUserAction] = useState<'like' | 'dislike' | null>(null);
-
-  const handleLike = () => {
-    if (userAction === 'like') {
-      setLikeCount(likeCount - 1);
-      setUserAction(null);
-    } else {
-      if (userAction === 'dislike') {
-        setDislikeCount(dislikeCount - 1);
-      }
-      setLikeCount(likeCount + 1);
-      setUserAction('like');
-    }
-  };
-
-  const handleDislike = () => {
-    if (userAction === 'dislike') {
-      setDislikeCount(dislikeCount - 1);
-      setUserAction(null);
-    } else {
-      if (userAction === 'like') {
-        setLikeCount(likeCount - 1);
-      }
-      setDislikeCount(dislikeCount + 1);
-      setUserAction('dislike');
-    }
-  };
 
   const handleShare = async () => {
     if (video) {
@@ -71,6 +42,10 @@ export function VideoPlayerModal({ video, isOpen, onClose }: VideoPlayerModalPro
       window.location.href = `/watch?v=${video.id}`;
     }
   };
+
+  if (!video) {
+    return null;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -113,26 +88,6 @@ export function VideoPlayerModal({ video, isOpen, onClose }: VideoPlayerModalPro
               {/* Action Buttons */}
               <div className="flex items-center gap-2 mb-4">
                 <Button
-                  variant={userAction === 'like' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={handleLike}
-                  className="flex items-center gap-2"
-                >
-                  <ThumbsUp className="h-4 w-4" />
-                  <span>{likeCount > 0 ? likeCount : ''}</span>
-                </Button>
-                
-                <Button
-                  variant={userAction === 'dislike' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={handleDislike}
-                  className="flex items-center gap-2"
-                >
-                  <ThumbsDown className="h-4 w-4" />
-                  <span>{dislikeCount > 0 ? dislikeCount : ''}</span>
-                </Button>
-                
-                <Button
                   variant="outline"
                   size="sm"
                   onClick={handleShare}
@@ -140,15 +95,6 @@ export function VideoPlayerModal({ video, isOpen, onClose }: VideoPlayerModalPro
                 >
                   <Share className="h-4 w-4" />
                   <span>مشاركة</span>
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Save className="h-4 w-4" />
-                  <span>حفظ</span>
                 </Button>
               </div>
               

@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import { 
   Search, Video as VideoIcon, TrendingUp, Home as HomeIcon, 
   Music, Gamepad2, Trophy, Mic, Film, Settings, User,
-  Menu, X, Heart, Clock, Star, Users
+  Menu, X, Clock, Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { VideoGrid } from '@/components/video/video-card';
+import { ResponsiveVideoGrid } from '@/components/video/responsive-video-grid';
 import { SettingsButton } from '@/components/settings/settings-button';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { useApiToast } from '@/hooks/use-api-toast';
 import { useSettings } from '@/contexts/settings-context';
 
@@ -40,7 +41,6 @@ export default function Home() {
     { id: 'gaming', name: 'ألعاب', icon: Gamepad2 },
     { id: 'sports', name: 'رياضة', icon: Trophy },
     { id: 'entertainment', name: 'ترفيه', icon: Film },
-    { id: 'education', name: 'تعليم', icon: Star },
   ];
 
   // Enhanced search with safe search option
@@ -184,6 +184,7 @@ export default function Home() {
           
           {/* User Actions */}
           <div className="flex items-center space-x-2">
+            <ThemeToggle />
             <SettingsButton />
             <Button variant="ghost" size="icon">
               <User className="h-5 w-5" />
@@ -241,15 +242,19 @@ export default function Home() {
                 <Users className="h-4 w-4 ml-2" />
                 القنوات
               </Button>
+              <Button
+                variant="ghost"
+                onClick={() => window.location.href = '/playlists'}
+                className="w-full justify-start"
+              >
+                <Clock className="h-4 w-4 ml-2" />
+                قوائم التشغيل
+              </Button>
             </nav>
 
             <div className="mt-6 pt-6 border-t">
               <h3 className="text-sm font-medium text-muted-foreground mb-3">المفضلة</h3>
               <nav className="space-y-2">
-                <Button variant="ghost" className="w-full justify-start">
-                  <Heart className="h-4 w-4 ml-2" />
-                  الإعجابات
-                </Button>
                 <Button variant="ghost" className="w-full justify-start">
                   <Clock className="h-4 w-4 ml-2" />
                   سجل المشاهدة
@@ -261,6 +266,14 @@ export default function Home() {
                 >
                   <Users className="h-4 w-4 ml-2" />
                   القنوات المشتركة
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start"
+                  onClick={() => window.location.href = '/playlists'}
+                >
+                  <Clock className="h-4 w-4 ml-2" />
+                  قوائم التشغيل
                 </Button>
               </nav>
             </div>
@@ -366,9 +379,9 @@ export default function Home() {
             )}
 
             {loading ? (
-              <VideoGrid videos={[]} loading={true} />
+              <ResponsiveVideoGrid videos={[]} loading={true} />
             ) : (
-              <VideoGrid videos={videos} />
+              <ResponsiveVideoGrid videos={videos} />
             )}
 
             {!loading && videos.length === 0 && activeTab !== 'home' && (
