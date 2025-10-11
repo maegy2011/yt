@@ -96,7 +96,19 @@ export async function GET() {
       } else {
         const errorText = await response.text();
         console.error('Trending endpoint failed:', response.status, errorText);
-        throw new Error(`Trending endpoint failed: ${response.status}`);
+        
+        // Try to parse error response
+        let errorMessage = `Trending endpoint failed: ${response.status}`;
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.error && errorData.error.message) {
+            errorMessage = `YouTube API error: ${errorData.error.message}`;
+          }
+        } catch {
+          // If we can't parse the error, use the status code
+        }
+        
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Trending endpoint approach failed:', error);

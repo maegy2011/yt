@@ -59,7 +59,19 @@ export async function GET() {
       } else {
         const errorText = await response.text();
         console.error('Popular endpoint failed:', response.status, errorText);
-        throw new Error(`Popular endpoint failed: ${response.status}`);
+        
+        // Try to parse error response
+        let errorMessage = `Popular endpoint failed: ${response.status}`;
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.error && errorData.error.message) {
+            errorMessage = `YouTube API error: ${errorData.error.message}`;
+          }
+        } catch {
+          // If we can't parse the error, use the status code
+        }
+        
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Popular endpoint approach failed, trying fallback:', error);

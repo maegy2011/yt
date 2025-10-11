@@ -1,15 +1,31 @@
 import { NextResponse } from 'next/server';
 
+interface ApiStatus {
+  youtubeApiKey: string;
+  apiKeyLength: number;
+  apiKeyPrefix: string;
+  environment: "development" | "production" | "test";
+  timestamp: string;
+  apiTest?: {
+    status?: number;
+    ok?: boolean;
+    statusText?: string;
+    resultCount?: number;
+    hasError?: boolean;
+    error?: string;
+  };
+}
+
 export async function GET() {
   try {
     const apiKey = process.env.YOUTUBE_API_KEY;
     
     // Check if API key is configured
-    const status = {
+    const status: ApiStatus = {
       youtubeApiKey: apiKey ? 'Configured' : 'Not configured',
       apiKeyLength: apiKey ? apiKey.length : 0,
       apiKeyPrefix: apiKey ? apiKey.substring(0, 8) + '...' : 'N/A',
-      environment: process.env.NODE_ENV || 'development',
+      environment: (process.env.NODE_ENV as "development" | "production" | "test") || 'development',
       timestamp: new Date().toISOString()
     };
 
