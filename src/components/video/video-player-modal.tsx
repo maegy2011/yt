@@ -23,29 +23,25 @@ interface VideoPlayerModalProps {
 }
 
 export function VideoPlayerModal({ video, isOpen, onClose }: VideoPlayerModalProps) {
+  // Early return if no video
+  if (!video) {
+    return null;
+  }
 
   const handleShare = async () => {
-    if (video) {
-      const url = `${window.location.origin}/watch?v=${video.id}`;
-      try {
-        await navigator.clipboard.writeText(url);
-        alert('تم نسخ الرابط إلى الحافظة');
-      } catch (err) {
-        console.error('Failed to copy URL:', err);
-      }
+    const url = `${window.location.origin}/watch?v=${video.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('تم نسخ الرابط إلى الحافظة');
+    } catch (err) {
+      console.error('Failed to copy URL:', err);
     }
   };
 
   const handleVideoClick = () => {
-    if (video) {
-      // Redirect to watch page instead of opening modal
-      window.location.href = `/watch?v=${video.id}`;
-    }
+    // Redirect to watch page instead of opening modal
+    window.location.href = `/watch?v=${video.id}`;
   };
-
-  if (!video) {
-    return null;
-  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
