@@ -1,192 +1,242 @@
-# 🎬 ماي يوتيوب - تطبيق يوتيوب عربي
+# 🎬 NewPipe - Privacy-Focused YouTube Frontend
 
-تطبيق ويب عربي حديث لمشاهدة ومشاركة الفيديوهات من يوتيوب، مبني بأحدث التقنيات وجاهز للنشر على Vercel.
+A modern, privacy-focused YouTube frontend application built with Next.js 15, featuring advanced functionality like background playback, subscriptions, playlists, and more.
 
-## ✨ المميزات
+## ✨ Features
 
-### 🎯 الواجهة الرئيسية
-- **🔍 بحث متقدم** - ابحث عن أي فيديو على يوتيوب بسهولة
-- **📱 تصميم متجاوب** - يعمل بشكل مثالي على جميع الأجهزة
-- **🎨 واجهة عربية** - واجهة مستخدم باللغة العربية مع دعم RTL
-- **⚡ أداء سريع** - تحميل سريع وتجربة مستخدم سلسة
+### 🎥 Core Functionality
+- **🎬 Video Player**: Full-featured player with ReactPlayer integration
+- **🎵 Background Playback**: Mini-player for continuous listening
+- **🔍 Search & Categories**: Advanced search with 9 content categories
+- **📱 Responsive Design**: Mobile-first approach with perfect desktop adaptation
 
-### 🎥 مشغل الفيديو
-- **📺 مشغل مدمج** - شاهد الفيديوهات مباشرة في التطبيق
-- **👍 تفاعل اجتماعي** - أعجب، لا تعجب، شارك واحفظ الفيديوهات
-- **📊 معلومات الفيديو** - عرض عدد المشاهدات وتاريخ النشر
-- **🎯 اقتراحات ذكية** - فيديوهات مقترحة بناءً على مشاهداتك
+### 🎯 Advanced Features
+- **📚 Subscriptions**: Channel subscription management
+- **📝 Playlists**: Create and manage custom playlists
+- **📖 Watch History**: Automatic history tracking
+- **⭐ Bookmarks**: Save favorite videos
+- **💾 Downloads**: Offline video management interface
+- **🌙 Dark/Light Mode**: Complete theme switching
 
-### 🔧 التقنيات المستخدمة
+### 🔒 Privacy Protection
+- **🚫 No Google Tracking**: Complete privacy protection
+- **💾 Local Storage**: All data stored locally, no external servers
+- **🔐 Anonymous Usage**: No account required for full functionality
 
-#### 🎯 الإطار الأساسي
-- **⚡ Next.js 15** - أحدث إصدار مع App Router
-- **📘 TypeScript 5** - برمجة آمنة بالأنواع
-- **🎨 Tailwind CSS 4** - تصميم عصري وسريع
+## 🚀 Quick Start
 
-#### 🧩 مكونات واجهة المستخدم
-- **🧩 shadcn/ui** - مكونات عالية الجودة
-- **🎯 Lucide React** - أيقونات جميلة ومتناسقة
-- **🎨 Framer Motion** - حركات سلسة وتفاعلية
-
-#### 🌐 تكامل يوتيوب
-- **🔗 YouTube Data API v3** - تكامل كامل مع يوتيوب
-- **🔐 متغيرات البيئة** - إدارة آمنة لمفاتيح API
-- **📊 معالجة البيانات** - تحسين عرض الفيديوهات والإحصائيات
-
-## 🚀 البدء السريع
-
-### 1. الحصول على مفتاح YouTube API
-1. اذهب إلى [Google Cloud Console](https://console.cloud.google.com/)
-2. أنشئ مشروع جديد أو اختر مشروع موجود
-3. فعّل **YouTube Data API v3**
-4. أنشئ بيانات اعتماد (API Key)
-5. انسخ مفتاح API
-
-### 2. إعداد المتغيرات البيئية
+### Development
 ```bash
-# انسخ ملف المتغيرات
-cp .env.example .env.local
-
-# عدل الملف وأضف مفتاح API
-YOUTUBE_API_KEY=your_youtube_api_key_here
-```
-
-### 3. تثبيت وتشغيل
-```bash
-# تثبيت الاعتماديات
+# Install dependencies
 npm install
 
-# تشغيل خادم التطوير
+# Start development server (standard Next.js)
 npm run dev
 
-# بناء للإنتاج
+# Or start with custom server (includes Socket.IO)
+npm run dev:custom
+
+# Build for production
 npm run build
 
-# تشغيل خادم الإنتاج
+# Start production server (standard Next.js)
 npm start
+
+# Or start with custom server
+npm run start:custom
 ```
 
-افتح [http://localhost:3000](http://localhost:3000) لرؤية التطبيق يعمل.
+Open [http://localhost:3000](http://localhost:3000) to see the application running.
 
-## 🚀 النشر على Vercel
+## 🏗️ Technology Stack
 
-### 1. ربط المستودع
-1. ادفع الكود إلى GitHub/GitLab/Bitbucket
-2. اذهب إلى [Vercel](https://vercel.com)
-3. انقر على **New Project**
-4. اختر مستودعك
+### 🎯 Core Framework
+- **⚡ Next.js 15** - React framework with App Router
+- **📘 TypeScript 5** - Type-safe development
+- **🎨 Tailwind CSS 4** - Utility-first styling
 
-### 2. إعداد المتغيرات البيئية
-في Vercel Dashboard:
-1. اذهب إلى **Settings** → **Environment Variables**
-2. أضف المتغيرات التالية:
-   - `YOUTUBE_API_KEY` - مفتاح YouTube API الخاص بك
-   - `NEXTAUTH_SECRET` - سر عشوائي للمصادقة (اختياري)
-   - `NEXTAUTH_URL` - رابط التطبيق (اختياري)
+### 🎬 Video & Media
+- **🎥 ReactPlayer 3.3.3** - Video player with YouTube support
+- **🎵 Audio Control** - Background playback functionality
+- **🖼️ Image Processing** - Sharp for thumbnail optimization
 
-### 3. النشر
-1. انقر على **Deploy**
-2. انتظر حتى يكتمل النشر
-3. سيتم نشر تطبيقك تلقائياً
+### 🧩 UI Components
+- **🧩 shadcn/ui** - High-quality accessible components
+- **🎯 Lucide React** - Beautiful icon library
+- **🌈 Framer Motion** - Smooth animations
+- **🎨 Next Themes** - Dark/light mode support
 
-## 📁 هيكل المشروع
+### 🔄 State & Data
+- **🐻 Zustand** - Lightweight state management with persistence
+- **🔄 TanStack Query** - Server state management
+- **🌐 Axios** - HTTP client with multiple user agents
+- **📊 Cheerio** - Web scraping for YouTube data
+
+## 📱 Application Structure
 
 ```
 src/
-├── app/                    # صفحات Next.js App Router
-│   ├── api/               # واجهات برمجة التطبيقات
-│   │   └── youtube/       # واجهات يوتيوب
-│   │       ├── search/    # البحث عن فيديوهات
-│   │       ├── trending/  # الفيديوهات الشائعة
-│   │       └── popular/   # الفيديوهات الأكثر مشاهدة
-│   ├── layout.tsx         # التخطيط الرئيسي
-│   ├── page.tsx           # الصفحة الرئيسية
-│   └── globals.css        # الأنماط العامة
-├── components/            # المكونات القابلة لإعادة الاستخدام
-│   ├── ui/                # مكونات shadcn/ui
-│   └── video/             # مكونات الفيديو
-│       ├── video-card.tsx     # بطاقة الفيديو
-│       └── video-player-modal.tsx  # مشغل الفيديو
-├── hooks/                 # Hooks مخصصة
-│   ├── use-api-toast.ts   # للإشعارات
-│   ├── use-mobile.ts      # للكشف عن الأجهزة المحمولة
-│   └── use-toast.ts       # للإشعارات العامة
-└── lib/                   # دوال مساعدة وإعدادات
-    └── utils.ts           # دوال مساعدة
+├── app/                    # Next.js App Router
+│   ├── api/               # API routes
+│   │   ├── newpipe/       # YouTube data fetching
+│   │   ├── health/        # Health check
+│   │   └── echo/          # WebSocket alternative
+│   ├── layout.tsx         # Root layout
+│   └── page.tsx           # Main application page
+├── components/            # React components
+│   ├── video-player.tsx   # Video player component
+│   ├── video-card.tsx     # Video card component
+│   ├── sidebar.tsx        # Navigation sidebar
+│   └── ui/               # shadcn/ui components
+├── hooks/                # Custom React hooks
+└── lib/                  # Utilities & configurations
+    ├── store.ts          # Zustand state management
+    ├── socket.ts         # Socket.IO setup
+    └── utils.ts          # Utility functions
 ```
 
-## 🎨 المكونات المتاحة
+## 🚀 Deployment
 
-### 🧩 مكونات واجهة المستخدم (shadcn/ui)
-- **التصميم**: Card, Separator, Aspect Ratio
-- **النماذج**: Input, Button, Dialog
-- **الإشعارات**: Alert, Toast, Progress, Skeleton
-- **التنقل**: Breadcrumb, Navigation Menu
+### Standard Deployment (Recommended)
+For most deployment platforms (Vercel, Netlify, Railway, etc.):
 
-### 🎥 مكونات الفيديو
-- **VideoCard** - بطاقة الفيديو مع الصورة المصغرة والمعلومات
-- **VideoGrid** - شبكة عرض الفيديوهات مع تحميل متحرك
-- **VideoPlayerModal** - مشغل الفيديو المدمج مع التفاعلات
+```bash
+# Build the application
+npm run build
 
-### 🔧 Hooks مخصصة
-- **useApiToast** - للإشعارات الناجحة والخطأ
-- **useMobile** - للكشف عن الأجهزة المحمولة
-- **useToast** - للإشعارات العامة
-
-## 🌐 واجهات برمجة التطبيقات
-
-### 🔍 البحث عن فيديوهات
+# Deploy using standard Next.js
+npm start
 ```
-GET /api/youtube/search?q=keyword
+
+### Custom Server Deployment
+For platforms that support custom Node.js servers:
+
+```bash
+# Build the application
+npm run build
+
+# Start with custom server (includes Socket.IO)
+npm run start:custom
 ```
-- البحث عن فيديوهات باستخدام كلمة مفتاحية
-- إرجاع النتائج مع الصور المصغرة والمعلومات
 
-### 📈 الفيديوهات الشائعة
+### Environment Variables
+Create a `.env` file:
+
+```env
+NODE_ENV=production
+PORT=3000
+HOSTNAME=0.0.0.0
 ```
-GET /api/youtube/trending
+
+### Deployment Platforms
+
+#### Vercel (Recommended)
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Configure build settings:
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `.next`
+   - **Install Command**: `npm install`
+
+#### Netlify
+1. Push your code to GitHub
+2. Connect to Netlify
+3. Configure build settings:
+   - **Build command**: `npm run build`
+   - **Publish directory**: `.next`
+   - **Functions directory**: `netlify/functions`
+
+#### Railway
+1. Connect your GitHub repository
+2. Railway will automatically detect Next.js
+3. Configure environment variables
+
+#### Docker
+```dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+
+COPY . .
+RUN npm run build
+
+EXPOSE 3000
+CMD ["npm", "start"]
 ```
-- جلب الفيديوهات الشائعة والمتداولة
 
-### 🔥 الفيديوهات الأكثر مشاهدة
+## 🔧 Configuration
+
+### YouTube API Configuration
+The application uses web scraping with multiple user agents for robustness:
+
+- **5 Different User Agents** for improved stability
+- **Egypt Geographic Location** configuration
+- **YouTube Mobile** endpoint (`m.youtube.com`)
+- **Fallback System** with 5 simulated videos when scraping fails
+
+### Video Player Settings
+- **Controls Enabled**: Full YouTube player controls
+- **Privacy Mode**: No tracking, minimal branding
+- **Picture-in-Picture**: Background playback support
+- **Speed Control**: 0.5x to 2x playback speed
+
+### State Management
+- **Persistent Storage**: History, bookmarks, subscriptions saved locally
+- **Zustand**: Lightweight state management
+- **Automatic Cleanup**: History limited to last 100 videos
+
+## 🎨 UI/UX Features
+
+### Responsive Design
+- **Mobile-First**: Optimized for all screen sizes
+- **Touch-Friendly**: 44px minimum touch targets
+- **Smooth Animations**: Framer Motion transitions
+- **Loading States**: Skeleton screens during data fetching
+
+### Accessibility
+- **Semantic HTML**: Proper ARIA labels and structure
+- **Keyboard Navigation**: Full keyboard accessibility
+- **Screen Reader Support**: Compatible with assistive technologies
+- **High Contrast**: Clear visual hierarchy
+
+### Theme System
+- **Dark Mode**: Default dark theme
+- **Light Mode**: Toggle option available
+- **System Preference**: Respects OS theme settings
+- **Smooth Transitions**: Theme change animations
+
+## 🛠️ Development
+
+### Adding New Features
+1. **Components**: Add new components in `src/components/`
+2. **API Routes**: Create new endpoints in `src/app/api/`
+3. **State Management**: Extend Zustand store in `src/lib/store.ts`
+4. **Styling**: Use Tailwind CSS classes and shadcn/ui components
+
+### Testing
+```bash
+# Run linting
+npm run lint
+
+# Build and check for errors
+npm run build
 ```
-GET /api/youtube/popular
-```
-- جلب الفيديوهات الأكثر مشاهدة في المنطقة
 
-## 🎯 استخدام التطبيق
+### Common Issues
+- **Videos not playing**: Check YouTube API access and network connectivity
+- **Build errors**: Ensure all dependencies are installed
+- **Deployment issues**: Use standard Next.js deployment for compatibility
 
-1. **البحث**: استخدم شريط البحث في الأعلى للبحث عن فيديوهات
-2. **التصفح**: استخدم الأزرار (الرئيسية، الأكثر شيوعاً، الأشهر) للتصفح
-3. **المشاهدة**: انقر على أي فيديو لمشاهدته في المشغل المدمج
-4. **التفاعل**: استخدم أزرار الإعجاب والمشاركة والحفظ
+## 🤝 Contributing
 
-## 🔧 المتطلبات
+This application is designed to be a complete NewPipe alternative with modern web technologies. Feel free to contribute improvements or report issues.
 
-- Node.js 18 أو أحدث
-- npm أو yarn
-- مفتاح YouTube Data API v3
-- حساب Vercel (للنشر)
+## 📄 License
 
-## 🤝 المساهمة
-
-1. Fork المشروع
-2. أنشئ فرعًا جديدًا (`git checkout -b feature/AmazingFeature`)
-3. Commit التغييرات (`git commit -m 'Add some AmazingFeature'`)
-4. ادفع الفرع (`git push origin feature/AmazingFeature`)
-5. افتح Pull Request
-
-## 📄 الترخيص
-
-هذا المشروع مفتوح المصدر تحت ترخيص MIT.
-
-## 🚀 الدعم
-
-إذا واجهت أي مشاكل أو لديك أسئلة:
-1. افتح Issue في GitHub
-2. راجع الوثائق
-3. تواصل مع فريق الدعم
+This project is open source and available under the MIT License.
 
 ---
 
-مبني بحب ❤️ للمجتمع العربي. مدعوم بتقنيات حديثة وجاهز للإنتاج 🚀
+Built with ❤️ for privacy-focused web applications. 🚀
