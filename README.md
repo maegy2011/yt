@@ -1,242 +1,141 @@
-# 🎬 NewPipe - Privacy-Focused YouTube Frontend
+# 🚀 Welcome to Z.ai Code Scaffold
 
-A modern, privacy-focused YouTube frontend application built with Next.js 15, featuring advanced functionality like background playback, subscriptions, playlists, and more.
+A modern, production-ready web application scaffold powered by cutting-edge technologies, designed to accelerate your development with [Z.ai](https://chat.z.ai)'s AI-powered coding assistance.
 
-## ✨ Features
+## ✨ Technology Stack
 
-### 🎥 Core Functionality
-- **🎬 Video Player**: Full-featured player with ReactPlayer integration
-- **🎵 Background Playback**: Mini-player for continuous listening
-- **🔍 Search & Categories**: Advanced search with 9 content categories
-- **📱 Responsive Design**: Mobile-first approach with perfect desktop adaptation
+This scaffold provides a robust foundation built with:
 
-### 🎯 Advanced Features
-- **📚 Subscriptions**: Channel subscription management
-- **📝 Playlists**: Create and manage custom playlists
-- **📖 Watch History**: Automatic history tracking
-- **⭐ Bookmarks**: Save favorite videos
-- **💾 Downloads**: Offline video management interface
-- **🌙 Dark/Light Mode**: Complete theme switching
+### 🎯 Core Framework
+- **⚡ Next.js 15** - The React framework for production with App Router
+- **📘 TypeScript 5** - Type-safe JavaScript for better developer experience
+- **🎨 Tailwind CSS 4** - Utility-first CSS framework for rapid UI development
 
-### 🔒 Privacy Protection
-- **🚫 No Google Tracking**: Complete privacy protection
-- **💾 Local Storage**: All data stored locally, no external servers
-- **🔐 Anonymous Usage**: No account required for full functionality
+### 🧩 UI Components & Styling
+- **🧩 shadcn/ui** - High-quality, accessible components built on Radix UI
+- **🎯 Lucide React** - Beautiful & consistent icon library
+- **🌈 Framer Motion** - Production-ready motion library for React
+- **🎨 Next Themes** - Perfect dark mode in 2 lines of code
+
+### 📋 Forms & Validation
+- **🎣 React Hook Form** - Performant forms with easy validation
+- **✅ Zod** - TypeScript-first schema validation
+
+### 🔄 State Management & Data Fetching
+- **🐻 Zustand** - Simple, scalable state management
+- **🔄 TanStack Query** - Powerful data synchronization for React
+- **🌐 Axios** - Promise-based HTTP client
+
+### 🗄️ Database & Backend
+- **🗄️ Prisma** - Next-generation Node.js and TypeScript ORM
+- **🔐 NextAuth.js** - Complete open-source authentication solution
+
+### 🎨 Advanced UI Features
+- **📊 TanStack Table** - Headless UI for building tables and datagrids
+- **🖱️ DND Kit** - Modern drag and drop toolkit for React
+- **📊 Recharts** - Redefined chart library built with React and D3
+- **🖼️ Sharp** - High performance image processing
+
+### 🌍 Internationalization & Utilities
+- **🌍 Next Intl** - Internationalization library for Next.js
+- **📅 Date-fns** - Modern JavaScript date utility library
+- **🪝 ReactUse** - Collection of essential React hooks for modern development
+
+## 🎯 Why This Scaffold?
+
+- **🏎️ Fast Development** - Pre-configured tooling and best practices
+- **🎨 Beautiful UI** - Complete shadcn/ui component library with advanced interactions
+- **🔒 Type Safety** - Full TypeScript configuration with Zod validation
+- **📱 Responsive** - Mobile-first design principles with smooth animations
+- **🗄️ Database Ready** - Prisma ORM configured for rapid backend development
+- **🔐 Auth Included** - NextAuth.js for secure authentication flows
+- **📊 Data Visualization** - Charts, tables, and drag-and-drop functionality
+- **🌍 i18n Ready** - Multi-language support with Next Intl
+- **🚀 Production Ready** - Optimized build and deployment settings
+- **🤖 AI-Friendly** - Structured codebase perfect for AI assistance
 
 ## 🚀 Quick Start
 
-### Development
 ```bash
 # Install dependencies
 npm install
 
-# Start development server (standard Next.js)
+# Start development server
 npm run dev
-
-# Or start with custom server (includes Socket.IO)
-npm run dev:custom
 
 # Build for production
 npm run build
 
-# Start production server (standard Next.js)
+# Start production server
 npm start
-
-# Or start with custom server
-npm run start:custom
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the application running.
+Open [http://localhost:3000](http://localhost:3000) to see your application running.
 
-## 🏗️ Technology Stack
+## 🤖 Powered by Z.ai
 
-### 🎯 Core Framework
-- **⚡ Next.js 15** - React framework with App Router
-- **📘 TypeScript 5** - Type-safe development
-- **🎨 Tailwind CSS 4** - Utility-first styling
+This scaffold is optimized for use with [Z.ai](https://chat.z.ai) - your AI assistant for:
 
-### 🎬 Video & Media
-- **🎥 ReactPlayer 3.3.3** - Video player with YouTube support
-- **🎵 Audio Control** - Background playback functionality
-- **🖼️ Image Processing** - Sharp for thumbnail optimization
+- **💻 Code Generation** - Generate components, pages, and features instantly
+- **🎨 UI Development** - Create beautiful interfaces with AI assistance  
+- **🔧 Bug Fixing** - Identify and resolve issues with intelligent suggestions
+- **📝 Documentation** - Auto-generate comprehensive documentation
+- **🚀 Optimization** - Performance improvements and best practices
 
-### 🧩 UI Components
-- **🧩 shadcn/ui** - High-quality accessible components
-- **🎯 Lucide React** - Beautiful icon library
-- **🌈 Framer Motion** - Smooth animations
-- **🎨 Next Themes** - Dark/light mode support
+Ready to build something amazing? Start chatting with Z.ai at [chat.z.ai](https://chat.z.ai) and experience the future of AI-powered development!
 
-### 🔄 State & Data
-- **🐻 Zustand** - Lightweight state management with persistence
-- **🔄 TanStack Query** - Server state management
-- **🌐 Axios** - HTTP client with multiple user agents
-- **📊 Cheerio** - Web scraping for YouTube data
-
-## 📱 Application Structure
+## 📁 Project Structure
 
 ```
 src/
-├── app/                    # Next.js App Router
-│   ├── api/               # API routes
-│   │   ├── newpipe/       # YouTube data fetching
-│   │   ├── health/        # Health check
-│   │   └── echo/          # WebSocket alternative
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Main application page
-├── components/            # React components
-│   ├── video-player.tsx   # Video player component
-│   ├── video-card.tsx     # Video card component
-│   ├── sidebar.tsx        # Navigation sidebar
-│   └── ui/               # shadcn/ui components
-├── hooks/                # Custom React hooks
-└── lib/                  # Utilities & configurations
-    ├── store.ts          # Zustand state management
-    ├── socket.ts         # Socket.IO setup
-    └── utils.ts          # Utility functions
+├── app/                 # Next.js App Router pages
+├── components/          # Reusable React components
+│   └── ui/             # shadcn/ui components
+├── hooks/              # Custom React hooks
+└── lib/                # Utility functions and configurations
 ```
 
-## 🚀 Deployment
+## 🎨 Available Features & Components
 
-### Standard Deployment (Recommended)
-For most deployment platforms (Vercel, Netlify, Railway, etc.):
+This scaffold includes a comprehensive set of modern web development tools:
 
-```bash
-# Build the application
-npm run build
+### 🧩 UI Components (shadcn/ui)
+- **Layout**: Card, Separator, Aspect Ratio, Resizable Panels
+- **Forms**: Input, Textarea, Select, Checkbox, Radio Group, Switch
+- **Feedback**: Alert, Toast (Sonner), Progress, Skeleton
+- **Navigation**: Breadcrumb, Menubar, Navigation Menu, Pagination
+- **Overlay**: Dialog, Sheet, Popover, Tooltip, Hover Card
+- **Data Display**: Badge, Avatar, Calendar
 
-# Deploy using standard Next.js
-npm start
-```
+### 📊 Advanced Data Features
+- **Tables**: Powerful data tables with sorting, filtering, pagination (TanStack Table)
+- **Charts**: Beautiful visualizations with Recharts
+- **Forms**: Type-safe forms with React Hook Form + Zod validation
 
-### Custom Server Deployment
-For platforms that support custom Node.js servers:
+### 🎨 Interactive Features
+- **Animations**: Smooth micro-interactions with Framer Motion
+- **Drag & Drop**: Modern drag-and-drop functionality with DND Kit
+- **Theme Switching**: Built-in dark/light mode support
 
-```bash
-# Build the application
-npm run build
+### 🔐 Backend Integration
+- **Authentication**: Ready-to-use auth flows with NextAuth.js
+- **Database**: Type-safe database operations with Prisma
+- **API Client**: HTTP requests with Axios + TanStack Query
+- **State Management**: Simple and scalable with Zustand
 
-# Start with custom server (includes Socket.IO)
-npm run start:custom
-```
+### 🌍 Production Features
+- **Internationalization**: Multi-language support with Next Intl
+- **Image Optimization**: Automatic image processing with Sharp
+- **Type Safety**: End-to-end TypeScript with Zod validation
+- **Essential Hooks**: 100+ useful React hooks with ReactUse for common patterns
 
-### Environment Variables
-Create a `.env` file:
+## 🤝 Get Started with Z.ai
 
-```env
-NODE_ENV=production
-PORT=3000
-HOSTNAME=0.0.0.0
-```
-
-### Deployment Platforms
-
-#### Vercel (Recommended)
-1. Push your code to GitHub
-2. Connect your repository to Vercel
-3. Configure build settings:
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `.next`
-   - **Install Command**: `npm install`
-
-#### Netlify
-1. Push your code to GitHub
-2. Connect to Netlify
-3. Configure build settings:
-   - **Build command**: `npm run build`
-   - **Publish directory**: `.next`
-   - **Functions directory**: `netlify/functions`
-
-#### Railway
-1. Connect your GitHub repository
-2. Railway will automatically detect Next.js
-3. Configure environment variables
-
-#### Docker
-```dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-
-COPY . .
-RUN npm run build
-
-EXPOSE 3000
-CMD ["npm", "start"]
-```
-
-## 🔧 Configuration
-
-### YouTube API Configuration
-The application uses web scraping with multiple user agents for robustness:
-
-- **5 Different User Agents** for improved stability
-- **Egypt Geographic Location** configuration
-- **YouTube Mobile** endpoint (`m.youtube.com`)
-- **Fallback System** with 5 simulated videos when scraping fails
-
-### Video Player Settings
-- **Controls Enabled**: Full YouTube player controls
-- **Privacy Mode**: No tracking, minimal branding
-- **Picture-in-Picture**: Background playback support
-- **Speed Control**: 0.5x to 2x playback speed
-
-### State Management
-- **Persistent Storage**: History, bookmarks, subscriptions saved locally
-- **Zustand**: Lightweight state management
-- **Automatic Cleanup**: History limited to last 100 videos
-
-## 🎨 UI/UX Features
-
-### Responsive Design
-- **Mobile-First**: Optimized for all screen sizes
-- **Touch-Friendly**: 44px minimum touch targets
-- **Smooth Animations**: Framer Motion transitions
-- **Loading States**: Skeleton screens during data fetching
-
-### Accessibility
-- **Semantic HTML**: Proper ARIA labels and structure
-- **Keyboard Navigation**: Full keyboard accessibility
-- **Screen Reader Support**: Compatible with assistive technologies
-- **High Contrast**: Clear visual hierarchy
-
-### Theme System
-- **Dark Mode**: Default dark theme
-- **Light Mode**: Toggle option available
-- **System Preference**: Respects OS theme settings
-- **Smooth Transitions**: Theme change animations
-
-## 🛠️ Development
-
-### Adding New Features
-1. **Components**: Add new components in `src/components/`
-2. **API Routes**: Create new endpoints in `src/app/api/`
-3. **State Management**: Extend Zustand store in `src/lib/store.ts`
-4. **Styling**: Use Tailwind CSS classes and shadcn/ui components
-
-### Testing
-```bash
-# Run linting
-npm run lint
-
-# Build and check for errors
-npm run build
-```
-
-### Common Issues
-- **Videos not playing**: Check YouTube API access and network connectivity
-- **Build errors**: Ensure all dependencies are installed
-- **Deployment issues**: Use standard Next.js deployment for compatibility
-
-## 🤝 Contributing
-
-This application is designed to be a complete NewPipe alternative with modern web technologies. Feel free to contribute improvements or report issues.
-
-## 📄 License
-
-This project is open source and available under the MIT License.
+1. **Clone this scaffold** to jumpstart your project
+2. **Visit [chat.z.ai](https://chat.z.ai)** to access your AI coding assistant
+3. **Start building** with intelligent code generation and assistance
+4. **Deploy with confidence** using the production-ready setup
 
 ---
 
-Built with ❤️ for privacy-focused web applications. 🚀
+Built with ❤️ for the developer community. Supercharged by [Z.ai](https://chat.z.ai) 🚀
