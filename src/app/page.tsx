@@ -11,6 +11,8 @@ import { PrivacyBadge } from '@/components/privacy-badge';
 import { PrivacySettings } from '@/components/privacy-settings';
 import { PrivacyPolicy } from '@/components/privacy-policy';
 import { AccessStatus } from '@/components/access-status';
+import { VideoMeta, VideoDurationBadge } from '@/components/video-meta';
+import { formatDuration, formatViewCount, formatPublishedDate } from '@/lib/format';
 
 interface Video {
   id: string;
@@ -225,11 +227,7 @@ function VideoCard({ video, onClick }: { video: Video; onClick: () => void }) {
             </div>
           </div>
         </div>
-        {video.duration && (
-          <Badge className="absolute bottom-2 right-2 bg-black/80 text-white text-xs">
-            {video.duration}
-          </Badge>
-        )}
+        <VideoDurationBadge duration={video.duration} />
       </div>
       <CardContent className="p-4">
         <h3 className="font-semibold line-clamp-2 mb-2 text-sm leading-tight">
@@ -240,20 +238,12 @@ function VideoCard({ video, onClick }: { video: Video; onClick: () => void }) {
         </p>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span className="font-medium">{video.channelName}</span>
-          <div className="flex items-center gap-2">
-            {video.viewCount && (
-              <span className="flex items-center gap-1">
-                <Eye className="h-3 w-3" />
-                {video.viewCount}
-              </span>
-            )}
-            {video.published && (
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                {video.published}
-              </span>
-            )}
-          </div>
+          <VideoMeta
+            viewCount={video.viewCount}
+            published={video.published}
+            showDuration={false}
+            size="sm"
+          />
         </div>
         {video.badges.length > 0 && (
           <div className="flex gap-1 mt-2">
@@ -427,22 +417,13 @@ function VideoPlayer({ video, onBack }: { video: Video; onBack: () => void }) {
               </div>
               <CardContent className="p-6">
                 <h1 className="text-2xl font-bold mb-4">{video.title}</h1>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                  <span className="flex items-center gap-1">
-                    <Eye className="h-4 w-4" />
-                    {video.viewCount}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    {video.published}
-                  </span>
-                  {video.duration && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      {video.duration}
-                    </span>
-                  )}
-                </div>
+                <VideoMeta
+                viewCount={video.viewCount}
+                published={video.published}
+                duration={video.duration}
+                size="sm"
+                className="mb-4"
+              />
                 <div className="mb-4">
                   <p className="font-medium mb-2">{video.channelName}</p>
                   <p className="text-sm text-muted-foreground line-clamp-3">
