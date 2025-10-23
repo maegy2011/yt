@@ -51,15 +51,21 @@ model UserPreferences {
   blockAds         Boolean @default(true)
   hideWatchHistory Boolean @default(false)
   
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
   @@map("user_preferences")
 }
 
 // Search history for users
 model SearchHistory {
-  id          String   @id @default(cuid())
-  userId      String
-  query       String
-  timestamp   DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  query     String
+  timestamp DateTime @default(now())
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("search_history")
 }

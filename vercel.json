@@ -13,13 +13,6 @@
       "NEXT_TELEMETRY_DISABLED": "1"
     }
   },
-  "functions": {
-    "src/app/api/**/*.ts": {
-      "runtime": "nodejs18.x",
-      "memory": 512,
-      "maxDuration": 30
-    }
-  },
   "headers": [
     {
       "source": "/api/(.*)",
