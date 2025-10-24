@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  favoriteChannels FavoriteChannel[]
+  favoriteVideos   FavoriteVideo[]
+  videoNotes        VideoNote[]
+}
+
+model FavoriteChannel {
+  id          String   @id @default(cuid())
+  channelId   String   @unique
+  channelName String
+  thumbnail   String?
+  subscriberCount String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FavoriteVideo {
+  id          String   @id @default(cuid())
+  videoId     String   @unique
+  title       String
+  description String?
+  thumbnail   String?
+  duration    String?
+  viewCount   String?
+  publishedAt String?
+  channelName String?
+  channelId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VideoNote {
+  id          String   @id @default(cuid())
+  videoId     String
+  title       String
+  content     String
+  timestamp   String?
+  fontSize    Int      @default(16)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
