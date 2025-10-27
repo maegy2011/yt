@@ -6,8 +6,18 @@ export async function GET() {
     const channels = await db.favoriteChannel.findMany({
       orderBy: { addedAt: 'desc' }
     })
-    return NextResponse.json(channels)
+    
+    // Sanitize data to prevent JSON serialization issues
+    const sanitizedChannels = channels.map(channel => ({
+      ...channel,
+      name: channel.name || '',
+      thumbnail: channel.thumbnail || '',
+      subscriberCount: channel.subscriberCount || 0
+    }))
+    
+    return NextResponse.json(sanitizedChannels)
   } catch (error) {
+    console.error('Error fetching channels:', error)
     return NextResponse.json({ error: 'Failed to fetch channels' }, { status: 500 })
   }
 }
