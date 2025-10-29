@@ -6,20 +6,8 @@ export async function GET() {
     const watchedVideos = await db.watchedVideo.findMany({
       orderBy: { watchedAt: 'desc' }
     })
-    
-    // Sanitize data to prevent JSON serialization issues
-    const sanitizedVideos = watchedVideos.map(video => ({
-      ...video,
-      title: video.title || '',
-      channelName: video.channelName || '',
-      thumbnail: video.thumbnail || '',
-      duration: video.duration || '',
-      viewCount: video.viewCount || 0
-    }))
-    
-    return NextResponse.json(sanitizedVideos)
+    return NextResponse.json(watchedVideos)
   } catch (error) {
-    console.error('Error fetching watched videos:', error)
     return NextResponse.json({ error: 'Failed to fetch watched videos' }, { status: 500 })
   }
 }
@@ -29,46 +17,31 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { videoId, title, channelName, thumbnail, duration, viewCount } = body
 
-    if (!videoId || !title || !channelName) {
-      return NextResponse.json({ error: 'Missing required fields: videoId, title, channelName' }, { status: 400 })
-    }
-
-    // Sanitize input data
-    const sanitizedData = {
-      videoId: String(videoId).trim(),
-      title: String(title).trim(),
-      channelName: String(channelName).trim(),
-      thumbnail: thumbnail ? String(thumbnail).trim() : '',
-      duration: duration ? String(duration).trim() : '',
-      viewCount: viewCount ? Number(viewCount) : 0
-    }
-
     const existing = await db.watchedVideo.findUnique({
-      where: { videoId: sanitizedData.videoId }
+      where: { videoId }
     })
 
     if (existing) {
-      // Update the existing watched video with new timestamp and data
-      const updatedVideo = await db.watchedVideo.update({
-        where: { videoId: sanitizedData.videoId },
-        data: {
-          ...sanitizedData,
-          watchedAt: new Date() // Update watchedAt to current time
-        }
+      // Delete the existing record to keep only the latest
+      await db.watchedVideo.delete({
+        where: { videoId }
       })
-      return NextResponse.json(updatedVideo)
     }
 
+    // Create new record with latest data
     const watchedVideo = await db.watchedVideo.create({
       data: {
-        ...sanitizedData,
-        watchedAt: new Date() // Explicitly set watchedAt
+        videoId,
+        title,
+        channelName,
+        thumbnail,
+        duration,
+        viewCount
       }
     })
 
     return NextResponse.json(watchedVideo)
   } catch (error) {
-    console.error('Error adding watched video:', error)
     return NextResponse.json({ error: 'Failed to add watched video' }, { status: 500 })
   }
 }

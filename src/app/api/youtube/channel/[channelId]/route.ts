@@ -1,169 +1,127 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Client } from 'youtubei'
-import { youtubeRateLimiters, addRandomJitter } from '@/lib/rate-limiter'
+import { db } from '@/lib/db'
 
 const youtube = new Client()
 
-// Function to format subscriber count
-function formatSubscriberCount(count: number | undefined): string {
-  if (!count || count === 0) return 'No subscribers'
-  
-  if (count >= 1000000) {
-    return `${(count / 1000000).toFixed(1)}M subscribers`
-  } else if (count >= 1000) {
-    return `${(count / 1000).toFixed(1)}K subscribers`
-  }
-  return `${count} subscribers`
-}
-
-// Function to get the best quality channel logo/avatar
-function getChannelLogo(channel: any): string | null {
-  // Try different sources for channel logo in order of preference
-  const sources = [
-    channel.avatar?.[0]?.url, // High resolution avatar
-    channel.avatar?.url, // Single avatar
-    channel.thumbnail?.url, // Thumbnail
-    channel.banner?.url, // Banner (as fallback)
-  ].filter(Boolean)
-
-  return sources[0] || null
-}
-
-// Function to get channel verification badge
-function getVerificationBadge(channel: any): boolean {
-  return channel.verified || channel.badges?.some((badge: any) => badge.type === 'VERIFIED_CHANNEL')
-}
-
-// Function to get channel stats
-function getChannelStats(channel: any): any {
-  const logo = getChannelLogo(channel)
-  
-  return {
-    subscriberCount: channel.subscriberCount || 0,
-    videoCount: channel.videoCount || 0,
-    viewCount: channel.viewCount || 0,
-    subscriberText: formatSubscriberCount(channel.subscriberCount),
-    verified: getVerificationBadge(channel),
-    joinDate: channel.joinDate,
-    country: channel.country,
-    keywords: channel.keywords || [],
-    banner: channel.banner?.url || null,
-    avatar: logo, // Use the best available logo
-    // Provide fallback URLs
-    thumbnail: logo || channel.thumbnail?.url,
-    logoSources: {
-      avatar: channel.avatar,
-      thumbnail: channel.thumbnail,
-      banner: channel.banner
-    }
-  }
-}
-
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ channelId: string }> }
+  { params }: { params: { channelId: string } }
 ) {
   try {
-    // Await params as required by Next.js 15
-    const { channelId } = await params
-    
-    // Apply rate limiting with random jitter to appear more human
-    await youtubeRateLimiters.channel.execute(async () => {
-      // Add small random delay to make requests appear more natural
-      const jitter = addRandomJitter(200, 300) // 200-500ms random delay
-      await new Promise(resolve => setTimeout(resolve, jitter))
-    })
+    const channelId = params.channelId
+    const searchParams = request.nextUrl.searchParams
+    const includeVideos = searchParams.get('includeVideos') === 'true'
+    const maxVideos = parseInt(searchParams.get('maxVideos') || '10')
 
+    console.log('Fetching channel data:', { channelId, includeVideos, maxVideos })
+
+    // Get channel data from YouTube
     const channel = await youtube.getChannel(channelId)
     
+    if (!channel) {
+      return NextResponse.json({ error: 'Channel not found' }, { status: 404 })
+    }
+
     // Extract comprehensive channel data
-    const logo = getChannelLogo(channel)
     const sanitizedChannel = {
       id: channel.id,
+      channelId: channel.id,
       name: channel.name,
       description: channel.description,
-      thumbnail: {
-        url: logo || channel.thumbnail?.url || `https://ui-avatars.com/api/?name=${encodeURIComponent(channel.name)}&background=6366f1&color=fff&size=128`,
-        width: 128,
-        height: 128
+      thumbnail: channel.thumbnail?.url || channel.thumbnail,
+      banner: channel.banner?.url || channel.banner,
+      subscriberCount: channel.subscriberCount || 0,
+      videoCount: channel.videoCount || 0,
+      viewCount: channel.viewCount || 0,
+      joinedDate: channel.joinedDate,
+      country: channel.country,
+      keywords: channel.keywords || [],
+      tags: channel.tags || [],
+      isVerified: channel.verified || false,
+      isFamilyFriendly: channel.familyFriendly || false,
+      relatedChannels: channel.relatedChannels?.map((rc: any) => ({
+        channelId: rc.id,
+        name: rc.name,
+        thumbnail: rc.thumbnail?.url || rc.thumbnail,
+        subscriberCount: rc.subscriberCount || 0
+      })) || [],
+      // Channel links and social media
+      links: channel.links || [],
+      // Channel statistics
+      stats: {
+        subscribers: channel.subscriberCount || 0,
+        totalViews: channel.viewCount || 0,
+        totalVideos: channel.videoCount || 0,
+        avgViewsPerVideo: channel.videoCount && channel.viewCount ? 
+          Math.round(channel.viewCount / channel.videoCount) : 0
       },
-      stats: getChannelStats(channel),
-      // Additional channel metadata
-      url: `https://www.youtube.com/channel/${channel.id}`,
-      handle: channel.handle || channel.customUrl,
-      // Channel sections and tabs
-      sections: channel.sections || [],
-      // Recent videos (if available)
-      videos: Array.isArray(channel.videos) ? channel.videos.slice(0, 12).map((video: any) => ({
-        id: video.id,
-        title: video.title,
-        description: video.description,
-        thumbnail: video.thumbnail || {
-          url: `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`,
-          width: 320,
-          height: 180
-        },
-        duration: video.duration,
-        viewCount: video.viewCount,
-        publishedAt: video.publishedAt,
-        isLive: video.isLive || false,
-        channel: {
-          id: channel.id,
-          name: channel.name,
-          thumbnail: {
-            url: logo || channel.thumbnail?.url,
-            width: 128,
-            height: 128
-          }
-        }
-      })) : [],
       // Channel metadata
       metadata: {
-        channelId: channel.id,
-        channelName: channel.name,
-        isVerified: getVerificationBadge(channel),
-        subscriberCount: channel.subscriberCount || 0,
-        videoCount: channel.videoCount || 0,
-        viewCount: channel.viewCount || 0,
-        joinDate: channel.joinDate,
-        country: channel.country,
-        keywords: channel.keywords || [],
-        tags: channel.tags || [],
-        logoUrl: logo,
-        hasCustomLogo: !!logo && !logo.includes('ui-avatars.com')
+        fetchedAt: new Date().toISOString(),
+        hasVideos: !!(channel.videos && channel.videos.length > 0),
+        lastUpdated: new Date().toISOString()
       }
     }
-    
+
+    // Include recent videos if requested
+    if (includeVideos && channel.videos) {
+      const videos = channel.videos.slice(0, maxVideos).map((video: any) => ({
+        id: video.id,
+        videoId: video.id,
+        title: video.title,
+        description: video.description,
+        thumbnail: video.thumbnail?.url || `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`,
+        duration: video.duration,
+        viewCount: video.viewCount || 0,
+        publishedAt: video.publishedAt,
+        isLive: video.isLive || false,
+        isUpcoming: video.isUpcoming || false,
+        upcomingDate: video.upcomingDate,
+        stats: {
+          views: video.viewCount || 0,
+          likes: video.likeCount || 0,
+          comments: video.commentCount || 0
+        }
+      }))
+      
+      sanitizedChannel.videos = videos
+    }
+
+    // Check if channel is in favorites
+    const favoriteChannel = await db.favoriteChannel.findUnique({
+      where: { channelId }
+    })
+
+    sanitizedChannel.isFavorite = !!favoriteChannel
+    if (favoriteChannel) {
+      sanitizedChannel.addedAt = favoriteChannel.addedAt
+    }
+
+    console.log('Channel data fetched successfully:', {
+      channelId: sanitizedChannel.id,
+      name: sanitizedChannel.name,
+      subscriberCount: sanitizedChannel.subscriberCount,
+      videoCount: sanitizedChannel.videoCount,
+      hasVideos: sanitizedChannel.metadata.hasVideos
+    })
+
     return NextResponse.json(sanitizedChannel)
   } catch (error) {
     console.error('Get channel error:', error)
     
-    // Await params as required by Next.js 15
-    const { channelId } = await params
-    
-    // Return a graceful fallback with generated avatar
-    const fallbackChannel = {
-      id: channelId,
-      name: 'Unknown Channel',
-      description: 'Channel information temporarily unavailable',
-      thumbnail: {
-        url: `https://ui-avatars.com/api/?name=Channel&background=6366f1&color=fff&size=128`,
-        width: 128,
-        height: 128
-      },
-      stats: {
-        subscriberCount: 0,
-        videoCount: 0,
-        viewCount: 0,
-        subscriberText: 'No subscribers',
-        verified: false,
-        avatar: null
-      },
-      error: 'Failed to get channel',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      channelId: channelId
+    // Return more specific error messages
+    if (error.message?.includes('Not found') || error.message?.includes('404')) {
+      return NextResponse.json({ error: 'Channel not found or does not exist' }, { status: 404 })
     }
     
-    return NextResponse.json(fallbackChannel, { status: 200 }) // Return 200 with fallback data
+    if (error.message?.includes('quota') || error.message?.includes('limit')) {
+      return NextResponse.json({ error: 'API quota exceeded. Please try again later.' }, { status: 429 })
+    }
+    
+    return NextResponse.json({ 
+      error: 'Failed to fetch channel data',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    }, { status: 500 })
   }
 }

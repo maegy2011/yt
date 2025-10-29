@@ -6,20 +6,8 @@ export async function GET() {
     const favorites = await db.favoriteVideo.findMany({
       orderBy: { addedAt: 'desc' }
     })
-    
-    // Sanitize data to prevent JSON serialization issues
-    const sanitizedFavorites = favorites.map(favorite => ({
-      ...favorite,
-      title: favorite.title || '',
-      channelName: favorite.channelName || '',
-      thumbnail: favorite.thumbnail || '',
-      duration: favorite.duration || '',
-      viewCount: favorite.viewCount || 0
-    }))
-    
-    return NextResponse.json(sanitizedFavorites)
+    return NextResponse.json(favorites)
   } catch (error) {
-    console.error('Error fetching favorites:', error)
     return NextResponse.json({ error: 'Failed to fetch favorites' }, { status: 500 })
   }
 }

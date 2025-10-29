@@ -31,8 +31,6 @@ model FavoriteChannel {
   channelId   String   @unique
   name        String
   thumbnail   String?
-  logoUrl     String?  // Real YouTube channel logo
-  hasCustomLogo Boolean @default(false) // Whether the logo is custom or generated
   subscriberCount Int?
   addedAt     DateTime @default(now())
   createdAt   DateTime @default(now())
@@ -61,8 +59,9 @@ model VideoNote {
   note        String
   fontSize    Int      @default(16)
   isArchived  Boolean  @default(false)
+  startTime   Int?     // Start time in seconds
+  endTime     Int?     // End time in seconds
+  isClip      Boolean  @default(false) // Whether this note is a clip
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  @@unique([videoId, isArchived])
 }

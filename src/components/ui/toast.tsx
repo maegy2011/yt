@@ -7,32 +7,6 @@ import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-// Progress bar component
-const ToastProgress = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { duration?: number }
->(({ className, duration = 3000, ...props }, ref) => {
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        "absolute bottom-0 left-0 h-1 w-full bg-primary/20 overflow-hidden",
-        className
-      )}
-      {...props}
-    >
-      <div 
-        className="h-full bg-primary"
-        style={{
-          animation: `shrink ${duration}ms linear forwards`,
-          transformOrigin: 'left',
-        }}
-      />
-    </div>
-  )
-})
-ToastProgress.displayName = "ToastProgress"
-
 const ToastProvider = ToastPrimitives.Provider
 
 const ToastViewport = React.forwardRef<
@@ -42,7 +16,7 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
-      "fixed bottom-4 right-4 z-[100] flex max-h-screen w-full flex-col-reverse p-4 md:max-w-[420px]",
+      "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px]",
       className
     )}
     {...props}
@@ -105,7 +79,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-100 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
+      "absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
       className
     )}
     toast-close=""

@@ -54,13 +54,6 @@ export const loadingMessages = {
       "Updating subscriptions..."
     ]
   },
-  explore: [
-    "Exploring channels...",
-    "Searching for new channels...",
-    "Finding interesting content...",
-    "Discovering new creators...",
-    "Fetching channel results..."
-  ],
   general: [
     "Processing...",
     "Working on it...",
@@ -113,12 +106,6 @@ export const confirmationMessages = {
       "Subscription updated!"
     ]
   },
-  explore: [
-    "Channels explored!",
-    "Search complete!",
-    "New channels found!",
-    "Exploration successful!"
-  ],
   general: [
     "Success!",
     "Complete!",
@@ -142,16 +129,15 @@ export function getLoadingMessage(operation: keyof typeof loadingMessages): stri
   }
 }
 
-export function getConfirmationMessage(operation: keyof typeof confirmationMessages, args: any[] = []): string {
+export function getConfirmationMessage(operation: keyof typeof confirmationMessages, ...args: any[]): string {
   const messages = confirmationMessages[operation]
   if (typeof messages === 'function') {
-    const result = messages(args)
-    return getRandomMessage(Array.isArray(result) ? result : [result])
+    return getRandomMessage(messages(...args))
   } else if (Array.isArray(messages)) {
     return getRandomMessage(messages)
   } else {
     // For nested objects
-    const actionMessages = Object.values(messages).flat() as string[]
+    const actionMessages = Object.values(messages).flat()
     return getRandomMessage(actionMessages)
   }
 }
