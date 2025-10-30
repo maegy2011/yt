@@ -23,7 +23,9 @@ import {
   Plus,
   Settings,
   ArrowDown,
-  Bell
+  ArrowLeft,
+  Bell,
+  Eye
 } from 'lucide-react'
 import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
 import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from '@/lib/loading-messages'
@@ -66,6 +68,8 @@ interface SearchResults {
 export default function MyTubeApp() {
   // Core state
   const [activeTab, setActiveTab] = useState<Tab>('home')
+  const [previousTab, setPreviousTab] = useState<Tab>('home')
+  const [navigationHistory, setNavigationHistory] = useState<Tab[]>(['home'])
   const [searchQuery, setSearchQuery] = useState('')
   const [channelSearchQuery, setChannelSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResults | null>(null)
@@ -326,14 +330,61 @@ export default function MyTubeApp() {
 
   // Enhanced tab navigation with haptic feedback
   const handleTabNavigation = useCallback((tabId: Tab) => {
+    setPreviousTab(activeTab)
     setActiveTab(tabId)
     triggerHapticFeedback()
+    
+    // Update navigation history (avoid duplicates)
+    setNavigationHistory(prev => {
+      const newHistory = [...prev]
+      if (newHistory[newHistory.length - 1] !== tabId) {
+        newHistory.push(tabId)
+      }
+      // Keep only last 10 entries
+      return newHistory.slice(-10)
+    })
     
     const tab = tabs.find(t => t.id === tabId)
     if (tab) {
       addNotification('Navigation', `Switched to ${tab.label}`, 'info')
     }
-  }, [tabs, addNotification, triggerHapticFeedback])
+  }, [activeTab, tabs, addNotification, triggerHapticFeedback])
+
+  // Back button functionality
+  const handleGoBack = useCallback(() => {
+    if (activeTab === 'player' && previousTab !== 'player') {
+      // Special case for player - go back to previous tab
+      setActiveTab(previousTab)
+      setNavigationHistory(prev => prev.slice(0, -1)) // Remove player from history
+      triggerHapticFeedback()
+      addNotification('Navigation', `Returned to ${tabs.find(t => t.id === previousTab)?.label || 'previous'}`, 'info')
+    } else if (navigationHistory.length > 1) {
+      // Go to previous tab in history
+      const newHistory = [...navigationHistory]
+      newHistory.pop() // Remove current tab
+      const previousTabInHistory = newHistory[newHistory.length - 1]
+      
+      if (previousTabInHistory) {
+        setActiveTab(previousTabInHistory)
+        setNavigationHistory(newHistory)
+        triggerHapticFeedback()
+        
+        const tab = tabs.find(t => t.id === previousTabInHistory)
+        if (tab) {
+          addNotification('Navigation', `Went back to ${tab.label}`, 'info')
+        }
+      }
+    } else if (activeTab !== 'home') {
+      // If no history, go to home
+      setActiveTab('home')
+      setNavigationHistory(['home'])
+      triggerHapticFeedback()
+      addNotification('Navigation', 'Went back to Home', 'info')
+    }
+  }, [activeTab, previousTab, navigationHistory, tabs, addNotification, triggerHapticFeedback])
+
+  // Check if back button should be shown
+  const canGoBack = navigationHistory.length > 1 || activeTab !== 'home'
 
   // Touch gesture handling for tab navigation
   useEffect(() => {
@@ -595,8 +646,12 @@ export default function MyTubeApp() {
   }
 
   const handleVideoPlay = async (video: Video, startTime?: number) => {
+    setPreviousTab(activeTab) // Track the previous tab
     setSelectedVideo(video)
     setActiveTab('player')
+    
+    // Update navigation history for player
+    setNavigationHistory(prev => [...prev, 'player'])
     
     try {
       const thumbnailUrl = getThumbnailUrl(video)
@@ -745,7 +800,8 @@ export default function MyTubeApp() {
             channelId: channel.channelId,
             name: channel.name,
             thumbnail: getChannelThumbnailUrl(channel),
-            subscriberCount: channel.subscriberCount
+            subscriberCount: channel.subscriberCount,
+            viewCount: channel.viewCount
           })
         })
         
@@ -1427,24 +1483,39 @@ export default function MyTubeApp() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {channelSearchResults.map((channel) => (
                     <Card key={channel.channelId} className="p-4 hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-3 mb-3">
+                      <div className="flex items-start gap-3 mb-3">
                         <img
                           src={getChannelThumbnailUrl(channel)}
                           alt={channel.name}
-                          className="w-12 h-12 rounded-full"
+                          className="w-16 h-16 rounded-full object-cover flex-shrink-0"
                         />
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium line-clamp-1">{channel.name}</h4>
-                          {channel.subscriberCount && (
-                            <p className="text-sm text-muted-foreground">
-                              {formatViewCount(channel.subscriberCount)} subscribers
-                            </p>
-                          )}
+                          <h4 className="font-medium line-clamp-2 text-sm leading-tight mb-2">{channel.name}</h4>
+                          <div className="space-y-1">
+                            {channel.subscriberCount && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Users className="w-3 h-3" />
+                                <span>{formatViewCount(channel.subscriberCount)} subscribers</span>
+                              </div>
+                            )}
+                            {channel.viewCount && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Eye className="w-3 h-3" />
+                                <span>{formatViewCount(channel.viewCount)} total views</span>
+                              </div>
+                            )}
+                            {channel.videoCount && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Play className="w-3 h-3" />
+                                <span>{channel.videoCount.toLocaleString()} videos</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <Button
                         onClick={() => handleFollowChannel(channel)}
-                        className={`w-full transition-all duration-200 hover:scale-105 ${
+                        className={`w-full transition-all duration-200 hover:scale-105 text-sm ${
                           favoriteChannels.some(c => c.channelId === channel.channelId)
                             ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                             : 'bg-blue-600 hover:bg-blue-700 text-white'
@@ -1465,25 +1536,34 @@ export default function MyTubeApp() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {favoriteChannels.map((channel) => (
                     <Card key={channel.id} className="p-4 hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-3 mb-3">
+                      <div className="flex items-start gap-3 mb-3">
                         <img
                           src={getChannelThumbnailUrl(channel)}
                           alt={channel.name}
-                          className="w-12 h-12 rounded-full"
+                          className="w-16 h-16 rounded-full object-cover flex-shrink-0"
                         />
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium line-clamp-1">{channel.name}</h4>
-                          {channel.subscriberCount && (
-                            <p className="text-sm text-muted-foreground">
-                              {formatViewCount(channel.subscriberCount)} subscribers
-                            </p>
-                          )}
+                          <h4 className="font-medium line-clamp-2 text-sm leading-tight mb-2">{channel.name}</h4>
+                          <div className="space-y-1">
+                            {channel.subscriberCount && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Users className="w-3 h-3" />
+                                <span>{formatViewCount(channel.subscriberCount)} subscribers</span>
+                              </div>
+                            )}
+                            {channel.viewCount && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Eye className="w-3 h-3" />
+                                <span>{formatViewCount(channel.viewCount)} total views</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <Button
                         onClick={() => handleFollowChannel(channel)}
                         variant="outline"
-                        className="w-full"
+                        className="w-full text-sm"
                       >
                         Unfollow
                       </Button>
@@ -1549,6 +1629,18 @@ export default function MyTubeApp() {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <div className="flex items-center gap-2">
+              {/* Back Button */}
+              {canGoBack && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleGoBack}
+                  className="h-9 w-9 sm:h-10 sm:w-10 p-0 transition-all duration-200 hover:scale-105 hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                  title="Go back"
+                >
+                  <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                </Button>
+              )}
               <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-red-600 to-red-500 rounded-lg flex items-center justify-center">
                 <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>

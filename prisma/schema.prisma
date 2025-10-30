@@ -32,6 +32,7 @@ model FavoriteChannel {
   name        String
   thumbnail   String?
   subscriberCount Int?
+  viewCount   Int?
   addedAt     DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

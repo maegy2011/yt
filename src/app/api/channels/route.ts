@@ -30,9 +30,9 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { channelId, name, thumbnail, subscriberCount, videoCount } = body
+    const { channelId, name, thumbnail, subscriberCount, viewCount, videoCount } = body
 
-    console.log('Follow channel request:', { channelId, name, subscriberCount })
+    console.log('Follow channel request:', { channelId, name, subscriberCount, viewCount })
 
     // Validate required fields
     if (!channelId || !name) {
@@ -61,14 +61,16 @@ export async function POST(request: NextRequest) {
         channelId,
         name,
         thumbnail: thumbnail || null,
-        subscriberCount: subscriberCount ? parseInt(subscriberCount.toString()) : null
+        subscriberCount: subscriberCount ? parseInt(subscriberCount.toString()) : null,
+        viewCount: viewCount ? parseInt(viewCount.toString()) : null
       }
     })
 
     console.log('Channel followed successfully:', { 
       id: channel.id, 
       channelId: channel.channelId, 
-      name: channel.name 
+      name: channel.name,
+      viewCount: channel.viewCount
     })
 
     return NextResponse.json(channel)
