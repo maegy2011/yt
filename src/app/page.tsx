@@ -22,15 +22,14 @@ import {
   Users,
   Plus,
   Settings,
-  ArrowDown
+  ArrowDown,
+  Bell
 } from 'lucide-react'
 import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
-import { getLoadingMessage, getConfirmationMessage } from '@/lib/loading-messages'
+import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from '@/lib/loading-messages'
 import type { Video, Channel } from '@/lib/youtube'
 import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleton'
 import { SplashScreen } from '@/components/splash-screen'
-import { Toaster } from '@/components/ui/toaster'
-import { useToast } from '@/hooks/use-toast'
 
 // Enhanced types with better safety
 type Tab = 'home' | 'search' | 'player' | 'watched' | 'channels' | 'favorites'
@@ -65,8 +64,6 @@ interface SearchResults {
 }
 
 export default function MyTubeApp() {
-  const { toast } = useToast()
-  
   // Core state
   const [activeTab, setActiveTab] = useState<Tab>('home')
   const [searchQuery, setSearchQuery] = useState('')
@@ -106,15 +103,98 @@ export default function MyTubeApp() {
   
   // Dialog states
   const [showSettings, setShowSettings] = useState(false)
+  
+  // Notification system state
+  const [notifications, setNotifications] = useState<Array<{
+    id: string
+    title: string
+    description?: string
+    variant: 'success' | 'destructive' | 'info'
+    timestamp: Date
+    autoHide?: boolean
+  }>>([])
+  const [showNotifications, setShowNotifications] = useState(false)
 
-  // Enhanced toast system with dynamic messages
-  const showToast = useCallback((title: string, description?: string, variant: 'success' | 'error' | 'info' = 'info') => {
-    toast({
+  // Enhanced notification system with dynamic messages
+  const addNotification = useCallback((title: string, description?: string, variant: 'success' | 'destructive' | 'info' = 'info', autoHide: boolean = true) => {
+    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9)
+    const newNotification = {
+      id,
       title,
       description,
       variant,
-    })
-  }, [toast])
+      timestamp: new Date(),
+      autoHide
+    }
+    
+    setNotifications(prev => [newNotification, ...prev].slice(0, 10)) // Keep max 10 notifications
+    
+    // Auto hide after 5 seconds if autoHide is true
+    if (autoHide) {
+      setTimeout(() => {
+        removeNotification(id)
+      }, 5000)
+    }
+  }, [])
+  
+  const removeNotification = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id))
+  }, [])
+  
+  const clearAllNotifications = useCallback(() => {
+    setNotifications([])
+  }, [])
+
+  // Utility function for relative time
+  const getRelativeTime = useCallback((timestamp: Date): string => {
+    const now = new Date()
+    const diff = now.getTime() - timestamp.getTime()
+    const seconds = Math.floor(diff / 1000)
+    const minutes = Math.floor(seconds / 60)
+    const hours = Math.floor(minutes / 60)
+    
+    if (seconds < 60) return 'just now'
+    if (minutes < 60) return `${minutes}m ago`
+    if (hours < 24) return `${hours}h ago`
+    return timestamp.toLocaleDateString()
+  }, [])
+
+  // Haptic feedback for mobile navigation
+  const triggerHapticFeedback = useCallback(() => {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(10) // Light vibration for navigation
+    }
+  }, [])
+
+  // Swipe gesture handling for notifications
+  const [swipeStates, setSwipeStates] = useState<Map<string, { translateX: number; isSwiping: boolean }>>(new Map())
+  
+  const handleTouchStart = useCallback((e: React.TouchEvent, notificationId: string) => {
+    const touch = e.touches[0]
+    setSwipeStates(prev => new Map(prev).set(notificationId, { translateX: 0, isSwiping: true }))
+  }, [])
+  
+  const handleTouchMove = useCallback((e: React.TouchEvent, notificationId: string) => {
+    const touch = e.touches[0]
+    const swipeState = swipeStates.get(notificationId)
+    if (!swipeState?.isSwiping) return
+    
+    const translateX = touch.clientX - e.currentTarget.getBoundingClientRect().left
+    setSwipeStates(prev => new Map(prev).set(notificationId, { translateX, isSwiping: true }))
+  }, [swipeStates])
+  
+  const handleTouchEnd = useCallback((e: React.TouchEvent, notificationId: string) => {
+    const swipeState = swipeStates.get(notificationId)
+    if (!swipeState?.isSwiping) return
+    
+    const threshold = 100 // Swipe threshold to remove
+    if (Math.abs(swipeState.translateX) > threshold) {
+      removeNotification(notificationId)
+    } else {
+      // Reset position
+      setSwipeStates(prev => new Map(prev).set(notificationId, { translateX: 0, isSwiping: false }))
+    }
+  }, [swipeStates, removeNotification])
 
   // Show dynamic loading message
   const showDynamicLoading = useCallback((operation: 'search' | 'loadMore' | 'favorites' | 'channels' | 'general') => {
@@ -126,15 +206,15 @@ export default function MyTubeApp() {
   // Show dynamic confirmation message
   const showDynamicConfirmation = useCallback((operation: keyof typeof confirmationMessages, ...args: any[]) => {
     const message = getConfirmationMessage(operation, ...args)
-    showToast('Success!', message, 'success')
+    addNotification('Success!', message, 'success')
     setDynamicLoadingMessage('')
-  }, [showToast])
+  }, [addNotification])
 
   // Handle splash screen completion
   const handleSplashComplete = useCallback(() => {
     setShowSplashScreen(false)
-    showToast('Welcome!', 'MyTube is ready to use', 'success')
-  }, [showToast])
+    addNotification('Welcome!', 'MyTube is ready to use', 'success')
+  }, [addNotification])
 
   // Load initial data
   useEffect(() => {
@@ -155,7 +235,7 @@ export default function MyTubeApp() {
           await loadChannelVideos()
         }
       } catch (error) {
-        showToast('Failed to load initial data', 'Please refresh the page', 'error')
+        addNotification('Failed to load initial data', 'Please refresh the page', 'destructive')
       }
     }
     
@@ -234,6 +314,27 @@ export default function MyTubeApp() {
     }
   }, [searchInputTimeout])
 
+  // Tab definitions
+  const tabs = useMemo(() => [
+    { id: 'home' as Tab, icon: Home, label: 'Home' },
+    { id: 'search' as Tab, icon: Search, label: 'Search' },
+    { id: 'player' as Tab, icon: Play, label: 'Player' },
+    { id: 'watched' as Tab, icon: Clock, label: 'Watched' },
+    { id: 'channels' as Tab, icon: User, label: 'Channels' },
+    { id: 'favorites' as Tab, icon: Heart, label: 'Favorites' },
+  ], [])
+
+  // Enhanced tab navigation with haptic feedback
+  const handleTabNavigation = useCallback((tabId: Tab) => {
+    setActiveTab(tabId)
+    triggerHapticFeedback()
+    
+    const tab = tabs.find(t => t.id === tabId)
+    if (tab) {
+      addNotification('Navigation', `Switched to ${tab.label}`, 'info')
+    }
+  }, [tabs, addNotification, triggerHapticFeedback])
+
   // Touch gesture handling for tab navigation
   useEffect(() => {
     let touchStartX = 0
@@ -265,14 +366,12 @@ export default function MyTubeApp() {
         if (swipeDistance > 0) {
           if (currentIndex > 0) {
             const newTab = tabs[currentIndex - 1]
-            setActiveTab(newTab)
-            showToast('Tab Navigation', `Switched to ${newTab}`, 'info')
+            handleTabNavigation(newTab)
           }
         } else {
           if (currentIndex < tabs.length - 1) {
             const newTab = tabs[currentIndex + 1]
-            setActiveTab(newTab)
-            showToast('Tab Navigation', `Switched to ${newTab}`, 'info')
+            handleTabNavigation(newTab)
           }
         }
       }
@@ -285,7 +384,7 @@ export default function MyTubeApp() {
       document.removeEventListener('touchstart', handleTouchStart)
       document.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [activeTab, showToast])
+  }, [activeTab, addNotification, handleTabNavigation])
 
   // Keyboard navigation for tabs
   useEffect(() => {
@@ -302,16 +401,14 @@ export default function MyTubeApp() {
           e.preventDefault()
           if (currentIndex > 0) {
             const newTab = tabs[currentIndex - 1]
-            setActiveTab(newTab)
-            showToast('Tab Navigation', `Switched to ${newTab}`, 'info')
+            handleTabNavigation(newTab)
           }
           break
         case 'ArrowRight':
           e.preventDefault()
           if (currentIndex < tabs.length - 1) {
             const newTab = tabs[currentIndex + 1]
-            setActiveTab(newTab)
-            showToast('Tab Navigation', `Switched to ${newTab}`, 'info')
+            handleTabNavigation(newTab)
           }
           break
       }
@@ -319,7 +416,7 @@ export default function MyTubeApp() {
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [activeTab, showToast])
+  }, [activeTab, addNotification, handleTabNavigation])
 
   // Safe thumbnail extraction with multiple fallback options
   const getThumbnailUrl = useCallback((video: Video | any): string => {
@@ -367,16 +464,11 @@ export default function MyTubeApp() {
     }
     
     if (!trimmedQuery && !append) {
-      showToast('Search Query Required', 'Please enter a search query', 'info')
+      addNotification('Search Query Required', 'Please enter a search query', 'info')
       return
     }
     
     if (!append) {
-      if (!trimmedQuery) {
-        showToast('Search Query Required', 'Please enter a search query', 'info')
-        return
-      }
-      
       const cachedResults = getCachedResults(trimmedQuery)
       if (cachedResults) {
         setSearchResults({ items: cachedResults.items })
@@ -420,18 +512,18 @@ export default function MyTubeApp() {
       const data = await response.json()
       
       if (data.error) {
-        showToast('Search Error', data.error, 'error')
+        addNotification('Search Error', data.error, 'destructive')
         if (!append) setSearchResults(null)
         return
       }
       
       if (!data.items || data.items.length === 0) {
         if (!append) {
-          showToast('No Results', `No videos found for "${queryToUse}"`, 'info')
+          addNotification('No Results', `No videos found for "${queryToUse}"`, 'info')
           setSearchResults({ items: [] })
           setCachedResults(queryToUse, [], null, false)
         } else {
-          showToast('No More Videos', 'No more videos found for this search', 'info')
+          addNotification('No More Videos', 'No more videos found for this search', 'info')
         }
         setHasMoreVideos(false)
         return
@@ -453,7 +545,7 @@ export default function MyTubeApp() {
           finalItems = [...searchResults.items, ...newVideos]
         } else {
           finalItems = searchResults.items
-          showToast('No New Videos', 'All videos already loaded', 'info')
+          addNotification('No New Videos', 'All videos already loaded', 'info')
         }
       } else {
         finalItems = data.items
@@ -472,7 +564,7 @@ export default function MyTubeApp() {
       
     } catch (error) {
       console.error('Search error:', error)
-      showToast('Search Failed', 'An error occurred while searching. Please try again.', 'error')
+      addNotification('Search Failed', 'An error occurred while searching. Please try again.', 'destructive')
       if (!append) setSearchResults(null)
     } finally {
       setLoading(false)
@@ -539,7 +631,7 @@ export default function MyTubeApp() {
           showDynamicConfirmation('favorites', 'remove')
           await loadFavoriteVideos()
         } else {
-          showToast('Error', 'Failed to remove from favorites', 'error')
+          addNotification('Error', 'Failed to remove from favorites', 'destructive')
         }
       } else {
         showDynamicLoading('favorites')
@@ -559,12 +651,12 @@ export default function MyTubeApp() {
           showDynamicConfirmation('favorites', 'add')
           await loadFavoriteVideos()
         } else {
-          showToast('Error', 'Failed to add to favorites', 'error')
+          addNotification('Error', 'Failed to add to favorites', 'destructive')
         }
       }
     } catch (error) {
       console.error('Error toggling favorite:', error)
-      showToast('Error', 'Network error while updating favorites', 'error')
+      addNotification('Error', 'Network error while updating favorites', 'destructive')
     } finally {
       setDynamicLoadingMessage('')
     }
@@ -609,7 +701,7 @@ export default function MyTubeApp() {
   const handleChannelSearch = async (): Promise<void> => {
     const trimmedQuery = channelSearchQuery.trim()
     if (!trimmedQuery) {
-      showToast('Search Query Required', 'Please enter a search query', 'info')
+      addNotification('Channel Search Required', 'Please enter a channel name to search', 'info')
       return
     }
 
@@ -623,7 +715,7 @@ export default function MyTubeApp() {
       setChannelSearchResults(data.items || [])
     } catch (error) {
       console.error('Error searching channels:', error)
-      showToast('Error', 'Failed to search channels', 'error')
+      addNotification('Error', 'Failed to search channels', 'destructive')
       setChannelSearchResults([])
     } finally {
       setChannelSearchLoading(false)
@@ -640,10 +732,10 @@ export default function MyTubeApp() {
         })
         
         if (response.ok) {
-          showToast('Unfollowed', `You are no longer following ${channel.name}`, 'success')
+          addNotification('Unfollowed', `You are no longer following ${channel.name}`, 'success')
           await loadFavoriteChannels()
         } else {
-          showToast('Error', 'Failed to unfollow channel', 'error')
+          addNotification('Error', 'Failed to unfollow channel', 'destructive')
         }
       } else {
         const response = await fetch('/api/channels', {
@@ -658,15 +750,15 @@ export default function MyTubeApp() {
         })
         
         if (response.ok) {
-          showToast('Following', `You are now following ${channel.name}`, 'success')
+          addNotification('Following', `You are now following ${channel.name}`, 'success')
           await loadFavoriteChannels()
         } else {
-          showToast('Error', 'Failed to follow channel', 'error')
+          addNotification('Error', 'Failed to follow channel', 'destructive')
         }
       }
     } catch (error) {
       console.error('Error following channel:', error)
-      showToast('Error', 'Network error while following channel', 'error')
+      addNotification('Error', 'Network error while following channel', 'destructive')
     }
   }
 
@@ -724,15 +816,6 @@ export default function MyTubeApp() {
     new Set(favoriteVideos.map(v => v.videoId)), 
     [favoriteVideos]
   )
-
-  const tabs = useMemo(() => [
-    { id: 'home' as Tab, icon: Home, label: 'Home' },
-    { id: 'search' as Tab, icon: Search, label: 'Search' },
-    { id: 'player' as Tab, icon: Play, label: 'Player' },
-    { id: 'watched' as Tab, icon: Clock, label: 'Watched' },
-    { id: 'channels' as Tab, icon: User, label: 'Channels' },
-    { id: 'favorites' as Tab, icon: Heart, label: 'Favorites' },
-  ], [])
 
   useEffect(() => {
     if (multiSelectMode) {
@@ -1476,77 +1559,408 @@ export default function MyTubeApp() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowSettings(true)}
-                className="h-8 w-8 sm:h-9 sm:w-9 p-0"
+                onClick={() => setShowNotifications(!showNotifications)}
+                className={`h-9 w-9 sm:h-10 sm:w-10 p-0 relative transition-all duration-200 hover:scale-105 ${
+                  showNotifications 
+                    ? 'bg-primary/10 text-primary hover:bg-primary/20' 
+                    : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
+                }`}
               >
-                <Settings className="w-4 h-4" />
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-200" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-background animate-bounce">
+                    {notifications.length > 9 ? '9+' : notifications.length}
+                  </span>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSettings(true)}
+                className="h-9 w-9 sm:h-10 sm:w-10 p-0 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105"
+              >
+                <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Mobile Tabs Bar - Visible on mobile only */}
-      <div className="md:hidden bg-card/95 backdrop-blur-lg border-b border-border sticky top-14 sm:top-16 z-40">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4">
-          <nav className="flex items-center justify-between py-2 overflow-x-auto">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap min-w-0 flex-1 ${
-                  activeTab === tab.id
-                    ? 'text-primary bg-primary/10'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                }`}
+      {/* Notification Area - Below Header */}
+      <div className={`bg-background/95 backdrop-blur-lg border-b border-border/50 transition-all duration-300 ease-in-out ${
+        showNotifications ? 'max-h-96 opacity-100 shadow-sm' : 'max-h-0 opacity-0 overflow-hidden'
+      }`}>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4">
+          {/* Notification Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                <div className="absolute inset-0 w-2 h-2 bg-primary rounded-full animate-ping"></div>
+              </div>
+              <h2 className="text-base font-semibold text-foreground">Notifications</h2>
+              {notifications.length > 0 && (
+                <span className="bg-primary text-primary-foreground text-xs font-medium px-2 py-1 rounded-full min-w-[20px] text-center">
+                  {notifications.length}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1">
+              {notifications.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllNotifications}
+                  className="h-8 px-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                >
+                  Clear All
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
               >
-                <tab.icon className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate max-w-full">{tab.label}</span>
-              </button>
-            ))}
-          </nav>
+                {showNotifications ? (
+                  <ArrowDown className="w-4 h-4 rotate-180 transition-transform duration-200" />
+                ) : (
+                  <ArrowDown className="w-4 h-4 transition-transform duration-200" />
+                )}
+              </Button>
+            </div>
+          </div>
+          
+          {/* Notification Content */}
+          <div className="space-y-3 max-h-72 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+            {notifications.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-border/50">
+                  <Check className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-base font-medium text-foreground mb-1">All caught up!</h3>
+                <p className="text-sm text-muted-foreground">No new notifications to show</p>
+              </div>
+            ) : (
+              notifications.map((notification, index) => {
+                const swipeState = swipeStates.get(notification.id) || { translateX: 0, isSwiping: false }
+                const isSwipedLeft = swipeState.translateX < -50
+                const isSwipedRight = swipeState.translateX > 50
+                
+                return (
+                  <div
+                    key={notification.id}
+                    className={`group relative rounded-xl border-0 shadow-sm transition-all duration-300 animate-in slide-in-from-top-2 fade-in-0 ${
+                      notification.variant === 'success'
+                        ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200/50 dark:border-green-800/30'
+                        : notification.variant === 'destructive'
+                        ? 'bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 border-red-200/50 dark:border-red-800/30'
+                        : 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200/50 dark:border-blue-800/30'
+                    } hover:shadow-md hover:scale-[1.02]`}
+                    style={{
+                      animationDelay: `${index * 50}ms`,
+                      animationFillMode: 'both',
+                      transform: `translateX(${swipeState.translateX}px)`,
+                      opacity: Math.abs(swipeState.translateX) > 100 ? 0.5 : 1,
+                      transition: swipeState.isSwiping ? 'none' : 'all 0.3s ease'
+                    }}
+                    onTouchStart={(e) => handleTouchStart(e, notification.id)}
+                    onTouchMove={(e) => handleTouchMove(e, notification.id)}
+                    onTouchEnd={(e) => handleTouchEnd(e, notification.id)}
+                  >
+                    {/* Swipe indicator overlay */}
+                    {isSwipedLeft && (
+                      <div className="absolute inset-y-0 left-0 w-12 bg-red-500/10 flex items-center justify-center rounded-l-xl">
+                        <Trash2 className="w-5 h-5 text-red-500" />
+                      </div>
+                    )}
+                    {isSwipedRight && (
+                      <div className="absolute inset-y-0 right-0 w-12 bg-green-500/10 flex items-center justify-center rounded-r-xl">
+                        <Check className="w-5 h-5 text-green-500" />
+                      </div>
+                    )}
+                    
+                    {/* Notification Card */}
+                    <div className="p-4 sm:p-5">
+                      <div className="flex items-start gap-3 sm:gap-4">
+                        {/* Icon Container */}
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                          notification.variant === 'success'
+                            ? 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400'
+                            : notification.variant === 'destructive'
+                            ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400'
+                            : 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                        }`}>
+                          {notification.variant === 'success' && (
+                            <Check className="w-5 h-5" />
+                          )}
+                          {notification.variant === 'destructive' && (
+                            <Trash2 className="w-5 h-5" />
+                          )}
+                          {notification.variant === 'info' && (
+                            <Play className="w-5 h-5" />
+                          )}
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h4 className={`text-sm font-semibold leading-tight ${
+                              notification.variant === 'success'
+                                ? 'text-green-800 dark:text-green-200'
+                                : notification.variant === 'destructive'
+                                ? 'text-red-800 dark:text-red-200'
+                                : 'text-blue-800 dark:text-blue-200'
+                            }`}>
+                              {notification.title}
+                            </h4>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeNotification(notification.id)}
+                              className="h-6 w-6 p-0 text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-md transition-all duration-200 flex-shrink-0"
+                            >
+                              <span className="text-lg leading-none">×</span>
+                            </Button>
+                          </div>
+                          
+                          {notification.description && (
+                            <p className={`text-sm leading-relaxed mb-2 ${
+                              notification.variant === 'success'
+                                ? 'text-green-700 dark:text-green-300'
+                                : notification.variant === 'destructive'
+                                ? 'text-red-700 dark:text-red-300'
+                                : 'text-blue-700 dark:text-blue-300'
+                            }`}>
+                              {notification.description}
+                            </p>
+                          )}
+                          
+                          {/* Timestamp */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {notification.timestamp.toLocaleTimeString([], { 
+                                hour: '2-digit', 
+                                minute: '2-digit',
+                                hour12: true 
+                              })}
+                            </span>
+                            <span className="text-xs text-muted-foreground/50">•</span>
+                            <span className="text-xs text-muted-foreground">
+                              {getRelativeTime(notification.timestamp)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Progress Bar for Auto-hide */}
+                    {notification.autoHide && (
+                      <div className="absolute bottom-0 left-0 h-0.5 bg-current opacity-20 animate-pulse"
+                        style={{
+                          animation: 'shrink 5s linear forwards',
+                          animationDelay: `${index * 50}ms`
+                        }}
+                      />
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
         </div>
       </div>
 
       {/* Desktop Tabs Bar - Visible on desktop only */}
-      <div className="hidden md:block bg-card/95 backdrop-blur-lg border-b border-border sticky top-16 z-30">
+      <div className="hidden lg:block bg-background/95 backdrop-blur-xl border-b border-border/50 sticky top-16 z-30 shadow-lg shadow-black/5 dark:shadow-black/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex items-center gap-1 py-3">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  activeTab === tab.id
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                }`}
-              >
-                <tab.icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            ))}
+          <nav className="flex items-center gap-2 py-4" role="navigation" aria-label="Main navigation">
+            {tabs.map((tab, index) => {
+              const isActive = activeTab === tab.id
+              return (
+                <div key={tab.id} className="relative">
+                  <button
+                    onClick={() => handleTabNavigation(tab.id)}
+                    className={`group relative flex items-center gap-3 px-5 py-3 rounded-xl text-sm font-medium transition-all duration-300 ease-out ${
+                      isActive 
+                        ? 'bg-primary text-primary-foreground shadow-xl shadow-primary/30 dark:shadow-primary/40 scale-105 ring-2 ring-primary/20 ring-offset-2 ring-offset-background' 
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105 hover:shadow-lg hover:shadow-black/10 dark:hover:shadow-black/30'
+                    }`}
+                    style={{
+                      transitionDelay: `${index * 50}ms`
+                    }}
+                    aria-label={`Navigate to ${tab.label}`}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    {/* Icon with Animation */}
+                    <div className={`relative transition-all duration-300 ${
+                      isActive ? 'scale-110 rotate-6' : 'scale-100 group-hover:scale-110 group-hover:rotate-3'
+                    }`}>
+                      <tab.icon className={`w-4 h-4 transition-all duration-300 ${
+                        isActive ? 'drop-shadow-lg drop-shadow-primary/30' : ''
+                      }`} />
+                      
+                      {/* Active Indicator */}
+                      {isActive && (
+                        <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-background rounded-full animate-pulse border-2 border-primary shadow-sm shadow-primary/30" />
+                      )}
+                    </div>
+                    
+                    {/* Label */}
+                    <span className="font-medium">{tab.label}</span>
+                    
+                    {/* Hover Background Effect - REMOVED */}
+                    {/* <div className={`absolute inset-0 rounded-xl transition-all duration-300 ${
+                      isActive 
+                        ? 'bg-gradient-to-r from-primary/0 to-primary/10' 
+                        : 'bg-gradient-to-r from-transparent to-transparent group-hover:from-muted/20 group-hover:to-muted/10'
+                    }`} /> */}
+                    
+                    {/* Shimmer Effect for Active Tab */}
+                    {isActive && (
+                      <div className="absolute inset-0 rounded-xl overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 animate-shimmer" />
+                      </div>
+                    )}
+                  </button>
+                  
+                  {/* Active Tab Underline */}
+                  {isActive && (
+                    <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full animate-pulse shadow-sm shadow-primary/30" />
+                  )}
+                </div>
+              )
+            })}
+            
+            {/* Spacer for alignment */}
+            <div className="flex-1" />
+            
+            {/* Navigation Stats/Info */}
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg">
+                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                <span>Active</span>
+              </div>
+              <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-lg">
+                <span>{tabs.length} tabs</span>
+              </div>
+            </div>
+          </nav>
+        </div>
+      </div>
+
+      {/* Tablet Navigation - Medium screens */}
+      <div className="hidden md:block lg:hidden bg-background/95 backdrop-blur-xl border-b border-border/50 sticky top-16 z-30 shadow-md shadow-black/3 dark:shadow-black/15">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <nav className="flex items-center justify-between py-3" role="navigation" aria-label="Main navigation">
+            {tabs.map((tab, index) => {
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabNavigation(tab.id)}
+                  className={`group relative flex flex-col items-center gap-1 px-2 py-2 rounded-lg transition-all duration-300 ease-out ${
+                    isActive 
+                      ? 'text-primary scale-105 shadow-md shadow-primary/20 dark:shadow-primary/30' 
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105 hover:shadow-sm hover:shadow-black/5 dark:hover:shadow-black/20'
+                  }`}
+                  style={{
+                    transitionDelay: `${index * 30}ms`
+                  }}
+                  aria-label={`Navigate to ${tab.label}`}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  <div className={`relative transition-all duration-300 ${
+                    isActive ? 'scale-110' : 'scale-100 group-hover:scale-110'
+                  }`}>
+                    <tab.icon className={`w-4 h-4 transition-all duration-300 ${
+                      isActive ? 'drop-shadow-sm drop-shadow-primary/20' : ''
+                    }`} />
+                    
+                    {isActive && (
+                      <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-primary rounded-full animate-pulse shadow-sm shadow-primary/40" />
+                    )}
+                  </div>
+                  
+                  <span className={`text-[10px] font-medium leading-tight transition-all duration-300 ${
+                    isActive 
+                      ? 'text-primary font-semibold' 
+                      : 'text-muted-foreground group-hover:text-foreground'
+                  }`}>
+                    {tab.label}
+                  </span>
+                  
+                  {/* Hover Background Effect - REMOVED */}
+                  {/* <div className="absolute inset-0 bg-primary/5 rounded-lg scale-0 group-hover:scale-100 transition-transform duration-300 ease-out" /> */}
+                </button>
+              )
+            })}
           </nav>
         </div>
       </div>
 
       {/* Mobile Bottom Navigation - Always visible on mobile */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border z-40 shadow-lg">
-        <div className="flex items-center justify-around py-1.5">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'text-primary'
-                  : 'text-muted-foreground'
-              }`}
-            >
-              <tab.icon className="w-5 h-5" />
-              <span className="text-[10px] leading-tight">{tab.label}</span>
-            </button>
-          ))}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border/50 z-40 shadow-2xl shadow-black/10 dark:shadow-black/40">
+        <div className="relative">
+          {/* Active Tab Indicator - REMOVED */}
+          {/* <div 
+            className="absolute top-2 h-10 bg-primary/10 rounded-full transition-all duration-300 ease-out shadow-sm shadow-primary/20"
+            style={{
+              width: `${100 / tabs.length}%`,
+              left: `${(tabs.findIndex(tab => tab.id === activeTab) * 100) / tabs.length}%`,
+            }}
+          /> */}
+          
+          <nav className="flex items-center justify-around py-2" role="navigation" aria-label="Main navigation">
+            {tabs.map((tab, index) => {
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabNavigation(tab.id)}
+                  className={`group relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-300 ease-out ${
+                    isActive 
+                      ? 'text-primary scale-105 shadow-lg shadow-primary/25 dark:shadow-primary/35' 
+                      : 'text-muted-foreground hover:text-foreground hover:scale-105 hover:shadow-md hover:shadow-black/5 dark:hover:shadow-black/25'
+                  }`}
+                  style={{
+                    transitionDelay: `${index * 25}ms`
+                  }}
+                  aria-label={`Navigate to ${tab.label}`}
+                  aria-current={isActive ? 'page' : undefined}
+                >
+                  {/* Icon Container */}
+                  <div className={`relative transition-all duration-300 ${
+                    isActive ? 'scale-110' : 'scale-100 group-hover:scale-110'
+                  }`}>
+                    <tab.icon className={`w-5 h-5 transition-all duration-300 ${
+                      isActive ? 'drop-shadow-md drop-shadow-primary/25' : ''
+                    }`} />
+                    
+                    {/* Active Indicator Dot */}
+                    {isActive && (
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-pulse shadow-sm shadow-primary/40" />
+                    )}
+                  </div>
+                  
+                  {/* Label */}
+                  <span className={`text-[11px] font-medium transition-all duration-300 leading-tight ${
+                    isActive 
+                      ? 'text-primary font-semibold' 
+                      : 'text-muted-foreground group-hover:text-foreground'
+                  }`}>
+                    {tab.label}
+                  </span>
+                  
+                  {/* Hover Ripple Effect - REMOVED */}
+                  {/* <div className="absolute inset-0 bg-primary/5 rounded-xl scale-0 group-hover:scale-100 transition-transform duration-300 ease-out" /> */}
+                </button>
+              )
+            })}
+          </nav>
+          
+          {/* Safe Area Notch */}
+          <div className="h-1 bg-gradient-to-t from-background/50 to-transparent" />
         </div>
       </div>
 
@@ -1563,8 +1977,6 @@ export default function MyTubeApp() {
         
         {renderContent()}
       </main>
-
-      <Toaster />
     </div>
   )
 }

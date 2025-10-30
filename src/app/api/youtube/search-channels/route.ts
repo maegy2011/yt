@@ -169,9 +169,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response)
   } catch (error) {
     console.error('Enhanced YouTube channel search error:', error)
+    const { searchParams } = new URL(request.url)
     
     // Return more specific error messages
-    if (error.message?.includes('quota') || error.message?.includes('limit')) {
+    if (error instanceof Error && (error.message?.includes('quota') || error.message?.includes('limit'))) {
       return NextResponse.json({ 
         error: 'API quota exceeded. Please try again later.',
         items: [],
@@ -183,7 +184,7 @@ export async function GET(request: NextRequest) {
       error: 'Failed to search channels. Please try again later.',
       items: [],
       query: searchParams.get('query') || '',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
     }, { status: 500 })
   }
 }

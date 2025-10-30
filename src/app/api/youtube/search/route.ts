@@ -143,6 +143,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response)
   } catch (error) {
     console.error('YouTube search error:', error)
+    const { searchParams } = new URL(request.url)
     return NextResponse.json({ 
       error: 'Failed to search YouTube. Please try again later.',
       items: [],

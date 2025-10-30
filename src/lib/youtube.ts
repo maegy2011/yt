@@ -111,15 +111,19 @@ export async function getChannel(channelId: string): Promise<Channel | null> {
   }
 }
 
-export function formatViewCount(count: number): string {
-  if (typeof count !== 'number' || count < 0) return '0 views'
+export function formatViewCount(count: number | string | undefined | null): string {
+  if (count === undefined || count === null) return '0 views'
   
-  if (count >= 1000000) {
-    return `${(count / 1000000).toFixed(1)}M views`
-  } else if (count >= 1000) {
-    return `${(count / 1000).toFixed(1)}K views`
+  const numCount = typeof count === 'string' ? parseInt(count) : count
+  
+  if (isNaN(numCount) || numCount < 0) return '0 views'
+  
+  if (numCount >= 1000000) {
+    return `${(numCount / 1000000).toFixed(1)}M views`
+  } else if (numCount >= 1000) {
+    return `${(numCount / 1000).toFixed(1)}K views`
   }
-  return `${count} views`
+  return `${numCount} views`
 }
 
 export function formatDuration(duration: string | number | undefined): string {

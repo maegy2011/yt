@@ -137,7 +137,7 @@ export function getConfirmationMessage(operation: keyof typeof confirmationMessa
     return getRandomMessage(messages)
   } else {
     // For nested objects
-    const actionMessages = Object.values(messages).flat()
+    const actionMessages = Object.values(messages).flat() as string[]
     return getRandomMessage(actionMessages)
   }
 }

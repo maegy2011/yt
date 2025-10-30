@@ -111,17 +111,17 @@ export async function GET(
     console.error('Get channel error:', error)
     
     // Return more specific error messages
-    if (error.message?.includes('Not found') || error.message?.includes('404')) {
+    if (error instanceof Error && (error.message?.includes('Not found') || error.message?.includes('404'))) {
       return NextResponse.json({ error: 'Channel not found or does not exist' }, { status: 404 })
     }
     
-    if (error.message?.includes('quota') || error.message?.includes('limit')) {
+    if (error instanceof Error && (error.message?.includes('quota') || error.message?.includes('limit'))) {
       return NextResponse.json({ error: 'API quota exceeded. Please try again later.' }, { status: 429 })
     }
     
     return NextResponse.json({ 
       error: 'Failed to fetch channel data',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
     }, { status: 500 })
   }
 }
