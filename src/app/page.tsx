@@ -32,6 +32,7 @@ import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from 
 import type { Video, Channel } from '@/lib/youtube'
 import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleton'
 import { SplashScreen } from '@/components/splash-screen'
+import { VideoNote } from '@/components/video-note'
 
 // Enhanced types with better safety
 type Tab = 'home' | 'search' | 'player' | 'watched' | 'channels' | 'favorites'
@@ -1358,26 +1359,12 @@ export default function MyTubeApp() {
           <div className="space-y-6">
             {selectedVideo ? (
               <>
-                {/* Video Player */}
+                {/* Video Header */}
                 <div className="bg-gradient-to-r from-purple-10 via-purple-5 to-transparent rounded-2xl p-4 sm:p-6 border border-purple-20">
                   <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent mb-3 sm:mb-4">
-                    Now Playing
+                    Now Playing: {selectedVideo.title}
                   </h2>
-                  <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl">
-                    <iframe
-                      id="youtube-player"
-                      src={`https://www.youtube.com/embed/${selectedVideo.id}?enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
-                      className="w-full h-full absolute inset-0"
-                      allowFullScreen
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    />
-                  </div>
-                </div>
-                
-                {/* Video Info */}
-                <div className="bg-card rounded-xl p-4 sm:p-6 border border-border/50 shadow-lg">
-                  <h3 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3 line-clamp-2">{selectedVideo.title}</h3>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <p className="text-muted-foreground">{getChannelName(selectedVideo)}</p>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       {selectedVideo.viewCount && (
@@ -1388,7 +1375,7 @@ export default function MyTubeApp() {
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 mt-4">
                     <Button
                       onClick={() => toggleFavorite(selectedVideo)}
                       className={`flex-1 sm:flex-none transition-all duration-200 hover:scale-105 ${
@@ -1402,12 +1389,15 @@ export default function MyTubeApp() {
                     </Button>
                   </div>
                 </div>
+                
+                {/* Video Note Component */}
+                <VideoNote videoId={selectedVideo.id} videoTitle={selectedVideo.title} />
               </>
             ) : (
               <div className="text-center py-12 text-muted-foreground">
                 <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
                 <p className="text-lg font-medium mb-2">No Video Selected</p>
-                <p>Search and select a video to play</p>
+                <p>Search and select a video to create video notes</p>
               </div>
             )}
           </div>
