@@ -109,6 +109,14 @@ export default function MyTubeApp() {
   // Dialog states
   const [showSettings, setShowSettings] = useState(false)
   
+  // YouTube URL player state
+  const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [loadingUrl, setLoadingUrl] = useState(false)
+  const [urlError, setUrlError] = useState('')
+  const [urlSuccess, setUrlSuccess] = useState('')
+  const [clipboardHasYouTubeUrl, setClipboardHasYouTubeUrl] = useState(false)
+  const [clipboardChecking, setClipboardChecking] = useState(false)
+  
   // Notification system state
   const [notifications, setNotifications] = useState<Array<{
     id: string
@@ -473,7 +481,9 @@ export default function MyTubeApp() {
   // Safe thumbnail extraction with multiple fallback options
   const getThumbnailUrl = useCallback((video: Video | any): string => {
     if (video.thumbnail?.url) return video.thumbnail.url
-    if (video.thumbnail) return video.thumbnail
+    if (video.thumbnail && typeof video.thumbnail === 'string' && video.thumbnail.trim() !== '') {
+      return video.thumbnail
+    }
     
     if (video.id || video.videoId) {
       const videoId = video.id || video.videoId
@@ -497,7 +507,9 @@ export default function MyTubeApp() {
   // Safe channel thumbnail extraction
   const getChannelThumbnailUrl = useCallback((channel: any): string => {
     if (channel.thumbnail?.url) return channel.thumbnail.url
-    if (channel.thumbnail) return channel.thumbnail
+    if (channel.thumbnail && typeof channel.thumbnail === 'string' && channel.thumbnail.trim() !== '') {
+      return channel.thumbnail
+    }
     
     if (channel.channelId || channel.id) {
       const channelId = channel.channelId || channel.id
@@ -506,6 +518,247 @@ export default function MyTubeApp() {
     
     return 'https://www.youtube.com/img/desktop/yt_1200.png'
   }, [])
+
+  // Safe channel logo extraction for video cards
+  const getChannelLogo = useCallback((video: Video | any): string | null => {
+    // Try to get channel logo from various sources
+    if (video.channel?.thumbnail?.url) return video.channel.thumbnail.url
+    if (video.channel?.thumbnail) return video.channel.thumbnail
+    if (video.channelThumbnail) return video.channelThumbnail
+    
+    // Generate channel logo from channel ID if available
+    const channelId = video.channel?.id || video.channelId
+    if (channelId) {
+      return `https://www.youtube.com/channel/${channelId}/avatar.jpg`
+    }
+    
+    return null
+  }, [])
+
+  // Safe thumbnail URL extraction with fallbacks
+  const getSafeThumbnailUrl = useCallback((video: Video | any): string => {
+    // Try to get thumbnail from various sources
+    if (video.thumbnail?.url) return video.thumbnail.url
+    if (video.thumbnail && typeof video.thumbnail === 'string' && video.thumbnail.trim() !== '') {
+      return video.thumbnail
+    }
+    
+    // Generate fallback thumbnail from video ID
+    const videoId = video.id || video.videoId
+    if (videoId) {
+      return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+    }
+    
+    // Final fallback - return a placeholder
+    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDMyMCAxODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMjAiIGhlaWdodD0iMTgwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNjAgOTBDMTYwIDY5LjMwMDQgMTQzLjY5NiA1MyAxMjMgNTNIMTk3Qzc2LjMwMDQgNTMgNjAgNjkuMzAwNCA2MCA5MEM2MCAxMTAuNjk2IDc2LjMwMDQgMTI3IDk3IDEyN0gxMjNDMTQzLjY5NiAxMjcgMTYwIDExMC42OTYgMTYwIDkwWiIgZmlsbD0iI0Q1REJEQiIvPgo8Y2lyY2xlIGN4PSI5MCIgY3k9IjkwIiByPSIxNSIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K'
+  }, [])
+
+  // Data loading functions
+  const loadWatchedVideos = async (): Promise<void> => {
+    try {
+      const response = await fetch('/api/watched')
+      if (!response.ok) throw new Error('Failed to fetch watched videos')
+      const data = await response.json()
+      setWatchedVideos(data || [])
+    } catch (error) {
+      console.error('Failed to load watched videos:', error)
+      setWatchedVideos([])
+    }
+  }
+
+  const loadFavoriteChannels = async (): Promise<void> => {
+    try {
+      const response = await fetch('/api/channels')
+      if (!response.ok) throw new Error('Failed to fetch favorite channels')
+      const data = await response.json()
+      setFavoriteChannels(data || [])
+    } catch (error) {
+      console.error('Failed to load favorite channels:', error)
+      setFavoriteChannels([])
+    }
+  }
+
+  const loadFavoriteVideos = async (): Promise<void> => {
+    try {
+      const response = await fetch('/api/favorites')
+      if (!response.ok) throw new Error('Failed to fetch favorite videos')
+      const data = await response.json()
+      setFavoriteVideos(data || [])
+    } catch (error) {
+      console.error('Failed to load favorite videos:', error)
+      setFavoriteVideos([])
+    }
+  }
+
+  const loadChannelVideos = async () => {
+    if (favoriteChannels.length === 0) return
+    
+    setChannelVideosLoading(true)
+    try {
+      const videoPromises = favoriteChannels.map(async (channel) => {
+        try {
+          const response = await fetch(`/api/youtube/channel-videos?channelId=${channel.channelId}`)
+          if (response.ok) {
+            const videos = await response.json()
+            return { channel, videos: videos || [] }
+          }
+        } catch (error) {
+          console.error(`Failed to load videos for channel ${channel.name}:`, error)
+        }
+        return { channel, videos: [] }
+      })
+      
+      const results = await Promise.all(videoPromises)
+      const allVideos = results.flatMap(result => 
+        result.videos.map((video: any) => ({
+          ...video,
+          channelName: result.channel.name
+        }))
+      )
+      
+      setChannelVideos(allVideos)
+    } catch (error) {
+      console.error('Error loading channel videos:', error)
+      setChannelVideos([])
+    } finally {
+      setChannelVideosLoading(false)
+    }
+  }
+
+  // YouTube URL player functions
+  const checkClipboardAndPaste = useCallback(async () => {
+    setClipboardChecking(true)
+    try {
+      const { checkClipboardForYouTubeVideo, getVideoIdFromClipboard } = await import('@/lib/youtube-utils')
+      const hasYouTubeUrl = await checkClipboardForYouTubeVideo()
+      
+      if (hasYouTubeUrl) {
+        const videoId = await getVideoIdFromClipboard()
+        if (videoId) {
+          // Try to get the full clipboard text for the URL
+          const clipboardText = await navigator.clipboard.readText()
+          setYoutubeUrl(clipboardText)
+          setUrlError('')
+          addNotification('Clipboard Pasted', 'YouTube URL pasted from clipboard', 'success')
+        }
+      }
+    } catch (error) {
+      console.error('Error checking clipboard:', error)
+      addNotification('Clipboard Error', 'Failed to access clipboard', 'destructive')
+    } finally {
+      setClipboardChecking(false)
+    }
+  }, [addNotification])
+
+  const playYouTubeUrl = useCallback(async () => {
+    const trimmedUrl = youtubeUrl.trim()
+    if (!trimmedUrl) {
+      setUrlError('Please enter a YouTube URL')
+      return
+    }
+
+    setLoadingUrl(true)
+    setUrlError('')
+    setUrlSuccess('')
+
+    try {
+      const response = await fetch('/api/youtube/play', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: trimmedUrl })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to process YouTube URL')
+      }
+
+      if (data.success) {
+        // Create video object from response
+        const videoObject = {
+          id: data.videoId,
+          title: data.title,
+          channel: {
+            name: data.channelName,
+            id: data.channelId || 'unknown'
+          },
+          thumbnail: {
+            url: data.thumbnail,
+            width: 320,
+            height: 180
+          },
+          duration: data.duration,
+          viewCount: data.viewCount,
+          publishedAt: data.publishedAt,
+          isLive: data.isLive || false,
+          description: data.description || ''
+        }
+
+        setSelectedVideo(videoObject)
+        setYoutubeUrl('')
+        setUrlSuccess(`Successfully loaded: ${data.title}`)
+        
+        // Add to watched history
+        try {
+          await fetch('/api/watched', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              videoId: data.videoId,
+              title: data.title,
+              channelName: data.channelName,
+              thumbnail: data.thumbnail,
+              duration: data.duration,
+              viewCount: data.viewCount
+            })
+          })
+          await loadWatchedVideos()
+        } catch (watchError) {
+          console.error('Failed to add to watched history:', watchError)
+        }
+
+        if (data.warning) {
+          addNotification('Video Loaded with Warning', data.warning, 'info')
+        } else {
+          addNotification('Video Loaded', `Now playing: ${data.title}`, 'success')
+        }
+      }
+    } catch (error) {
+      console.error('Error playing YouTube URL:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load YouTube video'
+      setUrlError(errorMessage)
+      addNotification('Error Loading Video', errorMessage, 'destructive')
+    } finally {
+      setLoadingUrl(false)
+    }
+  }, [youtubeUrl, addNotification, loadWatchedVideos])
+
+  // Check clipboard for YouTube URL on component mount and when switching to player tab
+  useEffect(() => {
+    if (activeTab === 'player' && navigator.clipboard) {
+      const checkClipboard = async () => {
+        try {
+          const { checkClipboardForYouTubeVideo } = await import('@/lib/youtube-utils')
+          const hasYouTubeUrl = await checkClipboardForYouTubeVideo()
+          setClipboardHasYouTubeUrl(hasYouTubeUrl)
+        } catch (error) {
+          // Silently fail clipboard checking
+          setClipboardHasYouTubeUrl(false)
+        }
+      }
+      
+      checkClipboard()
+      
+      // Set up interval to check clipboard when user focuses back to the window
+      const handleFocus = () => {
+        checkClipboard()
+      }
+      
+      window.addEventListener('focus', handleFocus)
+      return () => window.removeEventListener('focus', handleFocus)
+    }
+  }, [activeTab])
 
   const handleSearch = async (append: boolean = false) => {
     const trimmedQuery = searchQuery.trim()
@@ -718,42 +971,6 @@ export default function MyTubeApp() {
     }
   }
 
-  const loadWatchedVideos = async (): Promise<void> => {
-    try {
-      const response = await fetch('/api/watched')
-      if (!response.ok) throw new Error('Failed to fetch watched videos')
-      const data = await response.json()
-      setWatchedVideos(data || [])
-    } catch (error) {
-      console.error('Failed to load watched videos:', error)
-      setWatchedVideos([])
-    }
-  }
-
-  const loadFavoriteChannels = async (): Promise<void> => {
-    try {
-      const response = await fetch('/api/channels')
-      if (!response.ok) throw new Error('Failed to fetch favorite channels')
-      const data = await response.json()
-      setFavoriteChannels(data || [])
-    } catch (error) {
-      console.error('Failed to load favorite channels:', error)
-      setFavoriteChannels([])
-    }
-  }
-
-  const loadFavoriteVideos = async (): Promise<void> => {
-    try {
-      const response = await fetch('/api/favorites')
-      if (!response.ok) throw new Error('Failed to fetch favorite videos')
-      const data = await response.json()
-      setFavoriteVideos(data || [])
-    } catch (error) {
-      console.error('Failed to load favorite videos:', error)
-      setFavoriteVideos([])
-    }
-  }
-
   const handleChannelSearch = async (): Promise<void> => {
     const trimmedQuery = channelSearchQuery.trim()
     if (!trimmedQuery) {
@@ -819,40 +1036,6 @@ export default function MyTubeApp() {
     }
   }
 
-  const loadChannelVideos = async () => {
-    if (favoriteChannels.length === 0) return
-    
-    setChannelVideosLoading(true)
-    try {
-      const videoPromises = favoriteChannels.map(async (channel) => {
-        try {
-          const response = await fetch(`/api/youtube/channel-videos?channelId=${channel.channelId}`)
-          if (response.ok) {
-            const videos = await response.json()
-            return { channel, videos: videos || [] }
-          }
-        } catch (error) {
-          console.error(`Failed to load videos for channel ${channel.name}:`, error)
-        }
-        return { channel, videos: [] }
-      })
-      
-      const results = await Promise.all(videoPromises)
-      const allVideos = results.flatMap(result => 
-        result.videos.map((video: any) => ({
-          ...video,
-          channelName: result.channel.name
-        }))
-      )
-      
-      setChannelVideos(allVideos)
-    } catch (error) {
-      console.error('Error loading channel videos:', error)
-    } finally {
-      setChannelVideosLoading(false)
-    }
-  }
-
   const toggleItemSelection = useCallback((itemId: string) => {
     setSelectedItems(prev => {
       const newSelected = new Set(prev)
@@ -885,6 +1068,7 @@ export default function MyTubeApp() {
     const isSelected = selectedItems.has(video.id)
     const thumbnailUrl = getThumbnailUrl(video)
     const channelName = getChannelName(video)
+    const channelLogo = getChannelLogo(video)
     
     return (
       <Card className={`group relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-border/50 hover:border-primary/30 ${
@@ -923,9 +1107,18 @@ export default function MyTubeApp() {
                 <h3 className="font-semibold text-sm line-clamp-2 mb-1 group-hover:text-primary transition-colors">
                   {video.title}
                 </h3>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <span className="w-1.5 h-1 bg-primary rounded-full"></span>
-                  {channelName}
+                <p className="text-xs text-muted-foreground flex items-center gap-2">
+                  {channelLogo && (
+                    <img 
+                      src={channelLogo} 
+                      alt={channelName}
+                      className="w-4 h-4 rounded-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  )}
+                  <span className="truncate">{channelName}</span>
                 </p>
                 <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                   {video.viewCount && (
@@ -975,7 +1168,7 @@ export default function MyTubeApp() {
         </CardContent>
       </Card>
     )
-  }, [favoriteVideoIds, selectedItems, multiSelectMode, getThumbnailUrl, getChannelName, toggleItemSelection, toggleFavorite])
+  }, [favoriteVideoIds, selectedItems, multiSelectMode, getThumbnailUrl, getChannelName, getChannelLogo, toggleItemSelection, toggleFavorite])
 
   const loadMoreVideos = useCallback(async () => {
     if (loadingMore || !hasMoreVideos || !currentSearchQuery || isIntersectionLoading || hasTriggeredLoad) return
@@ -1036,7 +1229,7 @@ export default function MyTubeApp() {
                       <Card key={video.id} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
                         <div className="relative">
                           <img
-                            src={video.thumbnail}
+                            src={getSafeThumbnailUrl(video)}
                             alt={video.title}
                             className="w-full h-32 object-cover rounded-t-lg"
                             onClick={() => handleVideoPlay(video)}
@@ -1096,7 +1289,7 @@ export default function MyTubeApp() {
                       <Card key={video.id} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
                         <div className="relative">
                           <img
-                            src={video.thumbnail}
+                            src={getSafeThumbnailUrl(video)}
                             alt={video.title}
                             className="w-full h-32 object-cover rounded-t-lg"
                             onClick={() => handleVideoPlay(video)}
@@ -1159,7 +1352,7 @@ export default function MyTubeApp() {
                       <Card key={video.id} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
                         <div className="relative">
                           <img
-                            src={video.thumbnail}
+                            src={getSafeThumbnailUrl(video)}
                             alt={video.title}
                             className="w-full h-32 object-cover rounded-t-lg"
                             onClick={() => handleVideoPlay(video)}
@@ -1357,6 +1550,54 @@ export default function MyTubeApp() {
       case 'player':
         return (
           <div className="space-y-6">
+            {/* YouTube URL Player Section */}
+            <div className="bg-gradient-to-r from-blue-10 via-blue-5 to-transparent rounded-2xl p-4 sm:p-6 border border-blue-20">
+              <h3 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent mb-4">
+                Play YouTube Video by URL
+              </h3>
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Paste YouTube video URL (youtube.com, youtu.be, m.youtube.com, etc.)"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={checkClipboardAndPaste}
+                    disabled={!clipboardHasYouTubeUrl || clipboardChecking}
+                    variant="outline"
+                    className="px-3"
+                    title={clipboardHasYouTubeUrl ? "Paste from clipboard" : "No YouTube URL in clipboard"}
+                  >
+                    {clipboardChecking ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ArrowDown className="w-4 h-4" />
+                    )}
+                  </Button>
+                  <Button
+                    onClick={playYouTubeUrl}
+                    disabled={!youtubeUrl.trim() || loadingUrl}
+                    className="px-4"
+                  >
+                    {loadingUrl ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : (
+                      <Play className="w-4 h-4 mr-2" />
+                    )}
+                    Play
+                  </Button>
+                </div>
+                {urlError && (
+                  <p className="text-sm text-red-600">{urlError}</p>
+                )}
+                {urlSuccess && (
+                  <p className="text-sm text-green-600">{urlSuccess}</p>
+                )}
+              </div>
+            </div>
+
             {selectedVideo ? (
               <>
                 {/* Video Header */}
@@ -1397,7 +1638,7 @@ export default function MyTubeApp() {
               <div className="text-center py-12 text-muted-foreground">
                 <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
                 <p className="text-lg font-medium mb-2">No Video Selected</p>
-                <p>Search and select a video to create video notes</p>
+                <p>Search and select a video or paste a YouTube URL to create video notes</p>
               </div>
             )}
           </div>
