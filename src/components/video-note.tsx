@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Play, Pause, RotateCcw, Plus, Trash2, Save, Bookmark, Edit, Clock, MessageSquare, User, Eye, Heart, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { Play, Pause, RotateCcw, Plus, Trash2, Save, Bookmark, Edit, Clock, MessageSquare, User, Eye, Heart, ChevronLeft, ChevronRight, Loader2, Scissors } from 'lucide-react'
 
 // Import YouTube utility functions (we'll need to create these)
 const formatViewCount = (count: number | string | undefined | null): string => {
@@ -93,6 +93,8 @@ export function VideoNote({
   const [autoStopTriggered, setAutoStopTriggered] = useState(false)
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null)
   const [isCapturing, setIsCapturing] = useState(false)
+  const [quickNoteCapturing, setQuickNoteCapturing] = useState(false)
+  const [quickNoteStartTime, setQuickNoteStartTime] = useState(0)
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [isFavorited, setIsFavorited] = useState(false)
   const [playerReady, setPlayerReady] = useState(false)
@@ -132,6 +134,60 @@ export function VideoNote({
     // Here you would typically make an API call to save the favorite state
     // For now, just toggle the local state
     showNotification(isFavorited ? 'Added to favorites' : 'Removed from favorites', 'info')
+  }
+
+  const toggleQuickNote = async () => {
+    if (!playerRef.current || !playerReady) {
+      showNotification('Player Not Ready', 'Please wait for the video to load', 'error')
+      return
+    }
+
+    if (!quickNoteCapturing) {
+      // Start capturing
+      let accurateCurrentTime = currentTime
+      try {
+        accurateCurrentTime = playerRef.current.getCurrentTime()
+      } catch (error) {
+        console.error('Error getting current time:', error)
+      }
+      
+      const startTime = Math.floor(accurateCurrentTime)
+      setQuickNoteStartTime(startTime)
+      setQuickNoteCapturing(true)
+      showNotification('Quick Note Started', `Recording from ${formatTime(startTime)}`, 'info')
+    } else {
+      // Stop and save
+      let accurateCurrentTime = currentTime
+      try {
+        accurateCurrentTime = playerRef.current.getCurrentTime()
+      } catch (error) {
+        console.error('Error getting current time:', error)
+      }
+      
+      const endTime = Math.floor(accurateCurrentTime)
+      if (endTime > quickNoteStartTime) {
+        const note: VideoNote = {
+          id: Date.now().toString(),
+          title: `Quick Note ${formatTime(quickNoteStartTime)}-${formatTime(endTime)}`,
+          comment: '',
+          startTime: quickNoteStartTime,
+          endTime: endTime,
+          videoId,
+          videoTitle,
+          channelName: channelName || '',
+          viewCount: viewCount || 0,
+          publishedAt: publishedAt || '',
+          thumbnail: thumbnail || ''
+        }
+        
+        setNotes([...notes, note])
+        setQuickNoteCapturing(false)
+        setQuickNoteStartTime(0)
+        showNotification('Quick Note Saved!', `Clip saved from ${formatTime(note.startTime)} to ${formatTime(note.endTime)}`, 'success')
+      } else {
+        showNotification('Invalid Time', 'End time must be greater than start time', 'error')
+      }
+    }
   }
 
   // Load notes from localStorage
@@ -271,7 +327,7 @@ export function VideoNote({
     showNotification('Start Time Set', `Start time set to ${formatTime(startTime)}`, 'success')
   }
 
-  const handleSaveNote = () => {
+  const handleSaveNote = async () => {
     // Get the most accurate current time directly from the player
     let accurateCurrentTime = currentTime
     
@@ -295,13 +351,27 @@ export function VideoNote({
         startTime: newNote.startTime,
         endTime: endTime,
         videoId,
-        videoTitle
+        videoTitle,
+        channelName: channelName || '',
+        viewCount: viewCount || 0,
+        publishedAt: publishedAt || '',
+        thumbnail: thumbnail || ''
       }
+      
+      // Add to local state
       setNotes([...notes, note])
+      
+      // Reset form
       setNewNote({ title: '', comment: '', startTime: 0, endTime: 30 })
       setIsCapturing(false)
+      
+      // Show success notification
+      showNotification('Note Saved!', `Clip saved from ${formatTime(note.startTime)} to ${formatTime(note.endTime)}`, 'success')
+      
       console.log('Note saved with end time:', endTime, 'from current time:', accurateCurrentTime)
     } else {
+      // Show error notification
+      showNotification('Invalid Time', 'End time must be greater than start time. Please play the video forward before saving.', 'error')
       console.log('End time not greater than start time:', endTime, '<=', newNote.startTime)
     }
   }
@@ -441,10 +511,20 @@ export function VideoNote({
         {/* Video Info Section - YouTube Style */}
         <div className="bg-white dark:bg-gray-900 p-4">
           <div className="flex flex-col gap-3">
-            {/* Video Title */}
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white line-clamp-2">
-              {videoTitle}
-            </h1>
+            {/* Video Title with Quick Note Status */}
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white line-clamp-2 flex-1">
+                {videoTitle}
+              </h1>
+              {quickNoteCapturing && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 rounded-full animate-pulse">
+                  <Scissors className="w-4 h-4 text-red-600 dark:text-red-400 fill-current" />
+                  <span className="text-xs text-red-600 dark:text-red-400 font-medium">
+                    {formatTime(currentTime - quickNoteStartTime)}
+                  </span>
+                </div>
+              )}
+            </div>
             
             {/* Channel and Stats Row */}
             <div className="flex items-center justify-between">
@@ -480,6 +560,20 @@ export function VideoNote({
                   <Heart className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />
                 </Button>
                 
+                <Button
+                  onClick={toggleQuickNote}
+                  variant="ghost"
+                  size="sm"
+                  title={quickNoteCapturing ? "Stop Quick Note" : "Start Quick Note"}
+                  className={`transition-all duration-200 ${
+                    quickNoteCapturing
+                      ? 'text-red-600 hover:text-red-700 animate-pulse bg-red-50 dark:bg-red-900/20'
+                      : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                  }`}
+                >
+                  <Scissors className={`w-5 h-5 ${quickNoteCapturing ? 'fill-current' : ''}`} />
+                </Button>
+                
                 <div className="flex items-center gap-1">
                   <Button
                     onClick={handlePreviousVideo}
@@ -505,9 +599,19 @@ export function VideoNote({
             
             {/* Description Preview */}
             <div className="pt-2 border-t border-gray-200 dark:border-gray-800">
-              <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                Create video notes and capture clips from this video. Use the controls below to set timestamps and add comments.
-              </p>
+              {quickNoteCapturing ? (
+                <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 animate-pulse">
+                  <Scissors className="w-4 h-4 fill-current" />
+                  <span className="font-medium">
+                    Quick Note in progress... Started at {formatTime(quickNoteStartTime)}
+                  </span>
+                  <span className="text-xs">• Click scissors icon to stop & save</span>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                  Create video notes and capture clips from this video. Use the controls below to set timestamps and add comments.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -517,12 +621,36 @@ export function VideoNote({
       <Card>
         <CardContent className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-              <MessageSquare className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div className={`p-2 rounded-lg transition-colors ${
+              isCapturing 
+                ? 'bg-red-100 dark:bg-red-900/30 animate-pulse' 
+                : quickNoteCapturing
+                ? 'bg-orange-100 dark:bg-orange-900/30 animate-pulse'
+                : 'bg-green-100 dark:bg-green-900/30'
+            }`}>
+              <MessageSquare className={`w-5 h-5 ${
+                isCapturing 
+                  ? 'text-red-600 dark:text-red-400' 
+                  : quickNoteCapturing
+                  ? 'text-orange-600 dark:text-orange-400'
+                  : 'text-green-600 dark:text-green-400'
+              }`} />
             </div>
-            <h2 className="text-lg font-semibold">
-              Create Note
-            </h2>
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold">
+                Create Note
+              </h2>
+              {isCapturing && (
+                <p className="text-sm text-red-600 dark:text-red-400 animate-pulse">
+                  🎯 Capturing... Click "Stop & Save" when you reach the end point
+                </p>
+              )}
+              {quickNoteCapturing && !isCapturing && (
+                <p className="text-sm text-orange-600 dark:text-orange-400 animate-pulse">
+                  ✂️ Quick Note recording... Click scissors icon to stop & save
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -550,7 +678,9 @@ export function VideoNote({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="start-time">Start Time (seconds)</Label>
+                <Label htmlFor="start-time" className={isCapturing ? 'text-red-600 dark:text-red-400 font-semibold' : ''}>
+                  Start Time (seconds) {isCapturing && '✓'}
+                </Label>
                 <Input
                   id="start-time"
                   type="number"
@@ -560,50 +690,109 @@ export function VideoNote({
                     setNewNote({ ...newNote, startTime: value, endTime: Math.max(value + 1, newNote.endTime) })
                   }}
                   min="0"
+                  disabled={isCapturing || quickNoteCapturing}
+                  className={
+                    isCapturing 
+                      ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
+                      : quickNoteCapturing
+                      ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20'
+                      : ''
+                  }
                 />
               </div>
               
               <div>
-                <Label htmlFor="end-time">End Time (seconds)</Label>
+                <Label htmlFor="end-time" className={isCapturing ? 'text-blue-600 dark:text-blue-400 font-semibold' : ''}>
+                  End Time (seconds) {isCapturing && '⏳'}
+                </Label>
                 <Input
                   id="end-time"
                   type="number"
-                  value={newNote.endTime}
+                  value={isCapturing ? Math.floor(currentTime) : newNote.endTime}
                   onChange={(e) => {
                     const value = Number(e.target.value)
                     setNewNote({ ...newNote, endTime: value })
                   }}
                   min="0"
+                  disabled={isCapturing || quickNoteCapturing}
+                  className={
+                    isCapturing 
+                      ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20'
+                      : quickNoteCapturing
+                      ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20'
+                      : ''
+                  }
                 />
+                {isCapturing && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    Will be set to current time when you stop
+                  </p>
+                )}
+                {quickNoteCapturing && (
+                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                    Quick Note in progress - use scissors icon to stop
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="flex gap-3">
-              <Button
-                onClick={handleAddNote}
-                className="flex-1"
-                disabled={!newNote.title.trim() || newNote.startTime >= newNote.endTime}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Note
-              </Button>
-              
-              <Button
-                onClick={handleCaptureStart}
-                variant="outline"
-                className="flex-1"
-                disabled={!playerReady}
-              >
-                <Bookmark className="w-4 h-4 mr-2" />
-                {playerReady ? (
-                  `Set Start (${formatTime(currentTime)})`
-                ) : (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Loading...
-                  </>
-                )}
-              </Button>
+              {!isCapturing ? (
+                <>
+                  <Button
+                    onClick={handleAddNote}
+                    className="flex-1"
+                    disabled={!newNote.title.trim() || newNote.startTime >= newNote.endTime || isCapturing || quickNoteCapturing}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Note
+                  </Button>
+                  
+                  <Button
+                    onClick={handleCaptureStart}
+                    variant="outline"
+                    className="flex-1"
+                    disabled={!playerReady || isCapturing || quickNoteCapturing}
+                  >
+                    <Bookmark className="w-4 h-4 mr-2" />
+                    {playerReady && !isCapturing && !quickNoteCapturing ? (
+                      `Set Start (${formatTime(currentTime)})`
+                    ) : isCapturing ? (
+                      'Capturing in progress...'
+                    ) : quickNoteCapturing ? (
+                      'Quick Note in progress...'
+                    ) : (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Loading...
+                      </>
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    onClick={handleSaveNote}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                    disabled={!playerReady}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Stop & Save ({formatTime(currentTime)})
+                  </Button>
+                  
+                  <Button
+                    onClick={() => {
+                      setIsCapturing(false)
+                      setNewNote({ title: '', comment: '', startTime: 0, endTime: 30 })
+                      showNotification('Capture Cancelled', 'Note capture has been cancelled', 'info')
+                    }}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </CardContent>
