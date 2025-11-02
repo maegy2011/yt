@@ -39,36 +39,69 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { videoId, title, channelName, thumbnail, duration, viewCount } = body
 
+    // Validate required fields
+    if (!videoId) {
+      return NextResponse.json({ error: 'Video ID is required' }, { status: 400 })
+    }
+
     // Validate and sanitize the video ID
     const sanitizedVideoId = sanitizeVideoId(videoId)
     
     if (!sanitizedVideoId) {
       console.error('Invalid video ID provided:', videoId)
-      return NextResponse.json({ error: 'Invalid video ID' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid video ID format' }, { status: 400 })
     }
 
-    const existing = await db.favoriteVideo.findUnique({
-      where: { videoId: sanitizedVideoId }
-    })
-
-    if (existing) {
-      return NextResponse.json({ error: 'Already exists' }, { status: 409 })
+    // Validate optional string fields
+    if (title && typeof title !== 'string') {
+      return NextResponse.json({ error: 'Title must be a string' }, { status: 400 })
+    }
+    
+    if (channelName && typeof channelName !== 'string') {
+      return NextResponse.json({ error: 'Channel name must be a string' }, { status: 400 })
+    }
+    
+    if (thumbnail && typeof thumbnail !== 'string') {
+      return NextResponse.json({ error: 'Thumbnail must be a string' }, { status: 400 })
     }
 
-    const favorite = await db.favoriteVideo.create({
-      data: {
-        videoId: sanitizedVideoId,
-        title: title || 'Unknown Video',
-        channelName: channelName || 'Unknown Channel',
-        thumbnail: thumbnail || '',
-        duration,
-        viewCount
+    // Validate numeric fields
+    if (viewCount !== undefined && (typeof viewCount !== 'number' || viewCount < 0)) {
+      return NextResponse.json({ error: 'View count must be a non-negative number' }, { status: 400 })
+    }
+
+    try {
+      const existing = await db.favoriteVideo.findUnique({
+        where: { videoId: sanitizedVideoId }
+      })
+
+      if (existing) {
+        return NextResponse.json({ error: 'Video already in favorites' }, { status: 409 })
       }
-    })
 
-    return NextResponse.json(favorite)
+      const favorite = await db.favoriteVideo.create({
+        data: {
+          videoId: sanitizedVideoId,
+          title: title && title.trim() ? title.trim() : 'Unknown Video',
+          channelName: channelName && channelName.trim() ? channelName.trim() : 'Unknown Channel',
+          thumbnail: thumbnail && thumbnail.trim() ? thumbnail.trim() : '',
+          duration,
+          viewCount
+        }
+      })
+
+      return NextResponse.json(favorite)
+    } catch (dbError) {
+      console.error('Database error:', dbError)
+      return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
+    }
   } catch (error) {
     console.error('Failed to add favorite:', error)
+    
+    if (error instanceof SyntaxError) {
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 })
+    }
+    
     return NextResponse.json({ error: 'Failed to add favorite' }, { status: 500 })
   }
 }

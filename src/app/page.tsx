@@ -32,6 +32,7 @@ import {
   ChevronLeft
 } from 'lucide-react'
 import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
+import { validateSearchQuery, validateYouTubeUrl } from '@/lib/validation'
 import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from '@/lib/loading-messages'
 import type { Video, Channel } from '@/lib/youtube'
 import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleton'
@@ -149,18 +150,35 @@ export default function MyTubeApp() {
     
     // Auto hide after 5 seconds if autoHide is true
     if (autoHide) {
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         removeNotification(id)
       }, 5000)
+      
+      // Store timeout ID for potential cleanup
+      ;(newNotification as any).timeoutId = timeoutId
     }
   }, [])
   
   const removeNotification = useCallback((id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id))
+    setNotifications(prev => {
+      const notification = prev.find(n => n.id === id)
+      if (notification && (notification as any).timeoutId) {
+        clearTimeout((notification as any).timeoutId)
+      }
+      return prev.filter(n => n.id !== id)
+    })
   }, [])
   
   const clearAllNotifications = useCallback(() => {
-    setNotifications([])
+    setNotifications(prev => {
+      // Clear all pending timeouts
+      prev.forEach(notification => {
+        if ((notification as any).timeoutId) {
+          clearTimeout((notification as any).timeoutId)
+        }
+      })
+      return []
+    })
   }, [])
 
   // Utility function for relative time
@@ -732,6 +750,13 @@ export default function MyTubeApp() {
       return
     }
 
+    // Validate YouTube URL
+    const urlValidation = validateYouTubeUrl(trimmedUrl)
+    if (!urlValidation.isValid) {
+      setUrlError(urlValidation.error || 'Invalid YouTube URL')
+      return
+    }
+
     setLoadingUrl(true)
     setUrlError('')
     setUrlSuccess('')
@@ -743,28 +768,34 @@ export default function MyTubeApp() {
         body: JSON.stringify({ url: trimmedUrl })
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to process YouTube URL')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to process YouTube URL')
       }
 
+      const data = await response.json()
+
       if (data.success) {
+        // Validate video ID from response
+        if (!data.videoId) {
+          throw new Error('No video ID returned from server')
+        }
+
         // Create video object from response
         const videoObject = {
           id: data.videoId,
-          title: data.title,
+          title: data.title || 'Unknown Video',
           channel: {
-            name: data.channelName,
+            name: data.channelName || 'Unknown Channel',
             id: data.channelId || 'unknown'
           },
           thumbnail: {
-            url: data.thumbnail,
+            url: data.thumbnail || `https://img.youtube.com/vi/${data.videoId}/mqdefault.jpg`,
             width: 320,
             height: 180
           },
           duration: data.duration,
-          viewCount: data.viewCount,
+          viewCount: data.viewCount || 0,
           publishedAt: data.publishedAt,
           isLive: data.isLive || false,
           description: data.description || ''
@@ -772,7 +803,7 @@ export default function MyTubeApp() {
 
         setSelectedVideo(videoObject)
         setYoutubeUrl('')
-        setUrlSuccess(`Successfully loaded: ${data.title}`)
+        setUrlSuccess(`Successfully loaded: ${videoObject.title}`)
         
         // Add to watched history
         try {
@@ -843,18 +874,25 @@ export default function MyTubeApp() {
       return
     }
     
-    if (!trimmedQuery && !append) {
-      addNotification('Search Query Required', 'Please enter a search query', 'info')
+    // Validate search query
+    const validation = validateSearchQuery(append ? currentSearchQuery : trimmedQuery)
+    if (!validation.isValid) {
+      addNotification('Invalid Search Query', validation.error || 'Invalid search query', 'destructive')
+      if (!append) {
+        setHasMoreVideos(false)
+      }
       return
     }
     
+    const validatedQuery = validation.sanitized
+    
     if (!append) {
-      const cachedResults = getCachedResults(trimmedQuery)
+      const cachedResults = getCachedResults(validatedQuery)
       if (cachedResults) {
         setSearchResults({ items: cachedResults.items })
         setContinuationToken(cachedResults.continuation)
         setHasMoreVideos(cachedResults.hasMore)
-        setCurrentSearchQuery(trimmedQuery)
+        setCurrentSearchQuery(validatedQuery)
         showDynamicConfirmation('search', cachedResults.items.length)
         return
       }
@@ -862,7 +900,7 @@ export default function MyTubeApp() {
       setLoading(true)
       showDynamicLoading('search')
       setContinuationToken(null)
-      setCurrentSearchQuery(trimmedQuery)
+      setCurrentSearchQuery(validatedQuery)
     } else {
       setLoadingMore(true)
       showDynamicLoading('loadMore')
@@ -874,7 +912,7 @@ export default function MyTubeApp() {
     }
     
     try {
-      const queryToUse = append ? currentSearchQuery : trimmedQuery
+      const queryToUse = append ? currentSearchQuery : validatedQuery
       const params = new URLSearchParams({
         query: queryToUse,
         type: 'video'
@@ -1839,57 +1877,9 @@ export default function MyTubeApp() {
                   viewCount={selectedVideo.viewCount}
                   publishedAt={selectedVideo.publishedAt}
                   thumbnail={getThumbnailUrl(selectedVideo)}
+                  onPreviousVideo={handlePreviousVideo}
+                  onNextVideo={handleNextVideo}
                 />
-                
-                {/* Video Info Section - Moved after video player */}
-                <div className="bg-gradient-to-r from-purple-10 via-purple-5 to-transparent rounded-2xl p-4 sm:p-6 border border-purple-20">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div>
-                      <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent mb-1">
-                        {selectedVideo.title}
-                      </h2>
-                      <p className="text-muted-foreground">{getChannelName(selectedVideo)}</p>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      {selectedVideo.viewCount && (
-                        <span>{formatViewCount(selectedVideo.viewCount)}</span>
-                      )}
-                      {selectedVideo.publishedAt && (
-                        <span>{formatPublishedAt(selectedVideo.publishedAt)}</span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Control Buttons */}
-                  <div className="flex gap-3 mt-4">
-                    <Button
-                      onClick={() => toggleFavorite(selectedVideo)}
-                      className={`transition-all duration-200 hover:scale-105 ${
-                        favoriteVideoIds.has(selectedVideo.id)
-                          ? 'bg-red-600 hover:bg-red-700 text-white'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                      <Heart className={`w-4 h-4 ${favoriteVideoIds.has(selectedVideo.id) ? 'fill-current' : ''}`} />
-                    </Button>
-                    <Button
-                      onClick={handlePreviousVideo}
-                      variant="outline"
-                      className="transition-all duration-200 hover:scale-105"
-                      title="Move to previous video"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      onClick={handleNextVideo}
-                      variant="outline"
-                      className="transition-all duration-200 hover:scale-105"
-                      title="Move to next video"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
               </>
             ) : (
               <div className="text-center py-12 text-muted-foreground">

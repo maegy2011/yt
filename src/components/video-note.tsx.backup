@@ -6,8 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Play, Pause, RotateCcw, Plus, Trash2, Save, Bookmark, Edit, Clock, MessageSquare, User, Eye, Heart, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { Play, Pause, RotateCcw, Plus, Trash2, Save, Bookmark, Edit, Clock, MessageSquare, User, Eye, Heart, ChevronLeft, ChevronRight } from 'lucide-react'
 
 // Import YouTube utility functions (we'll need to create these)
 const formatViewCount = (count: number | string | undefined | null): string => {
@@ -95,7 +94,6 @@ export function VideoNote({
   const [isCapturing, setIsCapturing] = useState(false)
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [isFavorited, setIsFavorited] = useState(false)
-  const [playerReady, setPlayerReady] = useState(false)
   const playerRef = useRef<any>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -110,7 +108,7 @@ export function VideoNote({
     setTimeout(() => setNotification(null), 3000)
   }, [])
 
-  // Navigation functions
+  // Placeholder navigation functions
   const handlePreviousVideo = useCallback(() => {
     if (onPreviousVideo) {
       onPreviousVideo()
@@ -126,13 +124,6 @@ export function VideoNote({
       showNotification('Navigation', 'Next video feature not available', 'info')
     }
   }, [onNextVideo, showNotification])
-
-  const toggleFavorite = async () => {
-    setIsFavorited(!isFavorited)
-    // Here you would typically make an API call to save the favorite state
-    // For now, just toggle the local state
-    showNotification(isFavorited ? 'Added to favorites' : 'Removed from favorites', 'info')
-  }
 
   // Load notes from localStorage
   useEffect(() => {
@@ -214,6 +205,13 @@ export function VideoNote({
     }
   }, [isPlaying, activeNoteId, notes])
 
+  const toggleFavorite = async () => {
+    setIsFavorited(!isFavorited)
+    // Here you would typically make an API call to save the favorite state
+    // For now, just toggle the local state
+    showNotification(isFavorited ? 'Added to favorites' : 'Removed from favorites', 'info')
+  }
+
   const handleAddNote = () => {
     if (newNote.title.trim() && newNote.startTime < newNote.endTime) {
       const note: VideoNote = {
@@ -235,11 +233,6 @@ export function VideoNote({
   }
 
   const handleCaptureStart = () => {
-    console.log('=== Set Start Button Clicked ===')
-    console.log('Player ready:', playerReady)
-    console.log('Current time (state):', currentTime)
-    console.log('Player ref exists:', !!playerRef.current)
-    
     // Get the most accurate current time directly from the player
     let accurateCurrentTime = currentTime
     
@@ -252,13 +245,9 @@ export function VideoNote({
         // Fallback to state value
         accurateCurrentTime = currentTime
       }
-    } else {
-      console.warn('YouTube player not ready yet, using fallback time:', accurateCurrentTime)
     }
     
     const startTime = Math.floor(accurateCurrentTime)
-    console.log('Final start time:', startTime)
-    
     setNewNote({ 
       ...newNote, 
       startTime: startTime,
@@ -266,9 +255,6 @@ export function VideoNote({
     })
     setIsCapturing(true)
     console.log('Start time set to:', startTime, 'from current time:', accurateCurrentTime)
-    
-    // Show notification to user
-    showNotification('Start Time Set', `Start time set to ${formatTime(startTime)}`, 'success')
   }
 
   const handleSaveNote = () => {
@@ -356,27 +342,6 @@ export function VideoNote({
   const onReady = (event: any) => {
     playerRef.current = event.target
     setDuration(event.target.getDuration())
-    setPlayerReady(true)
-    
-    // Initialize current time from player
-    try {
-      const initialTime = event.target.getCurrentTime()
-      setCurrentTime(initialTime)
-      console.log('YouTube player ready, initial time:', initialTime)
-    } catch (error) {
-      console.error('Error getting initial time from YouTube player:', error)
-      setCurrentTime(0)
-    }
-    
-    // Set initial video position if needed
-    if (newNote.startTime > 0) {
-      try {
-        event.target.seekTo(newNote.startTime, true)
-        setCurrentTime(newNote.startTime)
-      } catch (error) {
-        console.error('Error seeking to initial time:', error)
-      }
-    }
   }
 
   const onStateChange = (event: any) => {
@@ -421,99 +386,88 @@ export function VideoNote({
         </div>
       )}
       
-      {/* YouTube-like Video Player Container */}
-      <div className="bg-black rounded-lg overflow-hidden">
-        {/* Video Player */}
-        <div className="relative aspect-video">
-          <YouTube
-            videoId={videoId}
-            opts={{
-              ...opts,
-              width: '100%',
-              height: '100%'
-            }}
-            onReady={onReady}
-            onStateChange={onStateChange}
-            className="w-full h-full"
-          />
-        </div>
-        
-        {/* Video Info Section - YouTube Style */}
-        <div className="bg-white dark:bg-gray-900 p-4">
-          <div className="flex flex-col gap-3">
-            {/* Video Title */}
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white line-clamp-2">
-              {videoTitle}
-            </h1>
-            
-            {/* Channel and Stats Row */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {/* Channel Avatar Placeholder */}
-                <div className="w-10 h-10 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                </div>
-                
-                {/* Channel Name */}
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {channelName || 'Unknown Channel'}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {viewCount && formatViewCount(viewCount)} • {publishedAt && formatPublishedAt(publishedAt)}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={toggleFavorite}
-                  variant="ghost"
-                  size="sm"
-                  className={`transition-all duration-200 ${
-                    isFavorited
-                      ? 'text-red-600 hover:text-red-700'
-                      : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-                  }`}
-                >
-                  <Heart className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />
-                </Button>
-                
-                <div className="flex items-center gap-1">
-                  <Button
-                    onClick={handlePreviousVideo}
-                    variant="ghost"
-                    size="sm"
-                    title="Move to previous video"
-                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-all duration-200"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                  </Button>
-                  <Button
-                    onClick={handleNextVideo}
-                    variant="ghost"
-                    size="sm"
-                    title="Move to next video"
-                    className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-all duration-200"
-                  >
-                    <ChevronRight className="w-5 h-5" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-            
-            {/* Description Preview */}
-            <div className="pt-2 border-t border-gray-200 dark:border-gray-800">
-              <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                Create video notes and capture clips from this video. Use the controls below to set timestamps and add comments.
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Video Player */}
+      <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+        <YouTube
+          videoId={videoId}
+          opts={{
+            ...opts,
+            width: '100%',
+            height: '100%'
+          }}
+          onReady={onReady}
+          onStateChange={onStateChange}
+          className="w-full h-full"
+        />
       </div>
 
-      {/* Note Creation Section */}
+      {/* Video Info Section */}
+      <Card>
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold mb-1">
+                {videoTitle}
+              </h2>
+              <p className="text-muted-foreground">{channelName || 'Unknown Channel'}</p>
+            </div>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              {viewCount && (
+                <span>{formatViewCount(viewCount)}</span>
+              )}
+              {publishedAt && (
+                <span>{formatPublishedAt(publishedAt)}</span>
+              )}
+            </div>
+          </div>
+          
+          {/* Control Buttons */}
+          <div className="flex gap-3 mt-4">
+            <Button
+              onClick={toggleFavorite}
+              className={`transition-all duration-200 hover:scale-105 ${
+                isFavorited
+                  ? 'bg-red-600 hover:bg-red-700 text-white'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+              }`}
+            >
+              <Heart className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
+            </Button>
+            <div className="relative">
+              <Button
+                onClick={handleCaptureStart}
+                variant="outline"
+                className="transition-all duration-200 hover:scale-105"
+                title="Set start time for quick capture"
+              >
+                <Bookmark className="w-4 h-4 mr-2" />
+                Set Start
+                <span className="text-xs opacity-75">{formatTime(currentTime)}</span>
+              </Button>
+              <div className="absolute -right-2 top-1/2 top-1/2 flex items-center">
+                <Button
+                  onClick={handlePreviousVideo}
+                  variant="outline"
+                  title="Move to previous video"
+                  className="transition-all duration-200 hover:scale-105 text-xs px-2 py-1"
+                >
+                  <ChevronLeft className="w-3 h-3" />
+                </Button>
+                <Button
+                  onClick={handleNextVideo}
+                  variant="outline"
+                  title="Move to next video"
+                  className="transition-all duration-200 hover:scale-105 text-xs px-2 py-1"
+                >
+                  <ChevronRight className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Note Creation */}
       <Card>
         <CardContent className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
@@ -571,40 +525,30 @@ export function VideoNote({
                   value={newNote.endTime}
                   onChange={(e) => {
                     const value = Number(e.target.value)
-                    setNewNote({ ...newNote, endTime: value })
+                    setNewNote({ ...newNote, endTime: value, startTime: Math.min(newNote.startTime, value - 1) })
                   }}
                   min="0"
                 />
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex items-center h-10 px-3 bg-muted rounded-lg">
+              <Clock className="w-4 h-4 text-muted-foreground mr-2" />
+              <span className="text-sm font-medium">
+                Duration: {formatTime(newNote.endTime - newNote.startTime)}
+              </span>
+            </div>
+
+            {!isCapturing && (
               <Button
                 onClick={handleAddNote}
-                className="flex-1"
                 disabled={!newNote.title.trim() || newNote.startTime >= newNote.endTime}
+                className="w-full"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Note
+                Create Note
               </Button>
-              
-              <Button
-                onClick={handleCaptureStart}
-                variant="outline"
-                className="flex-1"
-                disabled={!playerReady}
-              >
-                <Bookmark className="w-4 h-4 mr-2" />
-                {playerReady ? (
-                  `Set Start (${formatTime(currentTime)})`
-                ) : (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Loading...
-                  </>
-                )}
-              </Button>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -614,53 +558,84 @@ export function VideoNote({
         <Card>
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                <MessageSquare className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               </div>
-              <h2 className="text-lg font-semibold">
-                Video Notes ({notes.length})
-              </h2>
+              <div>
+                <h2 className="text-lg font-semibold">
+                  Video Notes ({notes.length})
+                </h2>
+              </div>
             </div>
-            
-            <ScrollArea className="max-h-96 overflow-y-auto">
-              <div className="space-y-3">
-                {notes.map((note) => (
-                  <div
-                    key={note.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {notes.map((note) => (
+                <div
+                  key={note.id}
+                  className={`p-4 rounded-lg border transition-all duration-200 ${
+                    activeNoteId === note.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border bg-card hover:bg-muted/50'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-lg ${
                       activeNoteId === note.id
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
-                    onClick={() => handlePlayNote(note)}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 dark:text-white mb-1 truncate">
-                          {note.title}
-                        </h3>
-                        
-                        {note.comment && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
-                            {note.comment}
-                          </p>
-                        )}
-                        
-                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatTime(note.startTime)} - {formatTime(note.endTime)}
-                          </span>
-                          <span>Duration: {formatTime(note.endTime - note.startTime)}</span>
-                        </div>
+                        ? 'bg-primary/20'
+                        : 'bg-muted'
+                    }`}>
+                      <Play className="w-4 h-4" />
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold truncate mb-1">
+                        {note.title}
+                      </h3>
+                      
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatTime(note.startTime)} - {formatTime(note.endTime)}
+                        </span>
+                        <span>
+                          Duration: {formatTime(note.endTime - note.startTime)}
+                        </span>
                       </div>
                       
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handlePlayNote(note)
+                      {/* Comment Display/Edit */}
+                      {editingNoteId === note.id ? (
+                        <Input
+                          defaultValue={note.comment}
+                          placeholder="Add your comment..."
+                          className="text-sm mb-3"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleUpdateNote(note.id, (e.target as HTMLInputElement).value)
+                            }
                           }}
+                          onBlur={(e) => handleUpdateNote(note.id, e.target.value)}
+                          autoFocus
+                        />
+                      ) : (
+                        <div className="mb-3">
+                          {note.comment ? (
+                            <p className="text-sm text-muted-foreground italic bg-muted p-2 rounded">
+                              {note.comment}
+                            </p>
+                          ) : (
+                            <button
+                              onClick={() => setEditingNoteId(note.id)}
+                              className="text-sm text-primary hover:underline"
+                            >
+                              + Add comment
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() => handlePlayNote(note)}
                           size="sm"
                         >
                           <Play className="w-3 h-3 mr-1" />
@@ -669,10 +644,7 @@ export function VideoNote({
                         
                         {note.comment && editingNoteId !== note.id && (
                           <Button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setEditingNoteId(note.id)
-                            }}
+                            onClick={() => setEditingNoteId(note.id)}
                             size="sm"
                             variant="outline"
                           >
@@ -681,10 +653,7 @@ export function VideoNote({
                         )}
                         
                         <Button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeleteNote(note.id)
-                          }}
+                          onClick={() => handleDeleteNote(note.id)}
                           size="sm"
                           variant="outline"
                           className="text-destructive hover:text-destructive"
@@ -694,9 +663,9 @@ export function VideoNote({
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </ScrollArea>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}
