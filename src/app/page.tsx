@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
   Home, 
   Search, 
@@ -25,7 +27,9 @@ import {
   ArrowDown,
   ArrowLeft,
   Bell,
-  Eye
+  Eye,
+  ChevronRight,
+  ChevronLeft
 } from 'lucide-react'
 import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
 import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from '@/lib/loading-messages'
@@ -108,6 +112,7 @@ export default function MyTubeApp() {
   
   // Dialog states
   const [showSettings, setShowSettings] = useState(false)
+  const [showClearDataConfirmation, setShowClearDataConfirmation] = useState(false)
   
   // YouTube URL player state
   const [youtubeUrl, setYoutubeUrl] = useState('')
@@ -590,6 +595,76 @@ export default function MyTubeApp() {
     }
   }
 
+  const clearAllData = async (): Promise<void> => {
+    setShowClearDataConfirmation(true)
+  }
+
+  const confirmClearAllData = async (): Promise<void> => {
+    try {
+      setLoading(true)
+      setShowClearDataConfirmation(false)
+      addNotification('Clearing data', 'Removing all your data...', 'info', false)
+      
+      // Clear database
+      const response = await fetch('/api/clear-all-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to clear data from database')
+      }
+      
+      const result = await response.json()
+      
+      // Clear localStorage
+      const keysToRemove = [
+        'mytube-auto-load-more',
+        'mytube-search-cache',
+        'mytube-user-preferences',
+        'mytube-navigation-history',
+        'mytube-notifications'
+      ]
+      
+      keysToRemove.forEach(key => {
+        localStorage.removeItem(key)
+      })
+      
+      // Clear search cache
+      setSearchCache(new Map())
+      
+      // Clear all state
+      setWatchedVideos([])
+      setFavoriteChannels([])
+      setFavoriteVideos([])
+      setChannelVideos([])
+      setChannelSearchResults([])
+      setSearchResults(null)
+      setSelectedVideo(null)
+      setSelectedItems(new Set())
+      setNotifications([])
+      setMultiSelectMode(false)
+      
+      // Reload fresh data
+      await Promise.all([
+        loadWatchedVideos(),
+        loadFavoriteChannels(),
+        loadFavoriteVideos()
+      ])
+      
+      addNotification('Success!', `Cleared ${result.deleted.total} items from database and all local data`, 'success')
+      setShowSettings(false)
+      
+    } catch (error) {
+      console.error('Failed to clear all data:', error)
+      addNotification('Error', 'Failed to clear all data. Please try again.', 'destructive')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const loadChannelVideos = async () => {
     if (favoriteChannels.length === 0) return
     
@@ -924,6 +999,162 @@ export default function MyTubeApp() {
       console.error('Failed to add to watched:', error)
     }
   }
+
+  const handleNextVideo = useCallback(() => {
+    if (!selectedVideo) return
+
+    // Get all available video lists
+    const allVideos: Video[] = []
+    
+    // Add search results if available
+    if (searchResults?.items) {
+      allVideos.push(...searchResults.items)
+    }
+    
+    // Add channel videos if available
+    if (channelVideos.length > 0) {
+      allVideos.push(...channelVideos)
+    }
+    
+    // Add favorite videos if available
+    if (favoriteVideos.length > 0) {
+      allVideos.push(...favoriteVideos.map(v => ({
+        id: v.id,
+        videoId: v.videoId,
+        title: v.title,
+        channelName: v.channelName,
+        thumbnail: v.thumbnail,
+        duration: v.duration,
+        viewCount: v.viewCount,
+        publishedAt: '', // Add default if needed
+        isLive: false,
+        description: ''
+      })))
+    }
+    
+    // Add watched videos if available
+    if (watchedVideos.length > 0) {
+      allVideos.push(...watchedVideos.map(v => ({
+        id: v.id,
+        videoId: v.videoId,
+        title: v.title,
+        channelName: v.channelName,
+        thumbnail: v.thumbnail,
+        duration: v.duration,
+        viewCount: v.viewCount,
+        publishedAt: v.watchedAt,
+        isLive: false,
+        description: ''
+      })))
+    }
+
+    // Remove duplicates and current video
+    const uniqueVideos = allVideos.filter((video, index, self) => 
+      index === self.findIndex((v) => v.id === video.id) && video.id !== selectedVideo.id
+    )
+
+    if (uniqueVideos.length === 0) {
+      addNotification('No more videos', 'No next video available', 'info')
+      return
+    }
+
+    // Find current video index and get next video
+    const currentVideoIndex = allVideos.findIndex(v => v.id === selectedVideo.id)
+    let nextVideo: Video | null = null
+
+    if (currentVideoIndex !== -1 && currentVideoIndex < allVideos.length - 1) {
+      // Get next video from the same list
+      nextVideo = allVideos[currentVideoIndex + 1]
+    } else {
+      // Get first video from available videos
+      nextVideo = uniqueVideos[0]
+    }
+
+    if (nextVideo) {
+      handleVideoPlay(nextVideo)
+      addNotification('Next video', `Now playing: ${nextVideo.title}`, 'info')
+    } else {
+      addNotification('No more videos', 'No next video available', 'info')
+    }
+  }, [selectedVideo, searchResults, channelVideos, favoriteVideos, watchedVideos, handleVideoPlay, addNotification])
+
+  const handlePreviousVideo = useCallback(() => {
+    if (!selectedVideo) return
+
+    // Get all available video lists
+    const allVideos: Video[] = []
+    
+    // Add search results if available
+    if (searchResults?.items) {
+      allVideos.push(...searchResults.items)
+    }
+    
+    // Add channel videos if available
+    if (channelVideos.length > 0) {
+      allVideos.push(...channelVideos)
+    }
+    
+    // Add favorite videos if available
+    if (favoriteVideos.length > 0) {
+      allVideos.push(...favoriteVideos.map(v => ({
+        id: v.id,
+        videoId: v.videoId,
+        title: v.title,
+        channelName: v.channelName,
+        thumbnail: v.thumbnail,
+        duration: v.duration,
+        viewCount: v.viewCount,
+        publishedAt: '', // Add default if needed
+        isLive: false,
+        description: ''
+      })))
+    }
+    
+    // Add watched videos if available
+    if (watchedVideos.length > 0) {
+      allVideos.push(...watchedVideos.map(v => ({
+        id: v.id,
+        videoId: v.videoId,
+        title: v.title,
+        channelName: v.channelName,
+        thumbnail: v.thumbnail,
+        duration: v.duration,
+        viewCount: v.viewCount,
+        publishedAt: v.watchedAt,
+        isLive: false,
+        description: ''
+      })))
+    }
+
+    // Remove duplicates and current video
+    const uniqueVideos = allVideos.filter((video, index, self) => 
+      index === self.findIndex((v) => v.id === video.id) && video.id !== selectedVideo.id
+    )
+
+    if (uniqueVideos.length === 0) {
+      addNotification('No more videos', 'No previous video available', 'info')
+      return
+    }
+
+    // Find current video index and get previous video
+    const currentVideoIndex = allVideos.findIndex(v => v.id === selectedVideo.id)
+    let previousVideo: Video | null = null
+
+    if (currentVideoIndex > 0) {
+      // Get previous video from the same list
+      previousVideo = allVideos[currentVideoIndex - 1]
+    } else {
+      // Get last video from available videos
+      previousVideo = uniqueVideos[uniqueVideos.length - 1]
+    }
+
+    if (previousVideo) {
+      handleVideoPlay(previousVideo)
+      addNotification('Previous video', `Now playing: ${previousVideo.title}`, 'info')
+    } else {
+      addNotification('No more videos', 'No previous video available', 'info')
+    }
+  }, [selectedVideo, searchResults, channelVideos, favoriteVideos, watchedVideos, handleVideoPlay, addNotification])
 
   const toggleFavorite = async (video: Video) => {
     try {
@@ -1600,39 +1831,65 @@ export default function MyTubeApp() {
 
             {selectedVideo ? (
               <>
-                {/* Video Header */}
+                {/* Video Note Component - Video Player */}
+                <VideoNote 
+                  videoId={selectedVideo.id} 
+                  videoTitle={selectedVideo.title}
+                  channelName={getChannelName(selectedVideo)}
+                  viewCount={selectedVideo.viewCount}
+                  publishedAt={selectedVideo.publishedAt}
+                  thumbnail={getThumbnailUrl(selectedVideo)}
+                />
+                
+                {/* Video Info Section - Moved after video player */}
                 <div className="bg-gradient-to-r from-purple-10 via-purple-5 to-transparent rounded-2xl p-4 sm:p-6 border border-purple-20">
-                  <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent mb-3 sm:mb-4">
-                    Now Playing: {selectedVideo.title}
-                  </h2>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <p className="text-muted-foreground">{getChannelName(selectedVideo)}</p>
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-purple-400 bg-clip-text text-transparent mb-1">
+                        {selectedVideo.title}
+                      </h2>
+                      <p className="text-muted-foreground">{getChannelName(selectedVideo)}</p>
+                    </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       {selectedVideo.viewCount && (
-                        <span>{formatViewCount(selectedVideo.viewCount)} views</span>
+                        <span>{formatViewCount(selectedVideo.viewCount)}</span>
                       )}
                       {selectedVideo.publishedAt && (
                         <span>{formatPublishedAt(selectedVideo.publishedAt)}</span>
                       )}
                     </div>
                   </div>
+                  
+                  {/* Control Buttons */}
                   <div className="flex gap-3 mt-4">
                     <Button
                       onClick={() => toggleFavorite(selectedVideo)}
-                      className={`flex-1 sm:flex-none transition-all duration-200 hover:scale-105 ${
+                      className={`transition-all duration-200 hover:scale-105 ${
                         favoriteVideoIds.has(selectedVideo.id)
                           ? 'bg-red-600 hover:bg-red-700 text-white'
                           : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                       }`}
                     >
-                      <Heart className={`w-4 h-4 mr-2 ${favoriteVideoIds.has(selectedVideo.id) ? 'fill-current' : ''}`} />
-                      {favoriteVideoIds.has(selectedVideo.id) ? 'Favorited' : 'Add to Favorites'}
+                      <Heart className={`w-4 h-4 ${favoriteVideoIds.has(selectedVideo.id) ? 'fill-current' : ''}`} />
+                    </Button>
+                    <Button
+                      onClick={handlePreviousVideo}
+                      variant="outline"
+                      className="transition-all duration-200 hover:scale-105"
+                      title="Move to previous video"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      onClick={handleNextVideo}
+                      variant="outline"
+                      className="transition-all duration-200 hover:scale-105"
+                      title="Move to next video"
+                    >
+                      <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
-                
-                {/* Video Note Component */}
-                <VideoNote videoId={selectedVideo.id} videoTitle={selectedVideo.title} />
               </>
             ) : (
               <div className="text-center py-12 text-muted-foreground">
@@ -2300,6 +2557,199 @@ export default function MyTubeApp() {
         
         {renderContent()}
       </main>
+
+      {/* Settings Dialog */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Settings & Privacy
+            </DialogTitle>
+          </DialogHeader>
+          
+          <ScrollArea className="max-h-[60vh] pr-4">
+            <div className="space-y-6">
+              {/* Auto Load More Setting */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <label className="text-sm font-medium">Auto Load More</label>
+                  <p className="text-xs text-muted-foreground">
+                    Automatically load more videos when scrolling
+                  </p>
+                </div>
+                <Switch
+                  checked={autoLoadMore}
+                  onCheckedChange={setAutoLoadMore}
+                  disabled={loading}
+                />
+              </div>
+
+              {/* Data Statistics */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Data Statistics</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between text-xs">
+                    <span>Watched Videos</span>
+                    <span className="font-mono">{watchedVideos.length}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span>Favorite Channels</span>
+                    <span className="font-mono">{favoriteChannels.length}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span>Favorite Videos</span>
+                    <span className="font-mono">{favoriteVideos.length}</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-medium pt-2 border-t">
+                    <span>Total Items</span>
+                    <span className="font-mono">
+                      {watchedVideos.length + favoriteChannels.length + favoriteVideos.length}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Privacy Section */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium">Privacy</h3>
+                
+                <Alert>
+                  <AlertDescription className="text-xs">
+                    This will permanently delete all your data including watched videos, 
+                    favorite channels, favorite videos, and all local settings.
+                  </AlertDescription>
+                </Alert>
+
+                <Button
+                  variant="destructive"
+                  onClick={clearAllData}
+                  disabled={loading || (
+                    watchedVideos.length === 0 && 
+                    favoriteChannels.length === 0 && 
+                    favoriteVideos.length === 0
+                  )}
+                  className="w-full"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Clearing Data...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Clear All Data
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </ScrollArea>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowSettings(false)}
+              disabled={loading}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Clear Data Confirmation Dialog */}
+      <Dialog open={showClearDataConfirmation} onOpenChange={setShowClearDataConfirmation}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" />
+              Confirm Clear All Data
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <Alert variant="destructive">
+              <AlertDescription>
+                <strong>⚠️ Warning: This action cannot be undone!</strong>
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                This will permanently delete the following data:
+              </p>
+              
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-destructive rounded-full"></div>
+                  <span>{watchedVideos.length} watched videos</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-destructive rounded-full"></div>
+                  <span>{favoriteChannels.length} favorite channels</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-destructive rounded-full"></div>
+                  <span>{favoriteVideos.length} favorite videos</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-destructive rounded-full"></div>
+                  <span>All local settings and preferences</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-destructive rounded-full"></div>
+                  <span>Search cache and navigation history</span>
+                </li>
+              </ul>
+              
+              <div className="pt-2 border-t">
+                <p className="text-xs text-muted-foreground">
+                  <strong>Total items to be deleted:</strong> {watchedVideos.length + favoriteChannels.length + favoriteVideos.length} database records + all local data
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-muted/50 p-3 rounded-lg">
+              <p className="text-xs font-medium text-muted-foreground">
+                Are you sure you want to continue? This action is irreversible.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowClearDataConfirmation(false)}
+              disabled={loading}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmClearAllData}
+              disabled={loading}
+              className="flex-1"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Clearing...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear All Data
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
