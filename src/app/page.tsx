@@ -304,6 +304,23 @@ export default function MyTubeApp() {
     }
   }, [favoriteChannels.length, showSplashScreen])
 
+  // Refresh data when switching tabs to ensure icons are up to date
+  useEffect(() => {
+    if (!showSplashScreen) {
+      const refreshData = async () => {
+        try {
+          await Promise.all([
+            loadWatchedVideos(),
+            loadNotes()
+          ])
+        } catch (error) {
+          console.error('Failed to refresh data:', error)
+        }
+      }
+      refreshData()
+    }
+  }, [activeTab, showSplashScreen])
+
   // Cache helper functions
   const getCachedResults = useCallback((query: string) => {
     const cached = searchCache.get(query)
@@ -1967,6 +1984,7 @@ export default function MyTubeApp() {
                   thumbnail={getThumbnailUrl(selectedVideo)}
                   onPreviousVideo={handlePreviousVideo}
                   onNextVideo={handleNextVideo}
+                  onNotesChange={loadNotes}
                 />
               </>
             ) : (

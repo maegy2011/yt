@@ -73,6 +73,7 @@ interface VideoNoteProps {
   onFavoriteToggle?: (isFavorited: boolean) => void
   onPreviousVideo?: () => void
   onNextVideo?: () => void
+  onNotesChange?: () => void
 }
 
 export function VideoNote({ 
@@ -83,7 +84,8 @@ export function VideoNote({
   publishedAt, 
   thumbnail,
   onPreviousVideo,
-  onNextVideo 
+  onNextVideo,
+  onNotesChange
 }: VideoNoteProps) {
   const [notes, setNotes] = useState<VideoNote[]>([])
   const [newNote, setNewNote] = useState({ title: '', comment: '', startTime: 0, endTime: 30 })
@@ -166,44 +168,63 @@ export function VideoNote({
       
       const endTime = Math.floor(accurateCurrentTime)
       if (endTime > quickNoteStartTime) {
-        const note: VideoNote = {
-          id: Date.now().toString(),
-          title: `Quick Note ${formatTime(quickNoteStartTime)}-${formatTime(endTime)}`,
-          comment: '',
-          startTime: quickNoteStartTime,
-          endTime: endTime,
-          videoId,
-          videoTitle,
-          channelName: channelName || '',
-          viewCount: viewCount || 0,
-          publishedAt: publishedAt || '',
-          thumbnail: thumbnail || ''
+        try {
+          const response = await fetch('/api/notes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              videoId,
+              title: `Quick Note ${formatTime(quickNoteStartTime)}-${formatTime(endTime)}`,
+              channelName: channelName || '',
+              thumbnail: thumbnail || '',
+              note: `Quick clip from ${formatTime(quickNoteStartTime)} to ${formatTime(endTime)}`,
+              startTime: quickNoteStartTime,
+              endTime: endTime,
+              isClip: true
+            })
+          })
+          
+          if (response.ok) {
+            setQuickNoteCapturing(false)
+            setQuickNoteStartTime(0)
+            showNotification('Quick Note Saved!', `Clip saved from ${formatTime(quickNoteStartTime)} to ${formatTime(endTime)}`, 'success')
+            
+            // Call parent callback to refresh notes
+            if (onNotesChange) {
+              onNotesChange()
+            }
+          } else {
+            const errorData = await response.json().catch(() => ({}))
+            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
+          }
+        } catch (error) {
+          console.error('Failed to save quick note:', error)
+          showNotification('Error', 'Failed to save quick note. Please try again.', 'error')
         }
-        
-        setNotes([...notes, note])
-        setQuickNoteCapturing(false)
-        setQuickNoteStartTime(0)
-        showNotification('Quick Note Saved!', `Clip saved from ${formatTime(note.startTime)} to ${formatTime(note.endTime)}`, 'success')
       } else {
         showNotification('Invalid Time', 'End time must be greater than start time', 'error')
       }
     }
   }
 
-  // Load notes from localStorage
+  // Load notes from API
   useEffect(() => {
-    const savedNotes = localStorage.getItem(`video-notes-${videoId}`)
-    if (savedNotes) {
-      setNotes(JSON.parse(savedNotes))
+    const loadNotes = async () => {
+      try {
+        const response = await fetch('/api/notes')
+        if (response.ok) {
+          const data = await response.json()
+          // Filter notes for this video
+          const videoNotes = data.filter((note: any) => note.videoId === videoId)
+          setNotes(videoNotes)
+        }
+      } catch (error) {
+        console.error('Failed to load notes:', error)
+      }
     }
+    
+    loadNotes()
   }, [videoId])
-
-  // Save notes to localStorage
-  useEffect(() => {
-    if (notes.length > 0) {
-      localStorage.setItem(`video-notes-${videoId}`, JSON.stringify(notes))
-    }
-  }, [notes, videoId])
 
   // Monitor video progress for current time updates
   useEffect(() => {
@@ -344,31 +365,44 @@ export function VideoNote({
     
     const endTime = Math.floor(accurateCurrentTime)
     if (endTime > newNote.startTime) {
-      const note: VideoNote = {
-        id: Date.now().toString(),
-        title: newNote.title || `Clip from ${formatTime(newNote.startTime)} to ${formatTime(endTime)}`,
-        comment: newNote.comment,
-        startTime: newNote.startTime,
-        endTime: endTime,
-        videoId,
-        videoTitle,
-        channelName: channelName || '',
-        viewCount: viewCount || 0,
-        publishedAt: publishedAt || '',
-        thumbnail: thumbnail || ''
+      try {
+        const response = await fetch('/api/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoId,
+            title: newNote.title || `Clip from ${formatTime(newNote.startTime)} to ${formatTime(endTime)}`,
+            channelName: channelName || '',
+            thumbnail: thumbnail || '',
+            note: newNote.comment || `Clip from ${formatTime(newNote.startTime)} to ${formatTime(endTime)}`,
+            startTime: newNote.startTime,
+            endTime: endTime,
+            isClip: true
+          })
+        })
+        
+        if (response.ok) {
+          // Reset form
+          setNewNote({ title: '', comment: '', startTime: 0, endTime: 30 })
+          setIsCapturing(false)
+          
+          // Show success notification
+          showNotification('Note Saved!', `Clip saved from ${formatTime(newNote.startTime)} to ${formatTime(endTime)}`, 'success')
+          
+          // Call parent callback to refresh notes
+          if (onNotesChange) {
+            onNotesChange()
+          }
+          
+          console.log('Note saved with end time:', endTime, 'from current time:', accurateCurrentTime)
+        } else {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
+        }
+      } catch (error) {
+        console.error('Failed to save note:', error)
+        showNotification('Error', 'Failed to save note. Please try again.', 'error')
       }
-      
-      // Add to local state
-      setNotes([...notes, note])
-      
-      // Reset form
-      setNewNote({ title: '', comment: '', startTime: 0, endTime: 30 })
-      setIsCapturing(false)
-      
-      // Show success notification
-      showNotification('Note Saved!', `Clip saved from ${formatTime(note.startTime)} to ${formatTime(note.endTime)}`, 'success')
-      
-      console.log('Note saved with end time:', endTime, 'from current time:', accurateCurrentTime)
     } else {
       // Show error notification
       showNotification('Invalid Time', 'End time must be greater than start time. Please play the video forward before saving.', 'error')
