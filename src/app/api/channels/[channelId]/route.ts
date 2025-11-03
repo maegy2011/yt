@@ -50,14 +50,14 @@ export async function DELETE(
     })
   } catch (error) {
     console.error('Failed to delete channel - Full error:', {
-      error: error.message,
-      stack: error.stack,
-      name: error.name,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : 'Unknown',
       channelId: params.channelId
     })
     
     // Handle specific database errors
-    if (error.code === 'P2025') {
+    if (error instanceof Error && 'code' in error && error.code === 'P2025') {
       return NextResponse.json({ 
         error: 'Channel not found in favorites' 
       }, { status: 404 })
@@ -65,7 +65,7 @@ export async function DELETE(
 
     return NextResponse.json({ 
       error: 'Failed to unfollow channel',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
     }, { status: 500 })
   }
 }

@@ -33,7 +33,7 @@ export async function POST() {
     return NextResponse.json({
       success: false,
       error: 'Failed to clean database',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
     }, { status: 500 })
   }
 }
@@ -59,7 +59,7 @@ export async function GET() {
     console.error('Failed to get database statistics:', error)
     return NextResponse.json({
       error: 'Failed to get database statistics',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
     }, { status: 500 })
   }
 }

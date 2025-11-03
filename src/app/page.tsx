@@ -106,6 +106,16 @@ export default function MyTubeApp() {
   const [editingNote, setEditingNote] = useState<any>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [updatedNoteContent, setUpdatedNoteContent] = useState('')
+  const [createNoteDialogOpen, setCreateNoteDialogOpen] = useState(false)
+  const [newNote, setNewNote] = useState({
+    title: '',
+    content: '',
+    videoId: '',
+    videoTitle: '',
+    channelName: '',
+    thumbnail: ''
+  })
+  const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set())
   
   // Channel search states
   const [channelSearchResults, setChannelSearchResults] = useState<any[]>([])
@@ -742,6 +752,118 @@ export default function MyTubeApp() {
     }
   }
 
+  const handleCreateNote = () => {
+    // If there's a selected video, pre-fill the video info
+    if (selectedVideo) {
+      setNewNote({
+        title: '',
+        content: '',
+        videoId: selectedVideo.id,
+        videoTitle: selectedVideo.title,
+        channelName: getChannelName(selectedVideo),
+        thumbnail: getThumbnailUrl(selectedVideo)
+      })
+    } else {
+      // Reset form for manual entry
+      setNewNote({
+        title: '',
+        content: '',
+        videoId: '',
+        videoTitle: '',
+        channelName: '',
+        thumbnail: ''
+      })
+    }
+    setCreateNoteDialogOpen(true)
+  }
+
+  const handleSaveNewNote = async () => {
+    if (newNote.title.trim() && newNote.content.trim()) {
+      try {
+        const response = await fetch('/api/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoId: newNote.videoId || 'manual-note',
+            title: newNote.title,
+            channelName: newNote.channelName || 'Manual Note',
+            thumbnail: newNote.thumbnail,
+            note: newNote.content,
+            fontSize: 16,
+            startTime: null,
+            endTime: null,
+            isClip: false
+          })
+        })
+        
+        if (response.ok) {
+          const createdNote = await response.json()
+          setAllNotes(prev => [createdNote, ...prev])
+          setCreateNoteDialogOpen(false)
+          setNewNote({
+            title: '',
+            content: '',
+            videoId: '',
+            videoTitle: '',
+            channelName: '',
+            thumbnail: ''
+          })
+          addNotification('Note created', 'The note has been created successfully', 'success')
+        } else {
+          throw new Error('Failed to create note')
+        }
+      } catch (error) {
+        console.error('Failed to create note:', error)
+        addNotification('Failed to create note', 'Please try again', 'destructive')
+      }
+    }
+  }
+
+  const toggleNoteSelection = (noteId: string) => {
+    setSelectedNotes(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(noteId)) {
+        newSet.delete(noteId)
+      } else {
+        newSet.add(noteId)
+      }
+      return newSet
+    })
+  }
+
+  const toggleMultiSelectMode = () => {
+    setMultiSelectMode(!multiSelectMode)
+    setSelectedNotes(new Set())
+  }
+
+  const deleteSelectedNotes = async () => {
+    if (selectedNotes.size === 0) return
+    
+    try {
+      const deletePromises = Array.from(selectedNotes).map(noteId =>
+        fetch(`/api/notes/${noteId}`, { method: 'DELETE' })
+      )
+      
+      await Promise.all(deletePromises)
+      
+      setAllNotes(prev => prev.filter(note => !selectedNotes.has(note.id)))
+      setSelectedNotes(new Set())
+      setMultiSelectMode(false)
+      addNotification('Notes deleted', `${selectedNotes.size} note(s) have been removed successfully`, 'success')
+    } catch (error) {
+      console.error('Failed to delete notes:', error)
+      addNotification('Failed to delete notes', 'Please try again', 'destructive')
+    }
+  }
+
+  const selectAllNotes = () => {
+    if (selectedNotes.size === filteredNotes.length) {
+      setSelectedNotes(new Set())
+    } else {
+      setSelectedNotes(new Set(filteredNotes.map(note => note.id)))
+    }
+  }
+
   const filteredNotes = allNotes.filter(note => 
     note.title.toLowerCase().includes(notesSearchQuery.toLowerCase()) ||
     note.note.toLowerCase().includes(notesSearchQuery.toLowerCase()) ||
@@ -1081,7 +1203,7 @@ export default function MyTubeApp() {
         setCachedResults(queryToUse, finalItems, data.continuation || null, !!data.continuation)
         showDynamicConfirmation('search', finalItems.length)
       } else {
-        showDynamicConfirmation('loadMore', data.items.length)
+        showDynamicConfirmation('search', data.items.length)
       }
       
     } catch (error) {
@@ -2214,16 +2336,93 @@ export default function MyTubeApp() {
               </div>
             </div>
 
-            {/* Search Notes */}
+            {/* Search and Create Notes */}
             <div className="bg-card rounded-2xl p-3 sm:p-4 border">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search notes by title, content, or channel..."
-                  value={notesSearchQuery}
-                  onChange={(e) => setNotesSearchQuery(e.target.value)}
-                  className="pl-10 text-sm"
-                />
+              <div className="flex gap-2 mb-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input
+                    placeholder="Search notes by title, content, or channel..."
+                    value={notesSearchQuery}
+                    onChange={(e) => setNotesSearchQuery(e.target.value)}
+                    className="pl-10 text-sm"
+                  />
+                </div>
+                <Button
+                  onClick={handleCreateNote}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">New Note</span>
+                </Button>
+              </div>
+              
+              {/* Multi-select controls */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={toggleMultiSelectMode}
+                    variant={multiSelectMode ? "default" : "outline"}
+                    size="sm"
+                    className="text-xs"
+                  >
+                    {multiSelectMode ? (
+                      <>
+                        <X className="w-3 h-3 mr-1" />
+                        Exit Multi-Select
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3 h-3 mr-1" />
+                        Multi-Select
+                      </>
+                    )}
+                  </Button>
+                  
+                  {multiSelectMode && (
+                    <>
+                      <Button
+                        onClick={selectAllNotes}
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                      >
+                        {selectedNotes.size === filteredNotes.length ? (
+                          <>
+                            <X className="w-3 h-3 mr-1" />
+                            Deselect All
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-3 h-3 mr-1" />
+                            Select All
+                          </>
+                        )}
+                      </Button>
+                      
+                      {selectedNotes.size > 0 && (
+                        <Button
+                          onClick={deleteSelectedNotes}
+                          variant="destructive"
+                          size="sm"
+                          className="text-xs"
+                        >
+                          <Trash2 className="w-3 h-3 mr-1" />
+                          Delete ({selectedNotes.size})
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+                
+                <div className="text-xs text-muted-foreground">
+                  {filteredNotes.length} note{filteredNotes.length !== 1 ? 's' : ''}
+                  {multiSelectMode && selectedNotes.size > 0 && (
+                    <span className="ml-2 text-primary">
+                      ({selectedNotes.size} selected)
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -2235,36 +2434,54 @@ export default function MyTubeApp() {
             ) : filteredNotes.length > 0 ? (
               <div className="space-y-3 sm:space-y-4">
                 {filteredNotes.map((note) => (
-                  <Card key={note.id} className="p-3 sm:p-4 hover:shadow-md transition-shadow">
+                  <Card key={note.id} className={`p-3 sm:p-4 hover:shadow-md transition-shadow ${
+                    multiSelectMode ? 'cursor-pointer' : ''
+                  } ${
+                    selectedNotes.has(note.id) ? 'ring-2 ring-primary bg-primary/5' : ''
+                  }`}
+                  onClick={() => {
+                    if (multiSelectMode) {
+                      toggleNoteSelection(note.id)
+                    }
+                  }}>
                     <div className="flex items-start gap-3 sm:gap-4">
+                      {/* Multi-select checkbox */}
+                      {multiSelectMode && (
+                        <div className="flex-shrink-0 pt-1">
+                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                            selectedNotes.has(note.id)
+                              ? 'bg-primary border-primary text-primary-foreground'
+                              : 'border-muted-foreground bg-background'
+                          }`}>
+                            {selectedNotes.has(note.id) && (
+                              <Check className="w-3 h-3" />
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
                       {/* Video Thumbnail */}
-                      <div className="flex-shrink-0 w-20 h-14 sm:w-24 sm:h-16 bg-muted rounded-lg overflow-hidden">
+                      <div className="flex-shrink-0 w-20 h-14 sm:w-24 sm:h-16 bg-muted rounded-lg overflow-hidden"
+                           onClick={(e) => {
+                             e.stopPropagation()
+                             if (!multiSelectMode) {
+                               setSelectedVideo({
+                                 id: note.videoId,
+                                 title: note.title,
+                                 channelName: note.channelName,
+                                 thumbnail: note.thumbnail,
+                               })
+                               setActiveTab('player')
+                             }
+                           }}>
                         {note.thumbnail ? (
                           <img 
                             src={note.thumbnail} 
                             alt={note.title}
                             className="w-full h-full object-cover cursor-pointer"
-                            onClick={() => {
-                              setSelectedVideo({
-                                id: note.videoId,
-                                title: note.title,
-                                channelName: note.channelName,
-                                thumbnail: note.thumbnail,
-                              })
-                              setActiveTab('player')
-                            }}
                           />
                         ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center cursor-pointer"
-                               onClick={() => {
-                                 setSelectedVideo({
-                                   id: note.videoId,
-                                   title: note.title,
-                                   channelName: note.channelName,
-                                   thumbnail: note.thumbnail,
-                                 })
-                                 setActiveTab('player')
-                               }}>
+                          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center cursor-pointer">
                             <Play className="w-4 h-4 sm:w-6 sm:h-6 text-primary/60" />
                           </div>
                         )}
@@ -2276,14 +2493,17 @@ export default function MyTubeApp() {
                           <div className="flex-1 min-w-0">
                             <h3 
                               className="font-semibold text-sm sm:text-base text-foreground mb-1 cursor-pointer hover:text-primary transition-colors line-clamp-2"
-                              onClick={() => {
-                                setSelectedVideo({
-                                  id: note.videoId,
-                                  title: note.title,
-                                  channelName: note.channelName,
-                                  thumbnail: note.thumbnail,
-                                })
-                                setActiveTab('player')
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (!multiSelectMode) {
+                                  setSelectedVideo({
+                                    id: note.videoId,
+                                    title: note.title,
+                                    channelName: note.channelName,
+                                    thumbnail: note.thumbnail,
+                                  })
+                                  setActiveTab('player')
+                                }
                               }}
                             >
                               {note.title}
@@ -2303,24 +2523,34 @@ export default function MyTubeApp() {
                             )}
                           </div>
                           <div className="flex items-center gap-1 sm:gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditNote(note)}
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 w-8 p-0 flex-shrink-0"
-                              title="Edit note"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => deleteNote(note.id)}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 flex-shrink-0"
-                              title="Delete note"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            {!multiSelectMode && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleEditNote(note)
+                                  }}
+                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 w-8 p-0 flex-shrink-0"
+                                  title="Edit note"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    deleteNote(note.id)
+                                  }}
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 flex-shrink-0"
+                                  title="Delete note"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -2410,6 +2640,108 @@ export default function MyTubeApp() {
             >
               <Save className="w-4 h-4 mr-2" />
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Note Dialog */}
+      <Dialog open={createNoteDialogOpen} onOpenChange={setCreateNoteDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Create New Note
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="note-title" className="text-sm font-medium">
+                Note Title *
+              </label>
+              <Input
+                id="note-title"
+                value={newNote.title}
+                onChange={(e) => setNewNote(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Enter note title..."
+                className="w-full"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="note-content" className="text-sm font-medium">
+                Note Content *
+              </label>
+              <textarea
+                id="note-content"
+                value={newNote.content}
+                onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
+                className="w-full min-h-[120px] p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder="Enter your note content here..."
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="video-title" className="text-sm font-medium">
+                  Video Title (Optional)
+                </label>
+                <Input
+                  id="video-title"
+                  value={newNote.videoTitle}
+                  onChange={(e) => setNewNote(prev => ({ ...prev, videoTitle: e.target.value }))}
+                  placeholder="Related video title..."
+                  className="w-full"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="channel-name" className="text-sm font-medium">
+                  Channel Name (Optional)
+                </label>
+                <Input
+                  id="channel-name"
+                  value={newNote.channelName}
+                  onChange={(e) => setNewNote(prev => ({ ...prev, channelName: e.target.value }))}
+                  placeholder="Channel name..."
+                  className="w-full"
+                />
+              </div>
+            </div>
+            
+            {selectedVideo && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  💡 Video info pre-filled from selected video: <strong>{selectedVideo.title}</strong>
+                </p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setCreateNoteDialogOpen(false)
+                setNewNote({
+                  title: '',
+                  content: '',
+                  videoId: '',
+                  videoTitle: '',
+                  channelName: '',
+                  thumbnail: ''
+                })
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveNewNote}
+              disabled={!newNote.title.trim() || !newNote.content.trim()}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create Note
             </Button>
           </DialogFooter>
         </DialogContent>

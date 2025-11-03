@@ -34,19 +34,19 @@ export async function GET(
       id: video.id || sanitizedVideoId,
       title: video.title || 'Unknown Video',
       description: video.description || '',
-      thumbnail: video.thumbnail || video.thumbnails?.[0] || {
+      thumbnail: (video as any).thumbnail || (video as any).thumbnails?.[0] || {
         url: `https://img.youtube.com/vi/${sanitizedVideoId}/mqdefault.jpg`,
         width: 320,
         height: 180
       },
-      duration: video.duration || null,
+      duration: (video as any).duration || null,
       viewCount: video.viewCount || 0,
-      publishedAt: video.publishedAt || null,
-      isLive: video.isLive || false,
+      publishedAt: (video as any).publishedAt || null,
+      isLive: (video as any).isLive || false,
       channel: {
         id: video.channel?.id || '',
         name: video.channel?.name || 'Unknown Channel',
-        thumbnail: video.channel?.thumbnail || video.channel?.thumbnails?.[0] || null
+        thumbnail: (video.channel as any).thumbnail || (video.channel as any).thumbnails?.[0] || null
       }
     }
     

@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     console.error('Failed to fetch channel videos:', error)
     return NextResponse.json({ 
       error: 'Failed to fetch channel videos',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
     }, { status: 500 })
   }
 }
@@ -72,7 +72,7 @@ async function getChannelVideos(
     }
 
     // Process videos
-    let videos = channelData.videos.map((video: any) => ({
+    let videos = (channelData as any).videos?.map((video: any) => ({
       id: video.id,
       videoId: video.id,
       title: video.title,
@@ -83,7 +83,7 @@ async function getChannelVideos(
       publishedAt: video.publishedAt,
       channelId: channelData.id,
       channelName: channelData.name,
-      channelThumbnail: channelData.thumbnail?.url || channelData.thumbnail,
+      channelThumbnail: (channelData as any).thumbnail?.url || (channelData as any).thumbnail || (channelData as any).thumbnails?.[0]?.url,
       isLive: video.isLive || false,
       isUpcoming: video.isUpcoming || false,
       upcomingDate: video.upcomingDate,
@@ -225,12 +225,12 @@ async function getAllFavoriteChannelsVideos(
     const { Client } = await import('youtubei')
     const youtube = new Client()
     
-    const allVideos = []
+    const allVideos: any[] = []
     
     for (const channel of favoriteChannels) {
       try {
         const channelData = await youtube.getChannel(channel.channelId)
-        const videos = channelData.videos || []
+        const videos = (channelData as any).videos || []
         
         const channelVideos = videos.map((video: any) => ({
           id: video.id,

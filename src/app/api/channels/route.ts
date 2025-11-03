@@ -14,15 +14,15 @@ export async function GET() {
     return NextResponse.json(channels)
   } catch (error) {
     console.error('Failed to fetch channels - Full error:', {
-      error: error.message,
-      stack: error.stack,
-      name: error.name,
-      constructor: error.constructor.name
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : 'Unknown',
+      constructor: error instanceof Error ? error.constructor.name : 'Unknown'
     })
     
     return NextResponse.json({ 
       error: 'Failed to fetch channels',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
     }, { status: 500 })
   }
 }
@@ -76,20 +76,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(channel)
   } catch (error) {
     console.error('Failed to add channel - Full error:', {
-      error: error.message,
-      stack: error.stack,
-      name: error.name,
-      constructor: error.constructor.name
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : 'Unknown',
+      constructor: error instanceof Error ? error.constructor.name : 'Unknown'
     })
     
     // Handle specific database errors
-    if (error.code === 'P2002') {
+    if (error instanceof Error && 'code' in error && error.code === 'P2002') {
       return NextResponse.json({ 
         error: 'Channel already followed' 
       }, { status: 409 })
     }
     
-    if (error.code === 'P2025') {
+    if (error instanceof Error && 'code' in error && error.code === 'P2025') {
       return NextResponse.json({ 
         error: 'Database record not found' 
       }, { status: 404 })
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       error: 'Failed to add channel',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
     }, { status: 500 })
   }
 }

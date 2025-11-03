@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    let recommendations = []
+    let recommendations: any[] = []
 
     switch (strategy) {
       case 'similar':
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     console.error('Channel recommendations error:', error)
     return NextResponse.json({ 
       error: 'Failed to fetch channel recommendations',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
     }, { status: 500 })
   }
 }
@@ -67,7 +67,7 @@ async function getSimilarChannels(favoriteChannels: any[], limit: number, exclud
     const { Client } = await import('youtubei')
     const youtube = new Client()
     
-    const allRecommendations = []
+    const allRecommendations: any[] = []
     const followedChannelIds = new Set(favoriteChannels.map(fc => fc.channelId))
 
     // Analyze favorite channels to find patterns
@@ -79,7 +79,7 @@ async function getSimilarChannels(favoriteChannels: any[], limit: number, exclud
       try {
         const channelData = await youtube.getChannel(favoriteChannel.channelId)
         
-        if (channelData.relatedChannels && channelData.relatedChannels.length > 0) {
+        if (channelData && 'relatedChannels' in channelData && channelData.relatedChannels && Array.isArray(channelData.relatedChannels) && channelData.relatedChannels.length > 0) {
           const relatedChannels = channelData.relatedChannels
             .filter((rc: any) => !excludeFollowed || !followedChannelIds.has(rc.id))
             .slice(0, 3) // Take top 3 related channels per favorite
@@ -128,7 +128,7 @@ async function getTrendingChannels(limit: number, excludeFollowed: boolean) {
     const { Client } = await import('youtubei')
     const youtube = new Client()
     
-    const allRecommendations = []
+    const allRecommendations: any[] = []
     const followedChannelIds = excludeFollowed ? 
       new Set((await db.favoriteChannel.findMany()).map(fc => fc.channelId)) : 
       new Set()
@@ -194,7 +194,7 @@ async function getPopularChannels(limit: number, excludeFollowed: boolean) {
     const { Client } = await import('youtubei')
     const youtube = new Client()
     
-    const allRecommendations = []
+    const allRecommendations: any[] = []
     const followedChannelIds = excludeFollowed ? 
       new Set((await db.favoriteChannel.findMany()).map(fc => fc.channelId)) : 
       new Set()

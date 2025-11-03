@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     console.error('Channel stats error:', error)
     return NextResponse.json({ 
       error: 'Failed to fetch channel statistics',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
     }, { status: 500 })
   }
 }
@@ -47,30 +47,30 @@ async function getSingleChannelStats(channelId: string, includeComparison: boole
     }
 
     // Calculate statistics
-    const stats = {
+    const stats: any = {
       channelId: channelId,
       name: channelData.name,
-      thumbnail: channelData.thumbnail?.url || channelData.thumbnail,
+      thumbnail: (channelData as any).thumbnail?.url || (channelData as any).thumbnail || (channelData as any).thumbnails?.[0]?.url,
       subscriberCount: channelData.subscriberCount || 0,
       videoCount: channelData.videoCount || 0,
-      viewCount: channelData.viewCount || 0,
+      viewCount: (channelData as any).viewCount || 0,
       addedToFavorites: favoriteChannel.addedAt,
       daysInFavorites: Math.floor((Date.now() - new Date(favoriteChannel.addedAt).getTime()) / (1000 * 60 * 60 * 24)),
       stats: {
         subscribers: channelData.subscriberCount || 0,
         totalVideos: channelData.videoCount || 0,
-        totalViews: channelData.viewCount || 0,
-        avgViewsPerVideo: (channelData.videoCount && channelData.viewCount) ? 
-          Math.round(channelData.viewCount / channelData.videoCount) : 0,
+        totalViews: (channelData as any).viewCount || 0,
+        avgViewsPerVideo: (channelData.videoCount && (channelData as any).viewCount) ? 
+          Math.round(Number((channelData as any).viewCount) / Number(channelData.videoCount)) : 0,
         subscriberGrowthRate: 0, // Would need historical data
         viewGrowthRate: 0, // Would need historical data
         uploadFrequency: 0, // Would need video dates analysis
         engagementScore: 0 // Would need likes/comments data
       },
       metadata: {
-        isVerified: channelData.verified || false,
-        country: channelData.country,
-        joinedDate: channelData.joinedDate,
+        isVerified: (channelData as any).verified || false,
+        country: (channelData as any).country,
+        joinedDate: (channelData as any).joinedDate,
         lastUpdated: new Date().toISOString()
       }
     }
@@ -79,10 +79,10 @@ async function getSingleChannelStats(channelId: string, includeComparison: boole
     if (includeComparison) {
       const allChannels = await db.favoriteChannel.findMany()
       const avgSubscribers = allChannels.reduce((sum, ch) => sum + (ch.subscriberCount || 0), 0) / allChannels.length
-      const avgVideos = allChannels.reduce((sum, ch) => sum + (ch.videoCount || 0), 0) / allChannels.length
+      const avgVideos = allChannels.reduce((sum, ch) => sum + ((ch as any).videoCount || 0), 0) / allChannels.length
       
       stats.comparison = {
-        subscriberRank: allChannels.filter(ch => (ch.subscriberCount || 0) > (channelData.subscriberCount || 0)).length + 1,
+        subscriberRank: allChannels.filter(ch => Number(ch.subscriberCount || 0) > Number(channelData.subscriberCount || 0)).length + 1,
         totalChannelsCompared: allChannels.length,
         subscriberPercentile: Math.round((1 - (stats.stats.subscribers - avgSubscribers) / Math.max(avgSubscribers, 1)) * 100),
         videoPercentile: Math.round((1 - (stats.stats.totalVideos - avgVideos) / Math.max(avgVideos, 1)) * 100),
@@ -129,7 +129,7 @@ async function getAllChannelsStats(includeComparison: boolean, timeframe: string
     const { Client } = await import('youtubei')
     const youtube = new Client()
     
-    const channelDetails = []
+    const channelDetails: any[] = []
     let totalSubscribers = 0
     let totalVideos = 0
     let totalViews = 0
@@ -141,24 +141,24 @@ async function getAllChannelsStats(includeComparison: boolean, timeframe: string
         if (channelData) {
           const subscribers = channelData.subscriberCount || 0
           const videos = channelData.videoCount || 0
-          const views = channelData.viewCount || 0
+          const views = (channelData as any).viewCount || 0
           
-          totalSubscribers += subscribers
-          totalVideos += videos
-          totalViews += views
+          totalSubscribers += Number(subscribers)
+          totalVideos += Number(videos)
+          totalViews += Number(views)
 
           const channelDetail = {
             id: favoriteChannel.id,
             channelId: favoriteChannel.channelId,
             name: channelData.name,
-            thumbnail: channelData.thumbnail?.url || channelData.thumbnail,
+            thumbnail: (channelData as any).thumbnail?.url || (channelData as any).thumbnail || (channelData as any).thumbnails?.[0]?.url,
             subscriberCount: subscribers,
             videoCount: videos,
             viewCount: views,
             addedAt: favoriteChannel.addedAt,
-            isVerified: channelData.verified || false,
+            isVerified: (channelData as any).verified || false,
             stats: {
-              avgViewsPerVideo: videos ? Math.round(views / videos) : 0,
+              avgViewsPerVideo: videos ? Math.round(Number(views) / Number(videos)) : 0,
               daysInFavorites: Math.floor((Date.now() - new Date(favoriteChannel.addedAt).getTime()) / (1000 * 60 * 60 * 24))
             }
           }

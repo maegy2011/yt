@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
 
         // Add additional stats if requested
         if (includeStats) {
-          channelData.enhancedStats = {
+          (channelData as any).enhancedStats = {
             subscriberRank: item.subscriberCount ? Math.log10(item.subscriberCount) : 0,
             activityScore: (item.videoCount || 0) * 0.3 + (item.viewCount || 0) * 0.000001,
             engagementRatio: item.subscriberCount && item.viewCount ? 

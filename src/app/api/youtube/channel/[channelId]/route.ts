@@ -24,49 +24,49 @@ export async function GET(
     }
 
     // Extract comprehensive channel data
-    const sanitizedChannel = {
+    let sanitizedChannel: any = {
       id: channel.id,
       channelId: channel.id,
       name: channel.name,
       description: channel.description,
-      thumbnail: channel.thumbnail?.url || channel.thumbnail,
-      banner: channel.banner?.url || channel.banner,
+      thumbnail: (channel as any).thumbnail?.url || (channel as any).thumbnail || (channel as any).thumbnails?.[0]?.url,
+      banner: (channel as any).banner?.url || (channel as any).banner,
       subscriberCount: channel.subscriberCount || 0,
       videoCount: channel.videoCount || 0,
-      viewCount: channel.viewCount || 0,
-      joinedDate: channel.joinedDate,
-      country: channel.country,
-      keywords: channel.keywords || [],
-      tags: channel.tags || [],
-      isVerified: channel.verified || false,
-      isFamilyFriendly: channel.familyFriendly || false,
-      relatedChannels: channel.relatedChannels?.map((rc: any) => ({
+      viewCount: (channel as any).viewCount || 0,
+      joinedDate: (channel as any).joinedDate,
+      country: (channel as any).country,
+      keywords: (channel as any).keywords || [],
+      tags: (channel as any).tags || [],
+      isVerified: (channel as any).verified || false,
+      isFamilyFriendly: (channel as any).familyFriendly || false,
+      relatedChannels: (channel as any).relatedChannels?.map((rc: any) => ({
         channelId: rc.id,
         name: rc.name,
         thumbnail: rc.thumbnail?.url || rc.thumbnail,
         subscriberCount: rc.subscriberCount || 0
       })) || [],
       // Channel links and social media
-      links: channel.links || [],
+      links: (channel as any).links || [],
       // Channel statistics
       stats: {
         subscribers: channel.subscriberCount || 0,
-        totalViews: channel.viewCount || 0,
+        totalViews: (channel as any).viewCount || 0,
         totalVideos: channel.videoCount || 0,
-        avgViewsPerVideo: channel.videoCount && channel.viewCount ? 
-          Math.round(channel.viewCount / channel.videoCount) : 0
+        avgViewsPerVideo: channel.videoCount && (channel as any).viewCount ? 
+          Math.round(Number((channel as any).viewCount) / Number(channel.videoCount)) : 0
       },
       // Channel metadata
       metadata: {
         fetchedAt: new Date().toISOString(),
-        hasVideos: !!(channel.videos && channel.videos.length > 0),
+        hasVideos: !!((channel as any).videos && Array.isArray((channel as any).videos) && (channel as any).videos.length > 0),
         lastUpdated: new Date().toISOString()
       }
     }
 
     // Include recent videos if requested
-    if (includeVideos && channel.videos) {
-      const videos = channel.videos.slice(0, maxVideos).map((video: any) => ({
+    if (includeVideos && (channel as any).videos) {
+      const channelVideos = (channel as any).videos.slice(0, maxVideos).map((video: any) => ({
         id: video.id,
         videoId: video.id,
         title: video.title,
@@ -85,7 +85,7 @@ export async function GET(
         }
       }))
       
-      sanitizedChannel.videos = videos
+      sanitizedChannel.videos = channelVideos
     }
 
     // Check if channel is in favorites
@@ -93,6 +93,7 @@ export async function GET(
       where: { channelId }
     })
 
+    // Add favorite status
     sanitizedChannel.isFavorite = !!favoriteChannel
     if (favoriteChannel) {
       sanitizedChannel.addedAt = favoriteChannel.addedAt

@@ -38,7 +38,7 @@ export async function POST() {
     return NextResponse.json({
       success: false,
       error: 'Failed to clear all data',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
     }, { status: 500 })
   }
 }
@@ -67,7 +67,7 @@ export async function GET() {
     console.error('Failed to get data statistics:', error)
     return NextResponse.json({
       error: 'Failed to get data statistics',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
     }, { status: 500 })
   }
 }

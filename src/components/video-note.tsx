@@ -98,6 +98,8 @@ export function VideoNote({
   const [quickNoteCapturing, setQuickNoteCapturing] = useState(false)
   const [quickNoteStartTime, setQuickNoteStartTime] = useState(0)
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+  const [editingNoteTitle, setEditingNoteTitle] = useState('')
+  const [editingNoteContent, setEditingNoteContent] = useState('')
   const [isFavorited, setIsFavorited] = useState(false)
   const [playerReady, setPlayerReady] = useState(false)
   const playerRef = useRef<any>(null)
@@ -220,11 +222,12 @@ export function VideoNote({
         }
       } catch (error) {
         console.error('Failed to load notes:', error)
+        showNotification('Error', 'Failed to load notes', 'error')
       }
     }
     
     loadNotes()
-  }, [videoId])
+  }, [videoId, onNotesChange]) // Reload when videoId changes or onNotesChange is called
 
   // Monitor video progress for current time updates
   useEffect(() => {
@@ -410,20 +413,79 @@ export function VideoNote({
     }
   }
 
-  const handleUpdateNote = (noteId: string, comment: string) => {
-    setNotes(notes.map(note => 
-      note.id === noteId ? { ...note, comment } : note
-    ))
-    setEditingNoteId(null)
+  const handleUpdateNote = async (noteId: string, title: string, comment: string) => {
+    try {
+      const response = await fetch(`/api/notes/${noteId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          note: comment,
+          fontSize: 16 // You can make this configurable if needed
+        })
+      })
+      
+      if (response.ok) {
+        setNotes(notes.map(note => 
+          note.id === noteId ? { ...note, title, comment } : note
+        ))
+        setEditingNoteId(null)
+        showNotification('Note Updated', 'The note has been updated successfully', 'success')
+        
+        // Call parent callback to refresh notes
+        if (onNotesChange) {
+          onNotesChange()
+        }
+      } else {
+        throw new Error('Failed to update note')
+      }
+    } catch (error) {
+      console.error('Failed to update note:', error)
+      showNotification('Error', 'Failed to update note. Please try again.', 'error')
+    }
   }
 
-  const handleDeleteNote = (id: string) => {
-    // Direct deletion without confirmation
-    setNotes(notes.filter(note => note.id !== id))
-    if (activeNoteId === id) {
-      setActiveNoteId(null)
+  const startEditingNote = (note: VideoNote) => {
+    setEditingNoteId(note.id)
+    setEditingNoteTitle(note.title)
+    setEditingNoteContent(note.comment || '')
+  }
+
+  const cancelEditingNote = () => {
+    setEditingNoteId(null)
+    setEditingNoteTitle('')
+    setEditingNoteContent('')
+  }
+
+  const saveEditingNote = () => {
+    if (editingNoteId && editingNoteTitle.trim()) {
+      handleUpdateNote(editingNoteId, editingNoteTitle, editingNoteContent)
     }
-    showNotification('Note Deleted', 'The note has been removed successfully', 'success')
+  }
+
+  const handleDeleteNote = async (id: string) => {
+    try {
+      const response = await fetch(`/api/notes/${id}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        setNotes(notes.filter(note => note.id !== id))
+        if (activeNoteId === id) {
+          setActiveNoteId(null)
+        }
+        showNotification('Note Deleted', 'The note has been removed successfully', 'success')
+        
+        // Call parent callback to refresh notes
+        if (onNotesChange) {
+          onNotesChange()
+        }
+      } else {
+        throw new Error('Failed to delete note')
+      }
+    } catch (error) {
+      console.error('Failed to delete note:', error)
+      showNotification('Error', 'Failed to delete note. Please try again.', 'error')
+    }
   }
 
   const handlePlayNote = (note: VideoNote) => {
@@ -859,62 +921,100 @@ export function VideoNote({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 dark:text-white mb-1 truncate">
-                          {note.title}
-                        </h3>
-                        
-                        {note.comment && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
-                            {note.comment}
-                          </p>
+                        {editingNoteId === note.id ? (
+                          <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
+                            <Input
+                              value={editingNoteTitle}
+                              onChange={(e) => setEditingNoteTitle(e.target.value)}
+                              placeholder="Note title"
+                              className="font-medium"
+                            />
+                            <textarea
+                              value={editingNoteContent}
+                              onChange={(e) => setEditingNoteContent(e.target.value)}
+                              placeholder="Note content"
+                              className="w-full p-2 border rounded-md text-sm resize-none"
+                              rows={3}
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={saveEditingNote}
+                                size="sm"
+                                className="flex-1"
+                              >
+                                <Save className="w-3 h-3 mr-1" />
+                                Save
+                              </Button>
+                              <Button
+                                onClick={cancelEditingNote}
+                                size="sm"
+                                variant="outline"
+                                className="flex-1"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <h3 className="font-medium text-gray-900 dark:text-white mb-1 truncate">
+                              {note.title}
+                            </h3>
+                            
+                            {note.comment && (
+                              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                                {note.comment}
+                              </p>
+                            )}
+                            
+                            <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {formatTime(note.startTime)} - {formatTime(note.endTime)}
+                              </span>
+                              <span>Duration: {formatTime(note.endTime - note.startTime)}</span>
+                            </div>
+                          </>
                         )}
-                        
-                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {formatTime(note.startTime)} - {formatTime(note.endTime)}
-                          </span>
-                          <span>Duration: {formatTime(note.endTime - note.startTime)}</span>
-                        </div>
                       </div>
                       
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handlePlayNote(note)
-                          }}
-                          size="sm"
-                        >
-                          <Play className="w-3 h-3 mr-1" />
-                          Play
-                        </Button>
-                        
-                        {note.comment && editingNoteId !== note.id && (
+                      {editingNoteId !== note.id && (
+                        <div className="flex flex-col gap-2">
                           <Button
                             onClick={(e) => {
                               e.stopPropagation()
-                              setEditingNoteId(note.id)
+                              handlePlayNote(note)
+                            }}
+                            size="sm"
+                          >
+                            <Play className="w-3 h-3 mr-1" />
+                            Play
+                          </Button>
+                          
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              startEditingNote(note)
                             }}
                             size="sm"
                             variant="outline"
                           >
                             <Edit className="w-3 h-3" />
                           </Button>
-                        )}
-                        
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDeleteNote(note.id)
-                          }}
-                          size="sm"
-                          variant="outline"
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
+                          
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteNote(note.id)
+                            }}
+                            size="sm"
+                            variant="outline"
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}

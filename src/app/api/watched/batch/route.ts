@@ -51,8 +51,8 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Videos array required' }, { status: 400 })
     }
 
-    const updatedVideos = []
-    const errors = []
+    const updatedVideos: any[] = []
+    const errors: any[] = []
 
     for (const video of videos) {
       try {
