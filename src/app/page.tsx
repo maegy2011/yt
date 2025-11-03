@@ -29,7 +29,12 @@ import {
   Bell,
   Eye,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  FileText,
+  Menu,
+  X,
+  Save,
+  PlusCircle
 } from 'lucide-react'
 import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
 import { validateSearchQuery, validateYouTubeUrl } from '@/lib/validation'
@@ -40,7 +45,7 @@ import { SplashScreen } from '@/components/splash-screen'
 import { VideoNote } from '@/components/video-note'
 
 // Enhanced types with better safety
-type Tab = 'home' | 'search' | 'player' | 'watched' | 'channels' | 'favorites'
+type Tab = 'home' | 'search' | 'player' | 'watched' | 'channels' | 'favorites' | 'notes'
 
 interface BaseVideoData {
   id: string
@@ -94,6 +99,13 @@ export default function MyTubeApp() {
   const [watchedVideos, setWatchedVideos] = useState<WatchedVideo[]>([])
   const [favoriteChannels, setFavoriteChannels] = useState<FavoriteChannel[]>([])
   const [favoriteVideos, setFavoriteVideos] = useState<FavoriteVideo[]>([])
+  const [allNotes, setAllNotes] = useState<any[]>([])
+  const [notesLoading, setNotesLoading] = useState(false)
+  const [notesSearchQuery, setNotesSearchQuery] = useState('')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [editingNote, setEditingNote] = useState<any>(null)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [updatedNoteContent, setUpdatedNoteContent] = useState('')
   
   // Channel search states
   const [channelSearchResults, setChannelSearchResults] = useState<any[]>([])
@@ -120,8 +132,6 @@ export default function MyTubeApp() {
   const [loadingUrl, setLoadingUrl] = useState(false)
   const [urlError, setUrlError] = useState('')
   const [urlSuccess, setUrlSuccess] = useState('')
-  const [clipboardHasYouTubeUrl, setClipboardHasYouTubeUrl] = useState(false)
-  const [clipboardChecking, setClipboardChecking] = useState(false)
   
   // Notification system state
   const [notifications, setNotifications] = useState<Array<{
@@ -195,6 +205,12 @@ export default function MyTubeApp() {
     return timestamp.toLocaleDateString()
   }, [])
 
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
   // Haptic feedback for mobile navigation
   const triggerHapticFeedback = useCallback(() => {
     if ('vibrate' in navigator) {
@@ -265,7 +281,8 @@ export default function MyTubeApp() {
         await Promise.all([
           loadWatchedVideos(),
           loadFavoriteChannels(),
-          loadFavoriteVideos()
+          loadFavoriteVideos(),
+          loadNotes()
         ])
         if (favoriteChannels.length > 0) {
           await loadChannelVideos()
@@ -335,6 +352,32 @@ export default function MyTubeApp() {
     localStorage.setItem('mytube-auto-load-more', autoLoadMore.toString())
   }, [autoLoadMore])
 
+  // Close mobile menu when screen size changes from mobile to larger
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) { // md breakpoint
+        setMobileMenuOpen(false)
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    handleResize() // Check on initial load
+
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  // Close mobile menu when pressing Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && mobileMenuOpen) {
+        setMobileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [mobileMenuOpen])
+
   // Reset intersection loading when search query changes or tab switches
   useEffect(() => {
     setIsIntersectionLoading(false)
@@ -358,6 +401,7 @@ export default function MyTubeApp() {
     { id: 'watched' as Tab, icon: Clock, label: 'Watched' },
     { id: 'channels' as Tab, icon: User, label: 'Channels' },
     { id: 'favorites' as Tab, icon: Heart, label: 'Favorites' },
+    { id: 'notes' as Tab, icon: FileText, label: 'Notes' },
   ], [])
 
   // Enhanced tab navigation with haptic feedback
@@ -443,7 +487,7 @@ export default function MyTubeApp() {
       const verticalDistance = Math.abs(touchEndY - touchStartY)
       
       if (Math.abs(swipeDistance) > minSwipeDistance && verticalDistance < maxVerticalDistance) {
-        const tabs: Tab[] = ['home', 'search', 'player', 'watched', 'channels', 'favorites']
+        const tabs: Tab[] = ['home', 'search', 'player', 'watched', 'channels', 'favorites', 'notes']
         const currentIndex = tabs.indexOf(activeTab)
         
         if (swipeDistance > 0) {
@@ -476,7 +520,7 @@ export default function MyTubeApp() {
         return
       }
 
-      const tabs: Tab[] = ['home', 'search', 'player', 'watched', 'channels', 'favorites']
+      const tabs: Tab[] = ['home', 'search', 'player', 'watched', 'channels', 'favorites', 'notes']
       const currentIndex = tabs.indexOf(activeTab)
 
       switch (e.key) {
@@ -613,6 +657,97 @@ export default function MyTubeApp() {
     }
   }
 
+  const loadNotes = async (): Promise<void> => {
+    try {
+      setNotesLoading(true)
+      const response = await fetch('/api/notes')
+      if (!response.ok) throw new Error('Failed to fetch notes')
+      const data = await response.json()
+      setAllNotes(data || [])
+    } catch (error) {
+      console.error('Failed to load notes:', error)
+      setAllNotes([])
+      addNotification('Failed to load notes', 'Please try again', 'destructive')
+    } finally {
+      setNotesLoading(false)
+    }
+  }
+
+  const deleteNote = async (noteId: string): Promise<void> => {
+    try {
+      const response = await fetch(`/api/notes/${noteId}`, {
+        method: 'DELETE'
+      })
+      if (!response.ok) throw new Error('Failed to delete note')
+      
+      setAllNotes(prev => prev.filter(note => note.id !== noteId))
+      addNotification('Note deleted', 'The note has been removed successfully', 'success')
+    } catch (error) {
+      console.error('Failed to delete note:', error)
+      addNotification('Failed to delete note', 'Please try again', 'destructive')
+    }
+  }
+
+  const updateNote = async (noteId: string, newContent: string): Promise<void> => {
+    try {
+      const response = await fetch(`/api/notes/${noteId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ note: newContent })
+      })
+      if (!response.ok) throw new Error('Failed to update note')
+      
+      const updatedNote = await response.json()
+      setAllNotes(prev => prev.map(note => 
+        note.id === noteId ? { ...note, note: newContent } : note
+      ))
+      addNotification('Note updated', 'The note has been updated successfully', 'success')
+    } catch (error) {
+      console.error('Failed to update note:', error)
+      addNotification('Failed to update note', 'Please try again', 'destructive')
+    }
+  }
+
+  const handleEditNote = (note: any) => {
+    setEditingNote(note)
+    setUpdatedNoteContent(note.note || '')
+    setEditDialogOpen(true)
+  }
+
+  const handleSaveNoteUpdate = async () => {
+    if (editingNote && updatedNoteContent.trim()) {
+      await updateNote(editingNote.id, updatedNoteContent.trim())
+      setEditDialogOpen(false)
+      setEditingNote(null)
+      setUpdatedNoteContent('')
+    }
+  }
+
+  const filteredNotes = allNotes.filter(note => 
+    note.title.toLowerCase().includes(notesSearchQuery.toLowerCase()) ||
+    note.note.toLowerCase().includes(notesSearchQuery.toLowerCase()) ||
+    note.channelName.toLowerCase().includes(notesSearchQuery.toLowerCase())
+  )
+
+  const hasNotes = (videoId: string): boolean => {
+    return allNotes.some(note => note.videoId === videoId)
+  }
+
+  const isWatched = (videoId: string): boolean => {
+    return watchedVideos.some(video => video.videoId === videoId)
+  }
+
+  const toggleMobileMenu = useCallback(() => {
+    setMobileMenuOpen(prev => !prev)
+  }, [])
+
+  const handleTabNavigationWithMobileMenu = useCallback((tabId: Tab) => {
+    handleTabNavigation(tabId)
+    setMobileMenuOpen(false)
+  }, [handleTabNavigation])
+
   const clearAllData = async (): Promise<void> => {
     setShowClearDataConfirmation(true)
   }
@@ -719,30 +854,6 @@ export default function MyTubeApp() {
   }
 
   // YouTube URL player functions
-  const checkClipboardAndPaste = useCallback(async () => {
-    setClipboardChecking(true)
-    try {
-      const { checkClipboardForYouTubeVideo, getVideoIdFromClipboard } = await import('@/lib/youtube-utils')
-      const hasYouTubeUrl = await checkClipboardForYouTubeVideo()
-      
-      if (hasYouTubeUrl) {
-        const videoId = await getVideoIdFromClipboard()
-        if (videoId) {
-          // Try to get the full clipboard text for the URL
-          const clipboardText = await navigator.clipboard.readText()
-          setYoutubeUrl(clipboardText)
-          setUrlError('')
-          addNotification('Clipboard Pasted', 'YouTube URL pasted from clipboard', 'success')
-        }
-      }
-    } catch (error) {
-      console.error('Error checking clipboard:', error)
-      addNotification('Clipboard Error', 'Failed to access clipboard', 'destructive')
-    } finally {
-      setClipboardChecking(false)
-    }
-  }, [addNotification])
-
   const playYouTubeUrl = useCallback(async () => {
     const trimmedUrl = youtubeUrl.trim()
     if (!trimmedUrl) {
@@ -840,31 +951,7 @@ export default function MyTubeApp() {
     }
   }, [youtubeUrl, addNotification, loadWatchedVideos])
 
-  // Check clipboard for YouTube URL on component mount and when switching to player tab
-  useEffect(() => {
-    if (activeTab === 'player' && navigator.clipboard) {
-      const checkClipboard = async () => {
-        try {
-          const { checkClipboardForYouTubeVideo } = await import('@/lib/youtube-utils')
-          const hasYouTubeUrl = await checkClipboardForYouTubeVideo()
-          setClipboardHasYouTubeUrl(hasYouTubeUrl)
-        } catch (error) {
-          // Silently fail clipboard checking
-          setClipboardHasYouTubeUrl(false)
-        }
-      }
-      
-      checkClipboard()
-      
-      // Set up interval to check clipboard when user focuses back to the window
-      const handleFocus = () => {
-        checkClipboard()
-      }
-      
-      window.addEventListener('focus', handleFocus)
-      return () => window.removeEventListener('focus', handleFocus)
-    }
-  }, [activeTab])
+  
 
   const handleSearch = async (append: boolean = false) => {
     const trimmedQuery = searchQuery.trim()
@@ -1368,6 +1455,20 @@ export default function MyTubeApp() {
                     {formatDuration(video.duration)}
                   </Badge>
                 )}
+                
+                {/* Overlay Icons */}
+                <div className="absolute top-2 left-2 flex gap-1">
+                  {hasNotes(video.id) && (
+                    <div className="w-6 h-6 bg-green-500/90 backdrop-blur-sm rounded-full flex items-center justify-center" title="Has notes">
+                      <FileText className="w-3 h-3 text-white" />
+                    </div>
+                  )}
+                  {isWatched(video.id) && (
+                    <div className="w-6 h-6 bg-blue-500/90 backdrop-blur-sm rounded-full flex items-center justify-center" title="Watched">
+                      <Eye className="w-3 h-3 text-white" />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             
@@ -1437,7 +1538,7 @@ export default function MyTubeApp() {
         </CardContent>
       </Card>
     )
-  }, [favoriteVideoIds, selectedItems, multiSelectMode, getThumbnailUrl, getChannelName, getChannelLogo, toggleItemSelection, toggleFavorite])
+  }, [favoriteVideoIds, selectedItems, multiSelectMode, getThumbnailUrl, getChannelName, getChannelLogo, toggleItemSelection, toggleFavorite, hasNotes, isWatched, allNotes, watchedVideos])
 
   const loadMoreVideos = useCallback(async () => {
     if (loadingMore || !hasMoreVideos || !currentSearchQuery || isIntersectionLoading || hasTriggeredLoad) return
@@ -1833,19 +1934,6 @@ export default function MyTubeApp() {
                     className="flex-1"
                   />
                   <Button
-                    onClick={checkClipboardAndPaste}
-                    disabled={!clipboardHasYouTubeUrl || clipboardChecking}
-                    variant="outline"
-                    className="px-3"
-                    title={clipboardHasYouTubeUrl ? "Paste from clipboard" : "No YouTube URL in clipboard"}
-                  >
-                    {clipboardChecking ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <ArrowDown className="w-4 h-4" />
-                    )}
-                  </Button>
-                  <Button
                     onClick={playYouTubeUrl}
                     disabled={!youtubeUrl.trim() || loadingUrl}
                     className="px-4"
@@ -2091,6 +2179,224 @@ export default function MyTubeApp() {
           </div>
         )
 
+      case 'notes':
+        return (
+          <div className="space-y-4 sm:space-y-6">
+            <div className="bg-gradient-to-r from-green-10 via-green-5 to-transparent rounded-2xl p-4 sm:p-6 border border-green-20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent mb-2">
+                    My Notes
+                  </h2>
+                  <p className="text-sm sm:text-base text-muted-foreground">All your video notes in one place</p>
+                </div>
+                <div className="text-xl sm:text-2xl font-bold text-green-600">
+                  {allNotes.length}
+                </div>
+              </div>
+            </div>
+
+            {/* Search Notes */}
+            <div className="bg-card rounded-2xl p-3 sm:p-4 border">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  placeholder="Search notes by title, content, or channel..."
+                  value={notesSearchQuery}
+                  onChange={(e) => setNotesSearchQuery(e.target.value)}
+                  className="pl-10 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Notes List */}
+            {notesLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : filteredNotes.length > 0 ? (
+              <div className="space-y-3 sm:space-y-4">
+                {filteredNotes.map((note) => (
+                  <Card key={note.id} className="p-3 sm:p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      {/* Video Thumbnail */}
+                      <div className="flex-shrink-0 w-20 h-14 sm:w-24 sm:h-16 bg-muted rounded-lg overflow-hidden">
+                        {note.thumbnail ? (
+                          <img 
+                            src={note.thumbnail} 
+                            alt={note.title}
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => {
+                              setSelectedVideo({
+                                id: note.videoId,
+                                title: note.title,
+                                channelName: note.channelName,
+                                thumbnail: note.thumbnail,
+                              })
+                              setActiveTab('player')
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center cursor-pointer"
+                               onClick={() => {
+                                 setSelectedVideo({
+                                   id: note.videoId,
+                                   title: note.title,
+                                   channelName: note.channelName,
+                                   thumbnail: note.thumbnail,
+                                 })
+                                 setActiveTab('player')
+                               }}>
+                            <Play className="w-4 h-4 sm:w-6 sm:h-6 text-primary/60" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Note Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 
+                              className="font-semibold text-sm sm:text-base text-foreground mb-1 cursor-pointer hover:text-primary transition-colors line-clamp-2"
+                              onClick={() => {
+                                setSelectedVideo({
+                                  id: note.videoId,
+                                  title: note.title,
+                                  channelName: note.channelName,
+                                  thumbnail: note.thumbnail,
+                                })
+                                setActiveTab('player')
+                              }}
+                            >
+                              {note.title}
+                            </h3>
+                            <p className="text-xs sm:text-sm text-muted-foreground mb-2">
+                              {note.channelName}
+                            </p>
+                            <p className="text-xs sm:text-sm text-foreground line-clamp-2 sm:line-clamp-3">
+                              {note.note}
+                            </p>
+                            {note.isClip && (
+                              <div className="flex items-center gap-2 mt-2">
+                                <Badge variant="secondary" className="text-xs">
+                                  Clip: {formatTime(note.startTime || 0)} - {formatTime(note.endTime || 0)}
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditNote(note)}
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 w-8 p-0 flex-shrink-0"
+                              title="Edit note"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteNote(note.id)}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 flex-shrink-0"
+                              title="Delete note"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <FileText className="w-12 h-12 sm:w-16 sm:h-16 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-base sm:text-lg font-semibold text-foreground mb-2">
+                  {notesSearchQuery ? 'No matching notes found' : 'No notes yet'}
+                </h3>
+                <p className="text-sm text-muted-foreground px-4">
+                  {notesSearchQuery 
+                    ? 'Try adjusting your search terms'
+                    : 'Start taking notes while watching videos to see them here'
+                  }
+                </p>
+              </div>
+            )}
+          </div>
+        )
+
+      {/* Edit Note Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="w-5 h-5" />
+              Edit Note
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {editingNote && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Video Title</label>
+                  <p className="text-sm text-muted-foreground">{editingNote.title}</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Channel</label>
+                  <p className="text-sm text-muted-foreground">{editingNote.channelName}</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="note-content" className="text-sm font-medium">
+                    Note Content
+                  </label>
+                  <textarea
+                    id="note-content"
+                    value={updatedNoteContent}
+                    onChange={(e) => setUpdatedNoteContent(e.target.value)}
+                    className="w-full min-h-[100px] p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="Enter your note content here..."
+                  />
+                </div>
+                
+                {editingNote.isClip && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Clip Duration</label>
+                    <p className="text-sm text-muted-foreground">
+                      {formatTime(editingNote.startTime || 0)} - {formatTime(editingNote.endTime || 0)}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditDialogOpen(false)
+                setEditingNote(null)
+                setUpdatedNoteContent('')
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveNoteUpdate}
+              disabled={!updatedNoteContent.trim()}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       default:
         return null
     }
@@ -2126,6 +2432,21 @@ export default function MyTubeApp() {
             </div>
             
             <div className="flex items-center gap-1 sm:gap-2">
+              {/* Mobile Menu Toggle */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleMobileMenu}
+                className="md:hidden h-9 w-9 p-0 transition-all duration-200 hover:scale-105 hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                title="Toggle menu"
+              >
+                {mobileMenuOpen ? (
+                  <X className="w-5 h-5 transition-transform duration-200" />
+                ) : (
+                  <Menu className="w-5 h-5 transition-transform duration-200" />
+                )}
+              </Button>
+              
               <Button
                 variant="ghost"
                 size="sm"
@@ -2155,6 +2476,60 @@ export default function MyTubeApp() {
           </div>
         </div>
       </header>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={toggleMobileMenu}>
+          <div 
+            className="absolute top-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-b border-border shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4">
+              <nav className="grid grid-cols-3 sm:grid-cols-4 gap-2" role="navigation" aria-label="Main navigation">
+                {tabs.map((tab, index) => {
+                  const isActive = activeTab === tab.id
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => handleTabNavigationWithMobileMenu(tab.id)}
+                      className={`group relative flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-300 ease-out ${
+                        isActive 
+                          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105' 
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105'
+                      }`}
+                      style={{
+                        transitionDelay: `${index * 50}ms`
+                      }}
+                      aria-label={`Navigate to ${tab.label}`}
+                      aria-current={isActive ? 'page' : undefined}
+                    >
+                      <div className={`relative transition-all duration-300 ${
+                        isActive ? 'scale-110' : 'scale-100 group-hover:scale-110'
+                      }`}>
+                        <tab.icon className={`w-5 h-5 transition-all duration-300 ${
+                          isActive ? 'drop-shadow-md' : ''
+                        }`} />
+                        
+                        {isActive && (
+                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-background rounded-full animate-pulse" />
+                        )}
+                      </div>
+                      
+                      <span className={`text-xs font-medium transition-all duration-300 leading-tight ${
+                        isActive 
+                          ? 'text-primary-foreground font-semibold' 
+                          : 'text-muted-foreground group-hover:text-foreground'
+                      }`}>
+                        {tab.label}
+                      </span>
+                    </button>
+                  )
+                })}
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notification Area - Below Header */}
       <div className={`bg-background/95 backdrop-blur-lg border-b border-border/50 transition-all duration-300 ease-in-out ${
@@ -2342,16 +2717,16 @@ export default function MyTubeApp() {
       </div>
 
       {/* Desktop Tabs Bar - Visible on desktop only */}
-      <div className="hidden lg:block bg-background/95 backdrop-blur-xl border-b border-border/50 sticky top-16 z-30 shadow-lg shadow-black/5 dark:shadow-black/20">
+      <div className="hidden md:block bg-background/95 backdrop-blur-xl border-b border-border/50 sticky top-16 z-30 shadow-lg shadow-black/5 dark:shadow-black/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <nav className="flex items-center gap-2 py-4" role="navigation" aria-label="Main navigation">
+          <nav className="flex items-center gap-1 md:gap-2 py-4" role="navigation" aria-label="Main navigation">
             {tabs.map((tab, index) => {
               const isActive = activeTab === tab.id
               return (
                 <div key={tab.id} className="relative">
                   <button
                     onClick={() => handleTabNavigation(tab.id)}
-                    className={`group relative flex items-center gap-3 px-5 py-3 rounded-xl text-sm font-medium transition-all duration-300 ease-out ${
+                    className={`group relative flex items-center gap-2 md:gap-3 px-3 md:px-5 py-2 md:py-3 rounded-xl text-xs md:text-sm font-medium transition-all duration-300 ease-out ${
                       isActive 
                         ? 'bg-primary text-primary-foreground shadow-xl shadow-primary/30 dark:shadow-primary/40 scale-105 ring-2 ring-primary/20 ring-offset-2 ring-offset-background' 
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105 hover:shadow-lg hover:shadow-black/10 dark:hover:shadow-black/30'
@@ -2366,18 +2741,18 @@ export default function MyTubeApp() {
                     <div className={`relative transition-all duration-300 ${
                       isActive ? 'scale-110 rotate-6' : 'scale-100 group-hover:scale-110 group-hover:rotate-3'
                     }`}>
-                      <tab.icon className={`w-4 h-4 transition-all duration-300 ${
+                      <tab.icon className={`w-3.5 h-3.5 md:w-4 md:h-4 transition-all duration-300 ${
                         isActive ? 'drop-shadow-lg drop-shadow-primary/30' : ''
                       }`} />
                       
                       {/* Active Indicator */}
                       {isActive && (
-                        <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-background rounded-full animate-pulse border-2 border-primary shadow-sm shadow-primary/30" />
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-background rounded-full animate-pulse border-2 border-primary shadow-sm shadow-primary/30" />
                       )}
                     </div>
                     
-                    {/* Label */}
-                    <span className="font-medium">{tab.label}</span>
+                    {/* Label - Hidden on smaller screens */}
+                    <span className="hidden sm:block font-medium">{tab.label}</span>
                     
                     {/* Hover Background Effect - REMOVED */}
                     {/* <div className={`absolute inset-0 rounded-xl transition-all duration-300 ${
@@ -2420,7 +2795,7 @@ export default function MyTubeApp() {
       </div>
 
       {/* Tablet Navigation - Medium screens */}
-      <div className="hidden md:block lg:hidden bg-background/95 backdrop-blur-xl border-b border-border/50 sticky top-16 z-30 shadow-md shadow-black/3 dark:shadow-black/15">
+      <div className="hidden sm:block md:hidden bg-background/95 backdrop-blur-xl border-b border-border/50 sticky top-16 z-30 shadow-md shadow-black/3 dark:shadow-black/15">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <nav className="flex items-center justify-between py-3" role="navigation" aria-label="Main navigation">
             {tabs.map((tab, index) => {
@@ -2470,7 +2845,9 @@ export default function MyTubeApp() {
       </div>
 
       {/* Mobile Bottom Navigation - Always visible on mobile */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border/50 z-40 shadow-2xl shadow-black/10 dark:shadow-black/40">
+      <div className={`md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border/50 z-40 shadow-2xl shadow-black/10 dark:shadow-black/40 transition-transform duration-300 ease-out ${
+        mobileMenuOpen ? 'translate-y-full' : 'translate-y-0'
+      }`}>
         <div className="relative">
           {/* Active Tab Indicator - REMOVED */}
           {/* <div 
@@ -2481,14 +2858,14 @@ export default function MyTubeApp() {
             }}
           /> */}
           
-          <nav className="flex items-center justify-around py-2" role="navigation" aria-label="Main navigation">
+          <nav className="flex items-center justify-around py-2 overflow-x-auto" role="navigation" aria-label="Main navigation">
             {tabs.map((tab, index) => {
               const isActive = activeTab === tab.id
               return (
                 <button
                   key={tab.id}
                   onClick={() => handleTabNavigation(tab.id)}
-                  className={`group relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-300 ease-out ${
+                  className={`group relative flex flex-col items-center gap-1 px-2 py-2 rounded-xl transition-all duration-300 ease-out flex-shrink-0 min-w-0 ${
                     isActive 
                       ? 'text-primary scale-105 shadow-lg shadow-primary/25 dark:shadow-primary/35' 
                       : 'text-muted-foreground hover:text-foreground hover:scale-105 hover:shadow-md hover:shadow-black/5 dark:hover:shadow-black/25'
@@ -2503,7 +2880,7 @@ export default function MyTubeApp() {
                   <div className={`relative transition-all duration-300 ${
                     isActive ? 'scale-110' : 'scale-100 group-hover:scale-110'
                   }`}>
-                    <tab.icon className={`w-5 h-5 transition-all duration-300 ${
+                    <tab.icon className={`w-4 h-4 sm:w-5 sm:h-5 transition-all duration-300 ${
                       isActive ? 'drop-shadow-md drop-shadow-primary/25' : ''
                     }`} />
                     
@@ -2514,7 +2891,7 @@ export default function MyTubeApp() {
                   </div>
                   
                   {/* Label */}
-                  <span className={`text-[11px] font-medium transition-all duration-300 leading-tight ${
+                  <span className={`text-[10px] sm:text-[11px] font-medium transition-all duration-300 leading-tight truncate ${
                     isActive 
                       ? 'text-primary font-semibold' 
                       : 'text-muted-foreground group-hover:text-foreground'
