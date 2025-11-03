@@ -106,8 +106,8 @@ export function withLoadingError<P extends object>(
 }
 
 // Hook for managing loading and error states
-export function useLoadingError<T extends any[] = []>(
-  asyncFn: (...args: T) => Promise<any>,
+export function useLoadingError(
+  asyncFn: (...args: any[]) => Promise<any>,
   options: {
     immediate?: boolean
     onSuccess?: (data: any) => void
@@ -119,7 +119,7 @@ export function useLoadingError<T extends any[] = []>(
   const [data, setData] = React.useState<any>(null)
 
   const execute = React.useCallback(
-    async (...args: T) => {
+    async (...args: any[]) => {
       try {
         setIsLoading(true)
         setError(null)

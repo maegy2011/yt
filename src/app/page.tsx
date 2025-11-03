@@ -14,6 +14,7 @@ import {
   Home, 
   Search, 
   Play, 
+  Pause,
   Clock, 
   Heart, 
   User, 
@@ -39,37 +40,18 @@ import {
 import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
 import { validateSearchQuery, validateYouTubeUrl } from '@/lib/validation'
 import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from '@/lib/loading-messages'
-import type { Video, Channel } from '@/lib/youtube'
+import type { Video as YouTubeVideo, Channel } from '@/lib/youtube'
+import { convertYouTubeVideo, convertToYouTubeVideo, convertDbVideoToSimple, type SimpleVideo, type WatchedVideo, type FavoriteVideo, type FavoriteChannel } from '@/lib/type-compatibility'
 import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleton'
 import { SplashScreen } from '@/components/splash-screen'
 import { VideoNote } from '@/components/video-note'
+import { useBackgroundPlayer } from '@/contexts/background-player-context'
 
 // Enhanced types with better safety
 type Tab = 'home' | 'search' | 'player' | 'watched' | 'channels' | 'favorites' | 'notes'
 
-interface BaseVideoData {
-  id: string
-  videoId: string
-  title: string
-  channelName: string
-  thumbnail: string
-  duration?: string
-  viewCount?: number
-}
-
-interface WatchedVideo extends BaseVideoData {
-  watchedAt: string
-}
-
-type FavoriteVideo = BaseVideoData
-
-interface FavoriteChannel {
-  id: string
-  channelId: string
-  name: string
-  thumbnail?: string
-  subscriberCount?: number
-}
+// Use SimpleVideo for internal state
+type Video = SimpleVideo
 
 interface SearchResults {
   items: Video[]
@@ -77,6 +59,17 @@ interface SearchResults {
 }
 
 export default function MyTubeApp() {
+  // Background player context
+  const {
+    backgroundVideo,
+    isPlaying: isBackgroundPlaying,
+    currentTime: backgroundCurrentTime,
+    duration: backgroundDuration,
+    showMiniPlayer,
+    pauseBackgroundVideo,
+    stopBackgroundVideo,
+  } = useBackgroundPlayer()
+
   // Core state
   const [activeTab, setActiveTab] = useState<Tab>('home')
   const [previousTab, setPreviousTab] = useState<Tab>('home')
@@ -267,7 +260,7 @@ export default function MyTubeApp() {
 
   // Show dynamic confirmation message
   const showDynamicConfirmation = useCallback((operation: keyof typeof confirmationMessages, ...args: any[]) => {
-    const message = getConfirmationMessage(operation, ...args)
+    const message = getConfirmationMessage(operation, args)
     addNotification('Success!', message, 'success')
     setDynamicLoadingMessage('')
   }, [addNotification])
@@ -653,7 +646,9 @@ export default function MyTubeApp() {
       const response = await fetch('/api/watched')
       if (!response.ok) throw new Error('Failed to fetch watched videos')
       const data = await response.json()
-      setWatchedVideos(data || [])
+      // Convert database videos to SimpleVideo format
+      const convertedVideos = (data || []).map((video: WatchedVideo) => convertDbVideoToSimple(video))
+      setWatchedVideos(convertedVideos)
     } catch (error) {
       console.error('Failed to load watched videos:', error)
       setWatchedVideos([])
@@ -677,7 +672,9 @@ export default function MyTubeApp() {
       const response = await fetch('/api/favorites')
       if (!response.ok) throw new Error('Failed to fetch favorite videos')
       const data = await response.json()
-      setFavoriteVideos(data || [])
+      // Convert database videos to SimpleVideo format
+      const convertedVideos = (data || []).map((video: FavoriteVideo) => convertDbVideoToSimple(video))
+      setFavoriteVideos(convertedVideos)
     } catch (error) {
       console.error('Failed to load favorite videos:', error)
       setFavoriteVideos([])
@@ -1034,16 +1031,10 @@ export default function MyTubeApp() {
         // Create video object from response
         const videoObject = {
           id: data.videoId,
+          videoId: data.videoId,
           title: data.title || 'Unknown Video',
-          channel: {
-            name: data.channelName || 'Unknown Channel',
-            id: data.channelId || 'unknown'
-          },
-          thumbnail: {
-            url: data.thumbnail || `https://img.youtube.com/vi/${data.videoId}/mqdefault.jpg`,
-            width: 320,
-            height: 180
-          },
+          channelName: data.channelName || 'Unknown Channel',
+          thumbnail: data.thumbnail || `https://img.youtube.com/vi/${data.videoId}/mqdefault.jpg`,
           duration: data.duration,
           viewCount: data.viewCount || 0,
           publishedAt: data.publishedAt,
@@ -1183,7 +1174,9 @@ export default function MyTubeApp() {
       let finalItems: Video[]
       if (append && searchResults?.items) {
         const existingVideoIds = new Set(searchResults.items.map(v => v.id))
-        const newVideos = data.items.filter((video: Video) => !existingVideoIds.has(video.id))
+        // Convert YouTube videos to SimpleVideo format
+        const convertedVideos = data.items.map((video: YouTubeVideo) => convertYouTubeVideo(video))
+        const newVideos = convertedVideos.filter((video: Video) => !existingVideoIds.has(video.id))
         
         if (newVideos.length > 0) {
           finalItems = [...searchResults.items, ...newVideos]
@@ -1192,7 +1185,8 @@ export default function MyTubeApp() {
           addNotification('No New Videos', 'All videos already loaded', 'info')
         }
       } else {
-        finalItems = data.items
+        // Convert YouTube videos to SimpleVideo format
+        finalItems = data.items.map((video: YouTubeVideo) => convertYouTubeVideo(video))
       }
       
       setSearchResults({ items: finalItems })
@@ -2467,6 +2461,7 @@ export default function MyTubeApp() {
                              if (!multiSelectMode) {
                                setSelectedVideo({
                                  id: note.videoId,
+                                 videoId: note.videoId,
                                  title: note.title,
                                  channelName: note.channelName,
                                  thumbnail: note.thumbnail,
@@ -2498,6 +2493,7 @@ export default function MyTubeApp() {
                                 if (!multiSelectMode) {
                                   setSelectedVideo({
                                     id: note.videoId,
+                                    videoId: note.videoId,
                                     title: note.title,
                                     channelName: note.channelName,
                                     thumbnail: note.thumbnail,
@@ -2713,7 +2709,7 @@ export default function MyTubeApp() {
             {selectedVideo && (
               <div className="p-3 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground">
-                  💡 Video info pre-filled from selected video: <strong>{selectedVideo.title}</strong>
+                  💡 Video info pre-filled from selected video: <strong>{selectedVideo?.title}</strong>
                 </p>
               </div>
             )}
@@ -2779,6 +2775,25 @@ export default function MyTubeApp() {
                 <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </div>
               <h1 className="text-lg sm:text-xl font-bold">MyTube</h1>
+              
+              {/* Background Playback Indicator */}
+              {backgroundVideo && (
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 rounded-full border border-blue-200 dark:border-blue-800">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span className="text-xs font-medium text-blue-700 dark:text-blue-300 truncate max-w-32">
+                    {backgroundVideo.title}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={isBackgroundPlaying ? pauseBackgroundVideo : stopBackgroundVideo}
+                    className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                    title={isBackgroundPlaying ? "Pause background video" : "Stop background video"}
+                  >
+                    {isBackgroundPlaying ? <Pause className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                  </Button>
+                </div>
+              )}
             </div>
             
             <div className="flex items-center gap-1 sm:gap-2">

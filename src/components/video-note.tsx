@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Play, Pause, RotateCcw, Plus, Trash2, Save, Bookmark, Edit, Clock, MessageSquare, User, Eye, Heart, ChevronLeft, ChevronRight, Loader2, Scissors } from 'lucide-react'
+import { Play, Pause, RotateCcw, Plus, Trash2, Save, Bookmark, Edit, Clock, MessageSquare, User, Eye, Heart, ChevronLeft, ChevronRight, Loader2, Scissors, Volume2, VolumeX, Maximize2 } from 'lucide-react'
+import { useBackgroundPlayer } from '@/contexts/background-player-context'
 
 // Import YouTube utility functions (we'll need to create these)
 const formatViewCount = (count: number | string | undefined | null): string => {
@@ -87,6 +88,15 @@ export function VideoNote({
   onNextVideo,
   onNotesChange
 }: VideoNoteProps) {
+  // Background player context
+  const {
+    backgroundVideo,
+    isPlaying: isBackgroundPlaying,
+    playBackgroundVideo,
+    pauseBackgroundVideo,
+    stopBackgroundVideo,
+  } = useBackgroundPlayer()
+
   const [notes, setNotes] = useState<VideoNote[]>([])
   const [newNote, setNewNote] = useState({ title: '', comment: '', startTime: 0, endTime: 30 })
   const [isPlaying, setIsPlaying] = useState(false)
@@ -121,7 +131,7 @@ export function VideoNote({
     if (onPreviousVideo) {
       onPreviousVideo()
     } else {
-      showNotification('Navigation', 'Previous video feature not available', 'info')
+      showNotification('Previous video feature not available', 'info')
     }
   }, [onPreviousVideo, showNotification])
 
@@ -129,7 +139,7 @@ export function VideoNote({
     if (onNextVideo) {
       onNextVideo()
     } else {
-      showNotification('Navigation', 'Next video feature not available', 'info')
+      showNotification('Next video feature not available', 'info')
     }
   }, [onNextVideo, showNotification])
 
@@ -142,7 +152,7 @@ export function VideoNote({
 
   const toggleQuickNote = async () => {
     if (!playerRef.current || !playerReady) {
-      showNotification('Player Not Ready', 'Please wait for the video to load', 'error')
+      showNotification('Please wait for the video to load', 'error')
       return
     }
 
@@ -158,7 +168,7 @@ export function VideoNote({
       const startTime = Math.floor(accurateCurrentTime)
       setQuickNoteStartTime(startTime)
       setQuickNoteCapturing(true)
-      showNotification('Quick Note Started', `Recording from ${formatTime(startTime)}`, 'info')
+      showNotification(`Recording from ${formatTime(startTime)}`, 'info')
     } else {
       // Stop and save
       let accurateCurrentTime = currentTime
@@ -189,7 +199,7 @@ export function VideoNote({
           if (response.ok) {
             setQuickNoteCapturing(false)
             setQuickNoteStartTime(0)
-            showNotification('Quick Note Saved!', `Clip saved from ${formatTime(quickNoteStartTime)} to ${formatTime(endTime)}`, 'success')
+            showNotification(`Clip saved from ${formatTime(quickNoteStartTime)} to ${formatTime(endTime)}`, 'success')
             
             // Call parent callback to refresh notes
             if (onNotesChange) {
@@ -201,10 +211,10 @@ export function VideoNote({
           }
         } catch (error) {
           console.error('Failed to save quick note:', error)
-          showNotification('Error', 'Failed to save quick note. Please try again.', 'error')
+          showNotification('Failed to save quick note. Please try again.', 'error')
         }
       } else {
-        showNotification('Invalid Time', 'End time must be greater than start time', 'error')
+        showNotification('End time must be greater than start time', 'error')
       }
     }
   }
@@ -222,7 +232,7 @@ export function VideoNote({
         }
       } catch (error) {
         console.error('Failed to load notes:', error)
-        showNotification('Error', 'Failed to load notes', 'error')
+        showNotification('Failed to load notes', 'error')
       }
     }
     
@@ -348,7 +358,7 @@ export function VideoNote({
     console.log('Start time set to:', startTime, 'from current time:', accurateCurrentTime)
     
     // Show notification to user
-    showNotification('Start Time Set', `Start time set to ${formatTime(startTime)}`, 'success')
+    showNotification(`Start time set to ${formatTime(startTime)}`, 'success')
   }
 
   const handleSaveNote = async () => {
@@ -390,7 +400,7 @@ export function VideoNote({
           setIsCapturing(false)
           
           // Show success notification
-          showNotification('Note Saved!', `Clip saved from ${formatTime(newNote.startTime)} to ${formatTime(endTime)}`, 'success')
+          showNotification(`Clip saved from ${formatTime(newNote.startTime)} to ${formatTime(endTime)}`, 'success')
           
           // Call parent callback to refresh notes
           if (onNotesChange) {
@@ -404,11 +414,11 @@ export function VideoNote({
         }
       } catch (error) {
         console.error('Failed to save note:', error)
-        showNotification('Error', 'Failed to save note. Please try again.', 'error')
+        showNotification('Failed to save note. Please try again.', 'error')
       }
     } else {
       // Show error notification
-      showNotification('Invalid Time', 'End time must be greater than start time. Please play the video forward before saving.', 'error')
+      showNotification('End time must be greater than start time. Please play the video forward before saving.', 'error')
       console.log('End time not greater than start time:', endTime, '<=', newNote.startTime)
     }
   }
@@ -429,7 +439,7 @@ export function VideoNote({
           note.id === noteId ? { ...note, title, comment } : note
         ))
         setEditingNoteId(null)
-        showNotification('Note Updated', 'The note has been updated successfully', 'success')
+        showNotification('The note has been updated successfully', 'success')
         
         // Call parent callback to refresh notes
         if (onNotesChange) {
@@ -440,7 +450,7 @@ export function VideoNote({
       }
     } catch (error) {
       console.error('Failed to update note:', error)
-      showNotification('Error', 'Failed to update note. Please try again.', 'error')
+      showNotification('Failed to update note. Please try again.', 'error')
     }
   }
 
@@ -473,7 +483,7 @@ export function VideoNote({
         if (activeNoteId === id) {
           setActiveNoteId(null)
         }
-        showNotification('Note Deleted', 'The note has been removed successfully', 'success')
+        showNotification('The note has been removed successfully', 'success')
         
         // Call parent callback to refresh notes
         if (onNotesChange) {
@@ -484,7 +494,7 @@ export function VideoNote({
       }
     } catch (error) {
       console.error('Failed to delete note:', error)
-      showNotification('Error', 'Failed to delete note. Please try again.', 'error')
+      showNotification('Failed to delete note. Please try again.', 'error')
     }
   }
 
@@ -509,6 +519,42 @@ export function VideoNote({
       playerRef.current.pauseVideo()
       setIsPlaying(false)
     }
+  }
+
+  // Background playback functions
+  const handlePlayInBackground = () => {
+    const videoData = {
+      id: videoId,
+      videoId: videoId,
+      title: videoTitle,
+      channelName: channelName || '',
+      thumbnail: thumbnail || '',
+      duration: duration.toString(),
+      viewCount: viewCount || 0,
+      publishedAt: publishedAt || '',
+      isLive: false,
+      description: ''
+    }
+    
+    // Get current playback position
+    const currentTime = playerRef.current?.getCurrentTime() || 0
+    
+    // Start background playback
+    playBackgroundVideo(videoData)
+    
+    // Seek to current position after a short delay
+    setTimeout(() => {
+      if (playerRef.current) {
+        playerRef.current.seekTo(currentTime, true)
+      }
+    }, 500)
+    
+    showNotification('Playing in background', 'info')
+  }
+
+  const handleStopBackground = () => {
+    stopBackgroundVideo()
+    showNotification('Background playback stopped', 'info')
   }
 
   const handleReset = () => {
@@ -669,6 +715,29 @@ export function VideoNote({
                 >
                   <Scissors className={`w-5 h-5 ${quickNoteCapturing ? 'fill-current' : ''}`} />
                 </Button>
+
+                {/* Background Playback Controls */}
+                {backgroundVideo?.id === videoId ? (
+                  <Button
+                    onClick={handleStopBackground}
+                    variant="ghost"
+                    size="sm"
+                    title="Stop background playback"
+                    className="text-red-600 hover:text-red-700 bg-red-50 dark:bg-red-900/20 transition-all duration-200"
+                  >
+                    <VolumeX className="w-5 h-5" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handlePlayInBackground}
+                    variant="ghost"
+                    size="sm"
+                    title="Play in background"
+                    className="text-blue-600 hover:text-blue-700 bg-blue-50 dark:bg-blue-900/20 transition-all duration-200"
+                  >
+                    <Volume2 className="w-5 h-5" />
+                  </Button>
+                )}
                 
                 <div className="flex items-center gap-1">
                   <Button
@@ -880,7 +949,7 @@ export function VideoNote({
                     onClick={() => {
                       setIsCapturing(false)
                       setNewNote({ title: '', comment: '', startTime: 0, endTime: 30 })
-                      showNotification('Capture Cancelled', 'Note capture has been cancelled', 'info')
+                      showNotification('Note capture has been cancelled', 'info')
                     }}
                     variant="outline"
                     className="flex-1"

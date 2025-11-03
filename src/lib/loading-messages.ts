@@ -129,10 +129,11 @@ export function getLoadingMessage(operation: keyof typeof loadingMessages): stri
   }
 }
 
-export function getConfirmationMessage(operation: keyof typeof confirmationMessages, ...args: any[]): string {
+export function getConfirmationMessage(operation: keyof typeof confirmationMessages, args: any[]): string {
   const messages = confirmationMessages[operation]
   if (typeof messages === 'function') {
-    return getRandomMessage(messages(...args))
+    const result = messages(args[0]) // Pass first argument as count
+    return Array.isArray(result) ? getRandomMessage(result) : String(result)
   } else if (Array.isArray(messages)) {
     return getRandomMessage(messages)
   } else {
