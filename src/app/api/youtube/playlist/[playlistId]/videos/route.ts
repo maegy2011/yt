@@ -10,15 +10,24 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
     }
   }
 
+  // Handle YouTubei v1.7.0 Thumbnails object (has .best property)
+  if (thumbnails.best && typeof thumbnails.best === 'string') {
+    return {
+      url: thumbnails.best,
+      width: 1280,
+      height: 720
+    }
+  }
+
   // Handle YouTubei v1.7.0 Thumbnails array
   if (Array.isArray(thumbnails) && thumbnails.length > 0) {
-    // Use the best thumbnail (highest resolution)
+    // Use the best thumbnail (highest resolution) - usually the last one
     const bestThumbnail = thumbnails[thumbnails.length - 1]
     if (bestThumbnail && bestThumbnail.url) {
       return {
         url: bestThumbnail.url,
-        width: bestThumbnail.width || 320,
-        height: bestThumbnail.height || 180
+        width: bestThumbnail.width || 1280,
+        height: bestThumbnail.height || 720
       }
     }
   }
@@ -58,10 +67,17 @@ function extractChannel(channel: any): { id: string; name: string; thumbnail?: s
     }
   }
 
+  // Extract channel thumbnail using the same thumbnail extraction logic
+  let channelThumbnail: string | undefined
+  if (channel.thumbnails) {
+    const thumbnailData = extractThumbnail(channel.thumbnails)
+    channelThumbnail = thumbnailData.url
+  }
+
   return {
     id: channel.id || '',
     name: channel.name || 'Unknown Channel',
-    thumbnail: channel.thumbnails ? extractThumbnail(channel.thumbnails).url : undefined,
+    thumbnail: channelThumbnail,
     subscriberCount: channel.subscriberCount,
     handle: channel.handle
   }

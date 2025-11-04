@@ -4,6 +4,64 @@ import { db } from '@/lib/db'
 
 const youtube = new Client()
 
+// Helper function to extract thumbnail URL from YouTubei v1.7.0 Thumbnails API
+function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
+  if (!thumbnails) {
+    return {
+      url: `https://via.placeholder.com/320x180/374151/ffffff?text=No+Thumbnail`,
+      width: 320,
+      height: 180
+    }
+  }
+
+  // Handle YouTubei v1.7.0 Thumbnails object (has .best property)
+  if (thumbnails.best && typeof thumbnails.best === 'string') {
+    return {
+      url: thumbnails.best,
+      width: 1280,
+      height: 720
+    }
+  }
+
+  // Handle YouTubei v1.7.0 Thumbnails array
+  if (Array.isArray(thumbnails) && thumbnails.length > 0) {
+    // Use the best thumbnail (highest resolution) - usually the last one
+    const bestThumbnail = thumbnails[thumbnails.length - 1]
+    if (bestThumbnail && bestThumbnail.url) {
+      return {
+        url: bestThumbnail.url,
+        width: bestThumbnail.width || 1280,
+        height: bestThumbnail.height || 720
+      }
+    }
+  }
+
+  // Handle single thumbnail object
+  if (thumbnails.url) {
+    return {
+      url: thumbnails.url,
+      width: thumbnails.width || 320,
+      height: thumbnails.height || 180
+    }
+  }
+
+  // Handle string URL
+  if (typeof thumbnails === 'string') {
+    return {
+      url: thumbnails,
+      width: 320,
+      height: 180
+    }
+  }
+
+  // Fallback
+  return {
+    url: `https://via.placeholder.com/320x180/374151/ffffff?text=No+Thumbnail`,
+    width: 320,
+    height: 180
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { channelId: string } }
@@ -23,14 +81,17 @@ export async function GET(
       return NextResponse.json({ error: 'Channel not found' }, { status: 404 })
     }
 
-    // Extract comprehensive channel data
+    // Extract comprehensive channel data using YouTubei v1.7.0 properties
     let sanitizedChannel: any = {
       id: channel.id,
       channelId: channel.id,
       name: channel.name,
       description: channel.description,
-      thumbnail: (channel as any).thumbnail?.url || (channel as any).thumbnail || (channel as any).thumbnails?.[0]?.url,
-      banner: (channel as any).banner?.url || (channel as any).banner,
+      handle: channel.handle,
+      thumbnail: extractThumbnail(channel.thumbnails),
+      banner: channel.banner ? extractThumbnail(channel.banner) : undefined,
+      mobileBanner: channel.mobileBanner ? extractThumbnail(channel.mobileBanner) : undefined,
+      tvBanner: channel.tvBanner ? extractThumbnail(channel.tvBanner) : undefined,
       subscriberCount: channel.subscriberCount || 0,
       videoCount: channel.videoCount || 0,
       viewCount: (channel as any).viewCount || 0,
@@ -40,10 +101,11 @@ export async function GET(
       tags: (channel as any).tags || [],
       isVerified: (channel as any).verified || false,
       isFamilyFriendly: (channel as any).familyFriendly || false,
+      url: channel.url,
       relatedChannels: (channel as any).relatedChannels?.map((rc: any) => ({
         channelId: rc.id,
         name: rc.name,
-        thumbnail: rc.thumbnail?.url || rc.thumbnail,
+        thumbnail: rc.thumbnails ? extractThumbnail(rc.thumbnails).url : rc.thumbnail,
         subscriberCount: rc.subscriberCount || 0
       })) || [],
       // Channel links and social media
@@ -59,19 +121,28 @@ export async function GET(
       // Channel metadata
       metadata: {
         fetchedAt: new Date().toISOString(),
-        hasVideos: !!((channel as any).videos && Array.isArray((channel as any).videos) && (channel as any).videos.length > 0),
+        hasVideos: !!(channel.videos && channel.videos.items && channel.videos.items.length > 0),
+        hasPlaylists: !!(channel.playlists && channel.playlists.items && channel.playlists.items.length > 0),
+        hasShorts: !!(channel.shorts && channel.shorts.items && channel.shorts.items.length > 0),
+        hasLive: !!(channel.live && channel.live.items && channel.live.items.length > 0),
+        shelvesCount: channel.shelves ? channel.shelves.length : 0,
         lastUpdated: new Date().toISOString()
       }
     }
 
     // Include recent videos if requested
-    if (includeVideos && (channel as any).videos) {
-      const channelVideos = (channel as any).videos.slice(0, maxVideos).map((video: any) => ({
+    if (includeVideos && channel.videos) {
+      // Load videos if not already loaded
+      if (channel.videos.items.length === 0) {
+        await channel.videos.next()
+      }
+      
+      const channelVideos = channel.videos.items.slice(0, maxVideos).map((video: any) => ({
         id: video.id,
         videoId: video.id,
         title: video.title,
         description: video.description,
-        thumbnail: video.thumbnail?.url || `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`,
+        thumbnail: extractThumbnail(video.thumbnails),
         duration: video.duration,
         viewCount: video.viewCount || 0,
         publishedAt: video.publishedAt,

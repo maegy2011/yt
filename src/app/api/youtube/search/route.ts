@@ -10,15 +10,24 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
     }
   }
 
+  // Handle YouTubei v1.7.0 Thumbnails object (has .best property)
+  if (thumbnails.best && typeof thumbnails.best === 'string') {
+    return {
+      url: thumbnails.best,
+      width: 1280,
+      height: 720
+    }
+  }
+
   // Handle YouTubei v1.7.0 Thumbnails array
   if (Array.isArray(thumbnails) && thumbnails.length > 0) {
-    // Use the best thumbnail (highest resolution)
+    // Use the best thumbnail (highest resolution) - usually the last one
     const bestThumbnail = thumbnails[thumbnails.length - 1]
     if (bestThumbnail && bestThumbnail.url) {
       return {
         url: bestThumbnail.url,
-        width: bestThumbnail.width || 320,
-        height: bestThumbnail.height || 180
+        width: bestThumbnail.width || 1280,
+        height: bestThumbnail.height || 720
       }
     }
   }
@@ -58,10 +67,17 @@ function extractChannel(channel: any): { id: string; name: string; thumbnail?: s
     }
   }
 
+  // Extract channel thumbnail using the same thumbnail extraction logic
+  let channelThumbnail: string | undefined
+  if (channel.thumbnails) {
+    const thumbnailData = extractThumbnail(channel.thumbnails)
+    channelThumbnail = thumbnailData.url
+  }
+
   return {
     id: channel.id || '',
     name: channel.name || 'Unknown Channel',
-    thumbnail: channel.thumbnails ? extractThumbnail(channel.thumbnails).url : undefined,
+    thumbnail: channelThumbnail,
     subscriberCount: channel.subscriberCount,
     handle: channel.handle
   }
@@ -173,8 +189,28 @@ export async function GET(request: NextRequest) {
     
     // Extract video and playlist data
     const videoItems = results.items?.map((item: any, index: number) => {
+      // Check if this is a playlist by ID pattern (starts with PL) or has videoCount
+      const isPlaylistById = item.id && typeof item.id === 'string' && item.id.startsWith('PL')
+      const isPlaylistByVideoCount = item.videoCount !== undefined && !item.duration
+      
+      if (isPlaylistById || isPlaylistByVideoCount) {
+        // This is a playlist
+        const channelInfo = extractChannel(item.channel)
+        
+        return {
+          id: item.id,
+          type: 'playlist',
+          title: item.title,
+          description: item.description,
+          thumbnail: extractThumbnail(item.thumbnails || item.thumbnail),
+          videoCount: item.videoCount || 0,
+          viewCount: item.viewCount || 0,
+          lastUpdatedAt: item.lastUpdatedAt,
+          channel: channelInfo
+        }
+      }
       // Check if this looks like a video (has id, title, and basic video properties)
-      if (item.id && item.title && (item.thumbnails || item.thumbnail || item.duration !== undefined)) {
+      else if (item.id && item.title && (item.thumbnails || item.thumbnail || item.duration !== undefined || item.viewCount !== undefined)) {
         // Format duration properly
         let formattedDuration = item.duration
         if (item.duration) {

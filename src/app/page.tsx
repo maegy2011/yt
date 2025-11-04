@@ -334,18 +334,20 @@ export default function MyTubeApp() {
   }, [activeTab, showSplashScreen])
 
   // Cache helper functions
-  const getCachedResults = useCallback((query: string) => {
-    const cached = searchCache.get(query)
+  const getCachedResults = useCallback((query: string, type: string = searchType) => {
+    const cacheKey = `${query}:${type}`
+    const cached = searchCache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return cached
     }
     return null
-  }, [searchCache])
+  }, [searchCache, searchType])
 
-  const setCachedResults = useCallback((query: string, items: Video[], continuation: string | null, hasMore: boolean) => {
+  const setCachedResults = useCallback((query: string, items: Video[], continuation: string | null, hasMore: boolean, type: string = searchType) => {
+    const cacheKey = `${query}:${type}`
     setSearchCache(prev => {
       const newCache = new Map(prev)
-      newCache.set(query, {
+      newCache.set(cacheKey, {
         items,
         continuation,
         hasMore,
@@ -353,7 +355,7 @@ export default function MyTubeApp() {
       })
       return newCache
     })
-  }, [])
+  }, [searchType])
 
   const clearExpiredCache = useCallback(() => {
     setSearchCache(prev => {
@@ -1130,7 +1132,7 @@ export default function MyTubeApp() {
     const validatedQuery = validation.sanitized
     
     if (!append) {
-      const cachedResults = getCachedResults(validatedQuery)
+      const cachedResults = getCachedResults(validatedQuery, searchType)
       if (cachedResults) {
         setSearchResults({ items: cachedResults.items })
         setContinuationToken(cachedResults.continuation)
@@ -1182,7 +1184,7 @@ export default function MyTubeApp() {
         if (!append) {
           addNotification('No Results', `No videos found for "${queryToUse}"`, 'info')
           setSearchResults({ items: [] })
-          setCachedResults(queryToUse, [], null, false)
+          setCachedResults(queryToUse, [], null, false, searchType)
         } else {
           addNotification('No More Videos', 'No more videos found for this search', 'info')
         }
@@ -1232,7 +1234,7 @@ export default function MyTubeApp() {
       setHasMoreVideos(!!data.continuation)
       
       if (!append) {
-        setCachedResults(queryToUse, finalItems, data.continuation || null, !!data.continuation)
+        setCachedResults(queryToUse, finalItems, data.continuation || null, !!data.continuation, searchType)
         showDynamicConfirmation('search', finalItems.length)
       } else {
         showDynamicConfirmation('search', data.items.length)
