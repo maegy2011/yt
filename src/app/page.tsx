@@ -125,14 +125,14 @@ export default function MyTubeApp() {
   const [channelVideos, setChannelVideos] = useState<any[]>([])
   const [channelVideosLoading, setChannelVideosLoading] = useState(false)
   
-  // OpenAI content states
-  const [openAIContent, setOpenAIContent] = useState<any>(null)
-  const [openAILoading, setOpenAILoading] = useState(false)
-  const [openAIVideos, setOpenAIVideos] = useState<any[]>([])
-  const [openAIPlaylists, setOpenAIPlaylists] = useState<any[]>([])
-  const [openAIChannels, setOpenAIChannels] = useState<any[]>([])
+  // Followed channels content states
+  const [followedChannelsContent, setFollowedChannelsContent] = useState<any>(null)
+  const [followedChannelsLoading, setFollowedChannelsLoading] = useState(false)
+  const [followedChannelsVideos, setFollowedChannelsVideos] = useState<any[]>([])
+  const [followedChannelsPlaylists, setFollowedChannelsPlaylists] = useState<any[]>([])
+  const [followedChannels, setFollowedChannels] = useState<any[]>([])
   
-  // OpenAI pagination states
+  // Followed channels pagination states
   const [videoPage, setVideoPage] = useState(1)
   const [playlistPage, setPlaylistPage] = useState(1)
   const [videoPagination, setVideoPagination] = useState<any>(null)
@@ -310,7 +310,7 @@ export default function MyTubeApp() {
           loadFavoriteChannels(),
           loadFavoriteVideos(),
           loadNotes(),
-          loadOpenAIContent()
+          loadFollowedChannelsContent(true)
         ])
         if (favoriteChannels.length > 0) {
           await loadChannelVideos()
@@ -332,31 +332,37 @@ export default function MyTubeApp() {
     }
   }, [favoriteChannels.length, showSplashScreen])
 
-  // Load OpenAI content when page changes
+  // Load followed channels content when page changes
   useEffect(() => {
     if (videoPage > 1 || playlistPage > 1) {
-      setOpenAILoading(true)
+      console.log('Loading followed channels content for page change:', { videoPage, playlistPage })
+      setFollowedChannelsLoading(true)
       const currentPage = videoPage
       const currentPlaylistPage = playlistPage
       
       fetch(
-        `/api/openai-channels?maxVideos=50&maxPlaylists=20&includePlaylists=true&videoPage=${currentPage}&playlistPage=${currentPlaylistPage}&videosPerPage=${videosPerPage}&playlistsPerPage=${playlistsPerPage}`
+        `/api/followed-channels?maxVideos=50&maxPlaylists=20&includePlaylists=true&videoPage=${currentPage}&playlistPage=${currentPlaylistPage}&videosPerPage=${videosPerPage}&playlistsPerPage=${playlistsPerPage}`
       ).then(response => {
         if (response.ok) {
           return response.json()
         }
-        throw new Error('Failed to load OpenAI content')
+        throw new Error('Failed to load followed channels content')
       }).then(data => {
-        setOpenAIContent(data)
-        setOpenAIVideos(data.videos || [])
-        setOpenAIPlaylists(data.playlists || [])
-        setOpenAIChannels(data.channels || [])
+        console.log('Page change - received followed channels data:', {
+          channels: data.channels?.length || 0,
+          videos: data.videos?.length || 0,
+          playlists: data.playlists?.length || 0
+        })
+        setFollowedChannelsContent(data)
+        setFollowedChannelsVideos(data.videos || [])
+        setFollowedChannelsPlaylists(data.playlists || [])
+        setFollowedChannels(data.channels || [])
         setVideoPagination(data.pagination?.videos || null)
         setPlaylistPagination(data.pagination?.playlists || null)
       }).catch(error => {
-        console.error('Error loading OpenAI content:', error)
+        console.error('Error loading followed channels content:', error)
       }).finally(() => {
-        setOpenAILoading(false)
+        setFollowedChannelsLoading(false)
       })
     }
   }, [videoPage, playlistPage])
@@ -1062,30 +1068,37 @@ export default function MyTubeApp() {
     }
   }
 
-  // Load OpenAI channels content
-  const loadOpenAIContent = useCallback(async (resetPages = false) => {
+  // Load followed channels content
+  const loadFollowedChannelsContent = useCallback(async (resetPages = false) => {
     if (resetPages) {
       setVideoPage(1)
       setPlaylistPage(1)
     }
     
-    setOpenAILoading(true)
+    setFollowedChannelsLoading(true)
     try {
       const currentPage = resetPages ? 1 : videoPage
       const currentPlaylistPage = resetPages ? 1 : playlistPage
       
       const response = await fetch(
-        `/api/openai-channels?maxVideos=50&maxPlaylists=20&includePlaylists=true&videoPage=${currentPage}&playlistPage=${currentPlaylistPage}&videosPerPage=${videosPerPage}&playlistsPerPage=${playlistsPerPage}`
+        `/api/followed-channels?maxVideos=50&maxPlaylists=20&includePlaylists=true&videoPage=${currentPage}&playlistPage=${currentPlaylistPage}&videosPerPage=${videosPerPage}&playlistsPerPage=${playlistsPerPage}`
       )
       if (response.ok) {
         const data = await response.json()
-        setOpenAIContent(data)
-        setOpenAIVideos(data.videos || [])
-        setOpenAIPlaylists(data.playlists || [])
-        setOpenAIChannels(data.channels || [])
+        console.log('Frontend received followed channels data:', {
+          channels: data.channels?.length || 0,
+          videos: data.videos?.length || 0,
+          playlists: data.playlists?.length || 0,
+          totalVideos: data.stats?.totalVideos || 0,
+          totalPlaylists: data.stats?.totalPlaylists || 0
+        })
+        setFollowedChannelsContent(data)
+        setFollowedChannelsVideos(data.videos || [])
+        setFollowedChannelsPlaylists(data.playlists || [])
+        setFollowedChannels(data.channels || [])
         setVideoPagination(data.pagination?.videos || null)
         setPlaylistPagination(data.pagination?.playlists || null)
-        console.log('OpenAI content loaded:', {
+        console.log('Followed channels content loaded:', {
           videos: data.videos?.length || 0,
           playlists: data.playlists?.length || 0,
           channels: data.channels?.length || 0,
@@ -1093,12 +1106,12 @@ export default function MyTubeApp() {
           playlistPage: data.pagination?.playlists?.currentPage
         })
       } else {
-        console.error('Failed to load OpenAI content:', response.statusText)
+        console.error('Failed to load followed channels content:', response.statusText)
       }
     } catch (error) {
-      console.error('Error loading OpenAI content:', error)
+      console.error('Error loading followed channels content:', error)
     } finally {
-      setOpenAILoading(false)
+      setFollowedChannelsLoading(false)
     }
   }, [videoPage, playlistPage])
 
@@ -2002,22 +2015,22 @@ export default function MyTubeApp() {
       case 'home':
         return (
           <div className="space-y-6">
-            {/* OpenAI Channels Section */}
-            <div className="bg-gradient-to-r from-green-10 via-green-5 to-transparent rounded-2xl p-6 border border-green-20">
+            {/* Followed Channels Section */}
+            <div className="bg-gradient-to-r from-blue-10 via-blue-5 to-transparent rounded-2xl p-6 border border-blue-20">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">
-                    OpenAI Channels
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
+                    Your Followed Channels
                   </h2>
-                  <p className="text-muted-foreground">Latest videos and playlists from OpenAI's official channels</p>
+                  <p className="text-muted-foreground">Latest videos and playlists from your favorite channels</p>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => loadOpenAIContent(true)}
-                  disabled={openAILoading}
+                  onClick={() => loadFollowedChannelsContent(true)}
+                  disabled={followedChannelsLoading}
                 >
-                  {openAILoading ? (
+                  {followedChannelsLoading ? (
                     <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Refreshing</>
                   ) : (
                     <><ArrowDown className="w-4 h-4 mr-2" /> Refresh</>
@@ -2025,10 +2038,10 @@ export default function MyTubeApp() {
                 </Button>
               </div>
 
-              {/* OpenAI Channels Info */}
-              {openAIChannels.length > 0 && (
+              {/* Followed Channels Info */}
+              {followedChannels.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  {openAIChannels.map((channel) => (
+                  {followedChannels.map((channel) => (
                     <Card key={channel.id} className="p-4">
                       <div className="flex items-center space-x-3">
                         <img
@@ -2051,24 +2064,56 @@ export default function MyTubeApp() {
                 </div>
               )}
 
-              {openAILoading && (
+              {followedChannelsLoading && (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-green-600" />
-                  <span className="ml-2 text-muted-foreground">Loading OpenAI content...</span>
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                  <span className="ml-2 text-muted-foreground">Loading content from your channels...</span>
                 </div>
               )}
 
-              {/* OpenAI Videos */}
-              {!openAILoading && openAIVideos.length > 0 && (
+              {/* Show message when no channels are followed */}
+              {!followedChannelsLoading && followedChannels.length === 0 && (
+                <Card className="p-8 text-center">
+                  <div className="flex flex-col items-center space-y-4">
+                    <Users className="w-12 h-12 text-muted-foreground" />
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">No Channels Followed Yet</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Start by adding your favorite YouTube channels to see their latest content here.
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        <Button
+                          onClick={() => setActiveTab('search')}
+                          className="w-full sm:w-auto"
+                        >
+                          <Search className="w-4 h-4 mr-2" />
+                          Search Channels
+                        </Button>
+                        <Button
+                          onClick={() => setActiveTab('channels')}
+                          variant="outline"
+                          className="w-full sm:w-auto"
+                        >
+                          <User className="w-4 h-4 mr-2" />
+                          Browse Channels
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {/* Followed Channels Videos */}
+              {!followedChannelsLoading && followedChannelsVideos.length > 0 && (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">Latest Videos</h3>
                     <Badge variant="outline">
-                      {videoPagination ? `${videoPagination.totalItems} videos` : `${openAIVideos.length} videos`}
+                      {videoPagination ? `${videoPagination.totalItems} videos` : `${followedChannelsVideos.length} videos`}
                     </Badge>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {openAIVideos.slice(0, 12).map((video) => {
+                    {followedChannelsVideos.slice(0, 12).map((video) => {
                       const isFavorite = favoriteVideoIds.has(video.id)
                       return (
                         <Card key={video.id} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
@@ -2133,13 +2178,13 @@ export default function MyTubeApp() {
               )}
 
               {/* Video Pagination */}
-              {!openAILoading && videoPagination && videoPagination.totalPages > 1 && (
+              {!followedChannelsLoading && videoPagination && videoPagination.totalPages > 1 && (
                 <div className="flex items-center justify-center space-x-2 mt-6">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={loadPrevVideoPage}
-                    disabled={!videoPagination.hasPreviousPage || openAILoading}
+                    disabled={!videoPagination.hasPreviousPage || followedChannelsLoading}
                   >
                     <ChevronLeft className="w-4 h-4 mr-1" />
                     Previous
@@ -2151,7 +2196,7 @@ export default function MyTubeApp() {
                     variant="outline"
                     size="sm"
                     onClick={loadNextVideoPage}
-                    disabled={!videoPagination.hasNextPage || openAILoading}
+                    disabled={!videoPagination.hasNextPage || followedChannelsLoading}
                   >
                     Next
                     <ChevronRight className="w-4 h-4 ml-1" />
@@ -2159,17 +2204,17 @@ export default function MyTubeApp() {
                 </div>
               )}
 
-              {/* OpenAI Playlists */}
-              {!openAILoading && openAIPlaylists.length > 0 && (
+              {/* Followed Channels Playlists */}
+              {!followedChannelsLoading && followedChannelsPlaylists.length > 0 && (
                 <div className="space-y-4 mt-6">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">Playlists</h3>
                     <Badge variant="outline">
-                      {playlistPagination ? `${playlistPagination.totalItems} playlists` : `${openAIPlaylists.length} playlists`}
+                      {playlistPagination ? `${playlistPagination.totalItems} playlists` : `${followedChannelsPlaylists.length} playlists`}
                     </Badge>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {openAIPlaylists.slice(0, 6).map((playlist) => (
+                    {followedChannelsPlaylists.slice(0, 6).map((playlist) => (
                       <Card key={playlist.id} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
                         <div className="relative">
                           <img
@@ -2221,13 +2266,13 @@ export default function MyTubeApp() {
               )}
 
               {/* Playlist Pagination */}
-              {!openAILoading && playlistPagination && playlistPagination.totalPages > 1 && (
+              {!followedChannelsLoading && playlistPagination && playlistPagination.totalPages > 1 && (
                 <div className="flex items-center justify-center space-x-2 mt-6">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={loadPrevPlaylistPage}
-                    disabled={!playlistPagination.hasPreviousPage || openAILoading}
+                    disabled={!playlistPagination.hasPreviousPage || followedChannelsLoading}
                   >
                     <ChevronLeft className="w-4 h-4 mr-1" />
                     Previous
@@ -2239,7 +2284,7 @@ export default function MyTubeApp() {
                     variant="outline"
                     size="sm"
                     onClick={loadNextPlaylistPage}
-                    disabled={!playlistPagination.hasNextPage || openAILoading}
+                    disabled={!playlistPagination.hasNextPage || followedChannelsLoading}
                   >
                     Next
                     <ChevronRight className="w-4 h-4 ml-1" />
@@ -2248,27 +2293,27 @@ export default function MyTubeApp() {
               )}
 
               {/* Stats Section */}
-              {!openAILoading && openAIContent && (
-                <div className="mt-6 pt-6 border-t border-green-20">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <Card className="p-4 text-center">
-                      <div className="text-2xl font-bold text-green-600">{openAIContent.stats.totalChannels}</div>
-                      <div className="text-sm text-muted-foreground">Channels</div>
-                    </Card>
-                    <Card className="p-4 text-center">
-                      <div className="text-2xl font-bold text-green-600">{openAIContent.stats.totalVideos}</div>
-                      <div className="text-sm text-muted-foreground">Videos</div>
-                    </Card>
-                    <Card className="p-4 text-center">
-                      <div className="text-2xl font-bold text-green-600">{openAIContent.stats.totalPlaylists}</div>
-                      <div className="text-sm text-muted-foreground">Playlists</div>
-                    </Card>
-                    <Card className="p-4 text-center">
-                      <div className="text-2xl font-bold text-green-600">
-                        {openAIContent.stats.totalViews > 0 ? `${(openAIContent.stats.totalViews / 1000000).toFixed(1)}M` : '0'}
-                      </div>
-                      <div className="text-sm text-muted-foreground">Total Views</div>
-                    </Card>
+              {!followedChannelsLoading && followedChannelsContent && (
+                <div className="mt-6 pt-6 border-t border-border">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div>
+                      <p className="text-2xl font-bold text-blue-600">{followedChannelsContent.stats?.totalChannels || 0}</p>
+                      <p className="text-sm text-muted-foreground">Channels</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-blue-600">{followedChannelsContent.stats?.totalVideos || 0}</p>
+                      <p className="text-sm text-muted-foreground">Videos</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-blue-600">{followedChannelsContent.stats?.totalPlaylists || 0}</p>
+                      <p className="text-sm text-muted-foreground">Playlists</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {followedChannelsContent.stats?.totalViews ? `${(followedChannelsContent.stats.totalViews / 1000000).toFixed(1)}M` : '0'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Total Views</p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -2458,7 +2503,7 @@ export default function MyTubeApp() {
               </div>
             )}
 
-            {openAIContent === null && channelVideos.length === 0 && watchedVideos.length === 0 && favoriteVideos.length === 0 && (
+            {followedChannelsContent === null && channelVideos.length === 0 && watchedVideos.length === 0 && favoriteVideos.length === 0 && (
               <Card className="p-12 text-center">
                 <div className="max-w-md mx-auto space-y-4">
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
@@ -2467,7 +2512,7 @@ export default function MyTubeApp() {
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Welcome to MyTube</h3>
                     <p className="text-muted-foreground mb-4">
-                      Discover the latest content from OpenAI's official channels, or explore YouTube by searching for videos and adding channels to your favorites.
+                      Discover the latest content from your followed channels, or explore YouTube by searching for videos and adding channels to your favorites.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                       <Button

@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -27,15 +21,15 @@ model WatchedVideo {
 }
 
 model FavoriteChannel {
-  id          String   @id @default(cuid())
-  channelId   String   @unique
-  name        String
-  thumbnail   String?
+  id              String   @id @default(cuid())
+  channelId       String   @unique
+  name            String
+  thumbnail       String?
   subscriberCount Int?
-  viewCount   Int?
-  addedAt     DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  viewCount       Int?
+  addedAt         DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model FavoriteVideo {
@@ -60,9 +54,9 @@ model VideoNote {
   note        String
   fontSize    Int      @default(16)
   isArchived  Boolean  @default(false)
-  startTime   Int?     // Start time in seconds
-  endTime     Int?     // End time in seconds
-  isClip      Boolean  @default(false) // Whether this note is a clip
+  startTime   Int?
+  endTime     Int?
+  isClip      Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
