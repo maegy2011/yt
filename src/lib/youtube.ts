@@ -23,26 +23,71 @@ export interface Video {
   isLive: boolean
 }
 
-export interface Channel {
+export interface Playlist {
   id: string
-  name: string
+  title: string
   description?: string
-  thumbnail?: {
+  thumbnail: {
     url: string
     width: number
     height: number
   }
-  subscriberCount: number
+  channel: {
+    name: string
+    id: string
+    thumbnail?: {
+      url: string
+      width: number
+      height: number
+    }
+  }
   videoCount: number
+  viewCount: number
+  lastUpdatedAt?: string
+}
+
+export interface Channel {
+  id: string
+  name: string
+  description?: string
+  thumbnail: {
+    url: string
+    width: number
+    height: number
+  }
+  subscriberCount?: string | number
+  videoCount?: string | number
+  handle?: string
+  banner?: {
+    url: string
+    width: number
+    height: number
+  }
+  mobileBanner?: {
+    url: string
+    width: number
+    height: number
+  }
+  tvBanner?: {
+    url: string
+    width: number
+    height: number
+  }
+  url?: string
+  live?: any
+  playlists?: any
+  shorts?: any
+  videos?: any
+  shelves?: any[]
 }
 
 export interface SearchResult {
-  items: Video[]
+  items: (Video | Playlist)[]
   error?: string
   continuation?: string
 }
 
-export async function searchVideos(query: string, type: 'video' | 'playlist' | 'channel' | 'all' = 'video'): Promise<SearchResult> {
+export async function searchVideos(query: string, type: 'video' | 'playlist' | 'channel' | 'all' = 'all'): Promise<SearchResult> {
   try {
     if (!query.trim()) {
       return { items: [], error: 'Search query cannot be empty' }
@@ -108,6 +153,49 @@ export async function getChannel(channelId: string): Promise<Channel | null> {
   } catch (error) {
     console.error('Get channel error:', error)
     return null
+  }
+}
+
+export async function getPlaylist(playlistId: string): Promise<Playlist | null> {
+  try {
+    if (!playlistId.trim()) {
+      throw new Error('Playlist ID cannot be empty')
+    }
+
+    const response = await fetch(`/api/youtube/playlist/${playlistId}`)
+    
+    if (!response.ok) {
+      throw new Error(`Get playlist failed with status: ${response.status}`)
+    }
+    
+    const playlist = await response.json()
+    return playlist
+  } catch (error) {
+    console.error('Get playlist error:', error)
+    return null
+  }
+}
+
+export async function getPlaylistVideos(playlistId: string): Promise<{ videos: Video[], error?: string }> {
+  try {
+    if (!playlistId.trim()) {
+      return { videos: [], error: 'Playlist ID cannot be empty' }
+    }
+
+    const response = await fetch(`/api/youtube/playlist/${playlistId}/videos`)
+    
+    if (!response.ok) {
+      throw new Error(`Get playlist videos failed with status: ${response.status}`)
+    }
+    
+    const result = await response.json()
+    return result
+  } catch (error) {
+    console.error('Get playlist videos error:', error)
+    return { 
+      videos: [], 
+      error: error instanceof Error ? error.message : 'Failed to get playlist videos' 
+    }
   }
 }
 

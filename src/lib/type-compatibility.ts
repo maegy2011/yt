@@ -1,6 +1,6 @@
 // Type compatibility utilities for YouTube app
 
-import type { Video as YouTubeVideo } from '@/lib/youtube'
+import type { Video as YouTubeVideo, Playlist as YouTubePlaylist } from '@/lib/youtube'
 
 export interface SimpleVideo {
   id: string
@@ -13,6 +13,20 @@ export interface SimpleVideo {
   publishedAt?: string
   isLive?: boolean
   description?: string
+  type?: 'video'
+}
+
+export interface SimplePlaylist {
+  id: string
+  playlistId: string
+  title: string
+  channelName: string
+  thumbnail: string
+  videoCount: number
+  viewCount?: number
+  lastUpdatedAt?: string
+  description?: string
+  type: 'playlist'
 }
 
 export interface BaseVideoData {
@@ -85,6 +99,24 @@ export function convertToYouTubeVideo(video: SimpleVideo): YouTubeVideo {
   }
 }
 
+// Convert YouTube API Playlist to SimplePlaylist
+export function convertYouTubePlaylist(playlist: YouTubePlaylist): SimplePlaylist {
+  return {
+    id: playlist.id,
+    playlistId: playlist.id,
+    title: playlist.title,
+    channelName: playlist.channel.name,
+    thumbnail: typeof playlist.thumbnail === 'string' 
+      ? playlist.thumbnail 
+      : playlist.thumbnail.url,
+    videoCount: playlist.videoCount,
+    viewCount: playlist.viewCount,
+    lastUpdatedAt: playlist.lastUpdatedAt,
+    description: playlist.description,
+    type: 'playlist'
+  }
+}
+
 // Convert database video to SimpleVideo
 export function convertDbVideoToSimple(dbVideo: WatchedVideo | FavoriteVideo): SimpleVideo {
   return {
@@ -96,6 +128,7 @@ export function convertDbVideoToSimple(dbVideo: WatchedVideo | FavoriteVideo): S
     duration: dbVideo.duration,
     viewCount: dbVideo.viewCount,
     publishedAt: 'watchedAt' in dbVideo ? dbVideo.watchedAt : new Date().toISOString(),
-    isLive: false
+    isLive: false,
+    type: 'video'
   }
 }

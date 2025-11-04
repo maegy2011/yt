@@ -54,6 +54,13 @@ export const loadingMessages = {
       "Updating subscriptions..."
     ]
   },
+  playlist: [
+    "Loading playlist...",
+    "Fetching playlist videos...",
+    "Getting all videos...",
+    "Loading playlist content...",
+    "Preparing playlist videos..."
+  ],
   general: [
     "Processing...",
     "Working on it...",
@@ -106,6 +113,12 @@ export const confirmationMessages = {
       "Subscription updated!"
     ]
   },
+  playlistLoaded: (playlistTitle: string, videoCount: number) => [
+    `Loaded ${videoCount} videos from "${playlistTitle}"!`,
+    `Playlist "${playlistTitle}" loaded successfully!`,
+    `All ${videoCount} videos ready to play!`,
+    `Playlist content loaded!`
+  ],
   general: [
     "Success!",
     "Complete!",

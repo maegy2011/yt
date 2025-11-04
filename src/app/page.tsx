@@ -41,7 +41,7 @@ import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from
 import { validateSearchQuery, validateYouTubeUrl } from '@/lib/validation'
 import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from '@/lib/loading-messages'
 import type { Video as YouTubeVideo, Channel } from '@/lib/youtube'
-import { convertYouTubeVideo, convertToYouTubeVideo, convertDbVideoToSimple, type SimpleVideo, type WatchedVideo, type FavoriteVideo, type FavoriteChannel } from '@/lib/type-compatibility'
+import { convertYouTubeVideo, convertYouTubePlaylist, convertToYouTubeVideo, convertDbVideoToSimple, type SimpleVideo, type SimplePlaylist, type WatchedVideo, type FavoriteVideo, type FavoriteChannel } from '@/lib/type-compatibility'
 import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleton'
 import { SplashScreen } from '@/components/splash-screen'
 import { VideoNote } from '@/components/video-note'
@@ -52,9 +52,11 @@ type Tab = 'home' | 'search' | 'player' | 'watched' | 'channels' | 'favorites' |
 
 // Use SimpleVideo for internal state
 type Video = SimpleVideo
+type Playlist = SimplePlaylist
+type SearchResultItem = Video | Playlist
 
 interface SearchResults {
-  items: Video[]
+  items: SearchResultItem[]
   error?: string
 }
 
@@ -75,6 +77,7 @@ export default function MyTubeApp() {
   const [previousTab, setPreviousTab] = useState<Tab>('home')
   const [navigationHistory, setNavigationHistory] = useState<Tab[]>(['home'])
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchType, setSearchType] = useState<'video' | 'playlist' | 'channel' | 'all'>('all')
   const [channelSearchQuery, setChannelSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResults | null>(null)
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null)
@@ -109,6 +112,12 @@ export default function MyTubeApp() {
     thumbnail: ''
   })
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set())
+  
+  // Playlist states
+  const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null)
+  const [playlistVideos, setPlaylistVideos] = useState<Video[]>([])
+  const [playlistVideosLoading, setPlaylistVideosLoading] = useState(false)
+  const [showPlaylistVideos, setShowPlaylistVideos] = useState(false)
   
   // Channel search states
   const [channelSearchResults, setChannelSearchResults] = useState<any[]>([])
@@ -430,6 +439,13 @@ export default function MyTubeApp() {
     setActiveTab(tabId)
     triggerHapticFeedback()
     
+    // Clear playlist view when switching away from search tab
+    if (tabId !== 'search' && showPlaylistVideos) {
+      setShowPlaylistVideos(false)
+      setSelectedPlaylist(null)
+      setPlaylistVideos([])
+    }
+    
     // Update navigation history (avoid duplicates)
     setNavigationHistory(prev => {
       const newHistory = [...prev]
@@ -444,7 +460,7 @@ export default function MyTubeApp() {
     if (tab) {
       addNotification('Navigation', `Switched to ${tab.label}`, 'info')
     }
-  }, [activeTab, tabs, addNotification, triggerHapticFeedback])
+  }, [activeTab, tabs, addNotification, triggerHapticFeedback, showPlaylistVideos])
 
   // Back button functionality
   const handleGoBack = useCallback(() => {
@@ -589,6 +605,16 @@ export default function MyTubeApp() {
   // Safe channel name extraction
   const getChannelName = useCallback((video: Video | any): string => {
     return video.channel?.name || video.channelName || 'Unknown Channel'
+  }, [])
+
+  // Safe channel handle extraction
+  const getChannelHandle = useCallback((video: Video | any): string => {
+    return video.channel?.handle || ''
+  }, [])
+
+  // Safe channel subscriber count extraction
+  const getChannelSubscriberCount = useCallback((video: Video | any): string => {
+    return video.channel?.subscriberCount || ''
   }, [])
 
   // Safe channel thumbnail extraction
@@ -1132,7 +1158,7 @@ export default function MyTubeApp() {
       const queryToUse = append ? currentSearchQuery : validatedQuery
       const params = new URLSearchParams({
         query: queryToUse,
-        type: 'video'
+        type: searchType
       })
       
       if (append && continuationToken) {
@@ -1171,22 +1197,34 @@ export default function MyTubeApp() {
         })
       }
       
-      let finalItems: Video[]
+      let finalItems: SearchResultItem[]
       if (append && searchResults?.items) {
         const existingVideoIds = new Set(searchResults.items.map(v => v.id))
-        // Convert YouTube videos to SimpleVideo format
-        const convertedVideos = data.items.map((video: YouTubeVideo) => convertYouTubeVideo(video))
-        const newVideos = convertedVideos.filter((video: Video) => !existingVideoIds.has(video.id))
+        // Convert YouTube videos and playlists to SimpleVideo/SimplePlaylist format
+        const convertedItems = data.items.map((item: any) => {
+          if (item.type === 'playlist') {
+            return convertYouTubePlaylist(item)
+          } else {
+            return convertYouTubeVideo(item)
+          }
+        })
+        const newItems = convertedItems.filter((item: SearchResultItem) => !existingVideoIds.has(item.id))
         
-        if (newVideos.length > 0) {
-          finalItems = [...searchResults.items, ...newVideos]
+        if (newItems.length > 0) {
+          finalItems = [...searchResults.items, ...newItems]
         } else {
           finalItems = searchResults.items
-          addNotification('No New Videos', 'All videos already loaded', 'info')
+          addNotification('No New Items', 'All items already loaded', 'info')
         }
       } else {
-        // Convert YouTube videos to SimpleVideo format
-        finalItems = data.items.map((video: YouTubeVideo) => convertYouTubeVideo(video))
+        // Convert YouTube videos and playlists to SimpleVideo/SimplePlaylist format
+        finalItems = data.items.map((item: any) => {
+          if (item.type === 'playlist') {
+            return convertYouTubePlaylist(item)
+          } else {
+            return convertYouTubeVideo(item)
+          }
+        })
       }
       
       setSearchResults({ items: finalItems })
@@ -1207,6 +1245,40 @@ export default function MyTubeApp() {
     } finally {
       setLoading(false)
       setLoadingMore(false)
+      setDynamicLoadingMessage('')
+    }
+  }
+
+  // Load playlist videos
+  const loadPlaylistVideos = async (playlist: Playlist) => {
+    try {
+      setPlaylistVideosLoading(true)
+      setSelectedPlaylist(playlist)
+      setShowPlaylistVideos(true)
+      showDynamicLoading('playlist')
+      
+      const response = await fetch(`/api/youtube/playlist/${playlist.playlistId}/videos?loadAll=true`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to load playlist videos')
+      }
+      
+      const data = await response.json()
+      
+      // Convert videos to SimpleVideo format
+      const convertedVideos = data.videos.map((video: any) => convertYouTubeVideo(video))
+      
+      setPlaylistVideos(convertedVideos)
+      showDynamicConfirmation('playlistLoaded', [playlist.title, data.videos.length])
+      
+      // Switch to search tab to show playlist videos
+      setActiveTab('search')
+      
+    } catch (error) {
+      console.error('Failed to load playlist videos:', error)
+      addNotification('Failed to Load Playlist', 'Could not load playlist videos', 'destructive')
+    } finally {
+      setPlaylistVideosLoading(false)
       setDynamicLoadingMessage('')
     }
   }
@@ -1256,6 +1328,10 @@ export default function MyTubeApp() {
     } catch (error) {
       console.error('Failed to add to watched:', error)
     }
+  }
+
+  const handleVideoSelect = (video: Video) => {
+    handleVideoPlay(video)
   }
 
   const handleNextVideo = useCallback(() => {
@@ -1576,102 +1652,192 @@ export default function MyTubeApp() {
             )}
             
             <div className="relative flex-shrink-0">
-              <div className="relative w-32 h-20 sm:w-40 sm:h-24 bg-muted rounded-lg overflow-hidden">
-                <img
-                  src={thumbnailUrl}
-                  alt={video.title}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  loading="lazy"
-                />
-                {video.duration && (
-                  <Badge className="absolute bottom-2 right-2 text-xs bg-black/80 text-white border-none backdrop-blur-sm">
-                    {formatDuration(video.duration)}
-                  </Badge>
-                )}
-                
-                {/* Overlay Icons */}
-                <div className="absolute top-2 left-2 flex gap-1">
-                  {hasNotes(video.id) && (
-                    <div className="w-6 h-6 bg-green-500/90 backdrop-blur-sm rounded-full flex items-center justify-center" title="Has notes">
-                      <FileText className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                  {isWatched(video.id) && (
-                    <div className="w-6 h-6 bg-blue-500/90 backdrop-blur-sm rounded-full flex items-center justify-center" title="Watched">
-                      <Eye className="w-3 h-3 text-white" />
-                    </div>
-                  )}
-                </div>
-              </div>
+              <img
+                src={thumbnailUrl}
+                alt={video.title}
+                className="w-40 h-24 object-cover rounded-md"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.src = `https://via.placeholder.com/160x90/374151/ffffff?text=No+Thumbnail`
+                }}
+              />
+              {video.duration && (
+                <Badge className="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1 py-0.5">
+                  {video.duration}
+                </Badge>
+              )}
             </div>
             
-            <div className="flex-1 min-w-0 space-y-2">
-              <div>
-                <h3 className="font-semibold text-sm line-clamp-2 mb-1 group-hover:text-primary transition-colors">
-                  {video.title}
-                </h3>
-                <p className="text-xs text-muted-foreground flex items-center gap-2">
-                  {channelLogo && (
-                    <img 
-                      src={channelLogo} 
-                      alt={channelName}
-                      className="w-4 h-4 rounded-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                      }}
-                    />
-                  )}
-                  <span className="truncate">{channelName}</span>
-                </p>
-                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                  {video.viewCount && (
-                    <span>
-                      <span className="w-1 h-1 bg-muted-foreground rounded-full"></span>
-                      {formatViewCount(video.viewCount)} views
-                    </span>
-                  )}
-                  {video.publishedAt && (
-                    <span>
-                      <span className="w-1 h-1 bg-muted-foreground rounded-full"></span>
-                      {formatPublishedAt(video.publishedAt)}
-                    </span>
-                  )}
-                </p>
-              </div>
-              
-              {showActions && (
-                <div className="flex gap-2 pt-2 border-t border-border/50">
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setSelectedVideo(video)
-                      setActiveTab('player')
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-sm line-clamp-2 mb-1 group-hover:text-primary transition-colors">
+                {video.title}
+              </h3>
+              <div className="flex items-center gap-2 mb-1">
+                {channelLogo && (
+                  <img 
+                    src={channelLogo} 
+                    alt={channelName}
+                    className="w-4 h-4 rounded-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
                     }}
-                    className="flex-1 h-8 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
-                  >
-                    <Play className="w-3 h-3 mr-1.5" />
-                    Play
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => toggleFavorite(video)}
-                    className={`h-8 px-3 transition-all duration-200 hover:scale-105 ${
-                      isFavorite 
-                        ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100' 
-                        : 'hover:bg-red-50 hover:border-red-200 hover:text-red-600'
-                    }`}
-                  >
-                    <Heart className={`w-3 h-3 ${isFavorite ? 'fill-current' : ''}`} />
-                  </Button>
+                  />
+                )}
+                <div className="flex items-center gap-1 min-w-0">
+                  <p className="text-xs text-muted-foreground truncate">
+                    {channelName}
+                  </p>
+                  {getChannelHandle(video) && (
+                    <span className="text-xs text-muted-foreground opacity-70">
+                      {getChannelHandle(video)}
+                    </span>
+                  )}
                 </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {video.viewCount && (
+                  <span>{formatViewCount(video.viewCount)}</span>
+                )}
+                {video.publishedAt && (
+                  <>
+                    <span>•</span>
+                    <span>{formatPublishedAt(video.publishedAt)}</span>
+                  </>
+                )}
+                {getChannelSubscriberCount(video) && (
+                  <>
+                    <span>•</span>
+                    <span>{getChannelSubscriberCount(video)}</span>
+                  </>
+                )}
+              </div>
+              {video.description && (
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                  {video.description}
+                </p>
               )}
+            </div>
+            
+            {showActions && (
+              <div className="flex flex-col gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleVideoSelect(video)}
+                  className="h-8 w-8 p-0"
+                >
+                  <Play className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => toggleFavorite(video)}
+                  className="h-8 w-8 p-0"
+                >
+                  <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }, [favoriteVideoIds, selectedItems, multiSelectMode, toggleItemSelection, handleVideoSelect, toggleFavorite])
+
+  const PlaylistCard = useCallback(({ playlist }: { playlist: Playlist }) => {
+    const isSelected = selectedItems.has(playlist.id)
+    const thumbnailUrl = playlist.thumbnail
+    
+    return (
+      <Card className={`group relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-border/50 hover:border-primary/30 ${
+        isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
+      }`}>
+        <CardContent className="p-4">
+          <div className="flex gap-4">
+            {multiSelectMode && (
+              <div className="flex items-center">
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={() => toggleItemSelection(playlist.id)}
+                  className="w-4 h-4"
+                />
+              </div>
+            )}
+            
+            <div className="relative flex-shrink-0">
+              <img
+                src={thumbnailUrl}
+                alt={playlist.title}
+                className="w-40 h-24 object-cover rounded-md"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.src = `https://via.placeholder.com/160x90/374151/ffffff?text=Playlist`
+                }}
+              />
+              <Badge className="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1 py-0.5">
+                {playlist.videoCount} videos
+              </Badge>
+              <Badge className="absolute top-1 left-1 bg-purple-600/90 text-white text-xs px-1 py-0.5">
+                Playlist
+              </Badge>
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-sm line-clamp-2 mb-1 group-hover:text-primary transition-colors">
+                {playlist.title}
+              </h3>
+              <div className="flex items-center gap-2 mb-1">
+                <p className="text-xs text-muted-foreground truncate">
+                  {playlist.channelName}
+                </p>
+                {playlist.channel?.handle && (
+                  <span className="text-xs text-muted-foreground opacity-70">
+                    {playlist.channel.handle}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{playlist.videoCount} videos</span>
+                {playlist.viewCount && (
+                  <>
+                    <span>•</span>
+                    <span>{formatViewCount(playlist.viewCount)}</span>
+                  </>
+                )}
+                {playlist.channel?.subscriberCount && (
+                  <>
+                    <span>•</span>
+                    <span>{playlist.channel.subscriberCount}</span>
+                  </>
+                )}
+              </div>
+              {playlist.description && (
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                  {playlist.description}
+                </p>
+              )}
+            </div>
+            
+            <div className="flex flex-col gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => loadPlaylistVideos(playlist)}
+                className="h-8 w-8 p-0"
+                disabled={playlistVideosLoading}
+              >
+                {playlistVideosLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+              </Button>
             </div>
           </div>
         </CardContent>
       </Card>
     )
-  }, [favoriteVideoIds, selectedItems, multiSelectMode, getThumbnailUrl, getChannelName, getChannelLogo, toggleItemSelection, toggleFavorite, hasNotes, isWatched, allNotes, watchedVideos])
+  }, [selectedItems, multiSelectMode, toggleItemSelection, loadPlaylistVideos, playlistVideosLoading])
 
   const loadMoreVideos = useCallback(async () => {
     if (loadingMore || !hasMoreVideos || !currentSearchQuery || isIntersectionLoading || hasTriggeredLoad) return
@@ -1946,11 +2112,11 @@ export default function MyTubeApp() {
             {/* Search Header */}
             <div className="bg-gradient-to-r from-green-10 via-green-5 to-transparent rounded-2xl p-6 border border-green-20">
               <h2 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent mb-4">
-                Search Videos
+                Search Content
               </h2>
               <div className="flex gap-3">
                 <Input
-                  placeholder="Search for videos..."
+                  placeholder="Search for videos, playlists, channels..."
                   value={searchQuery}
                   onChange={handleSearchInputChange}
                   onKeyDown={(e) => {
@@ -1964,6 +2130,16 @@ export default function MyTubeApp() {
                   }}
                   className="flex-1"
                 />
+                <select
+                  value={searchType}
+                  onChange={(e) => setSearchType(e.target.value as any)}
+                  className="px-3 py-2 border border-input bg-background rounded-md text-sm"
+                >
+                  <option value="all">All</option>
+                  <option value="video">Videos</option>
+                  <option value="playlist">Playlists</option>
+                  <option value="channel">Channels</option>
+                </select>
                 <Button
                   onClick={() => handleSearch(false)}
                   disabled={loading}
@@ -1975,25 +2151,73 @@ export default function MyTubeApp() {
             </div>
 
             {/* Search Results */}
-            {searchResults ? (
+            {showPlaylistVideos && selectedPlaylist ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 mb-4 p-4 bg-muted/50 rounded-lg">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowPlaylistVideos(false)
+                      setSelectedPlaylist(null)
+                      setPlaylistVideos([])
+                    }}
+                  >
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Search
+                  </Button>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold">{selectedPlaylist.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedPlaylist.channelName} • {playlistVideos.length} videos loaded
+                    </p>
+                  </div>
+                  <Badge variant="secondary">
+                    Playlist
+                  </Badge>
+                </div>
+                
+                {playlistVideosLoading ? (
+                  <VideoGridSkeleton count={5} />
+                ) : (
+                  <div className="space-y-3">
+                    {playlistVideos.map((video) => (
+                      <VideoCard key={video.id} video={video} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : searchResults ? (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <h3 className="text-lg font-semibold">
                       {searchResults.items.length > 0 
-                        ? `Found ${searchResults.items.length} videos` 
-                        : 'No videos found'
+                        ? `Found ${searchResults.items.length} results` 
+                        : 'No results found'
                       }
                     </h3>
-                    {searchResults.items.length > 0 && hasMoreVideos && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <ArrowDown className="w-4 h-4" />
-                        <span>Auto-load more</span>
-                        <Switch
-                          checked={autoLoadMore}
-                          onCheckedChange={setAutoLoadMore}
-                          disabled={loadingMore}
-                        />
+                    {searchResults.items.length > 0 && (
+                      <div className="flex items-center gap-4">
+                        <div className="flex gap-2 text-sm text-muted-foreground">
+                          <span>
+                            {searchResults.items.filter(item => (item as any).type === 'video').length} videos
+                          </span>
+                          <span>•</span>
+                          <span>
+                            {searchResults.items.filter(item => (item as any).type === 'playlist').length} playlists
+                          </span>
+                        </div>
+                        {hasMoreVideos && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <ArrowDown className="w-4 h-4" />
+                            <span>Auto-load more</span>
+                            <Switch
+                              checked={autoLoadMore}
+                              onCheckedChange={setAutoLoadMore}
+                              disabled={loadingMore}
+                            />
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -2006,9 +2230,13 @@ export default function MyTubeApp() {
                 
                 {searchResults.items.length > 0 && (
                   <div className="space-y-3">
-                    {searchResults.items.map((video) => (
-                      <VideoCard key={video.id} video={video} />
-                    ))}
+                    {searchResults.items.map((item) => {
+                      if (item.type === 'playlist') {
+                        return <PlaylistCard key={item.id} playlist={item as Playlist} />
+                      } else {
+                        return <VideoCard key={item.id} video={item as Video} />
+                      }
+                    })}
                     
                     {hasMoreVideos && (
                       <div className="text-center py-4">

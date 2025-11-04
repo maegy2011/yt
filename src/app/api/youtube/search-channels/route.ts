@@ -1,6 +1,123 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
+// Helper function to extract thumbnail URL from YouTubei v1.7.0 Thumbnails API
+function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
+  if (!thumbnails) {
+    return {
+      url: `https://via.placeholder.com/320x180/374151/ffffff?text=No+Thumbnail`,
+      width: 320,
+      height: 180
+    }
+  }
+
+  // Handle YouTubei v1.7.0 Thumbnails array
+  if (Array.isArray(thumbnails) && thumbnails.length > 0) {
+    // Use the best thumbnail (highest resolution)
+    const bestThumbnail = thumbnails[thumbnails.length - 1]
+    if (bestThumbnail && bestThumbnail.url) {
+      return {
+        url: bestThumbnail.url,
+        width: bestThumbnail.width || 320,
+        height: bestThumbnail.height || 180
+      }
+    }
+  }
+
+  // Handle single thumbnail object
+  if (thumbnails.url) {
+    return {
+      url: thumbnails.url,
+      width: thumbnails.width || 320,
+      height: thumbnails.height || 180
+    }
+  }
+
+  // Handle string URL
+  if (typeof thumbnails === 'string') {
+    return {
+      url: thumbnails,
+      width: 320,
+      height: 180
+    }
+  }
+
+  // Fallback
+  return {
+    url: `https://via.placeholder.com/320x180/374151/ffffff?text=No+Thumbnail`,
+    width: 320,
+    height: 180
+  }
+}
+
+// Helper function to clean circular references from channel data
+function cleanChannelData(channel: any): any {
+  if (!channel) return null
+  
+  const cleaned = { ...channel }
+  
+  // Remove circular references
+  if (cleaned.videos) {
+    cleaned.videos = {
+      items: cleaned.videos.items || [],
+      continuation: cleaned.videos.continuation || null
+    }
+  }
+  
+  if (cleaned.playlists) {
+    cleaned.playlists = {
+      items: cleaned.playlists.items || [],
+      continuation: cleaned.playlists.continuation || null
+    }
+  }
+  
+  if (cleaned.shorts) {
+    cleaned.shorts = {
+      items: cleaned.shorts.items || [],
+      continuation: cleaned.shorts.continuation || null
+    }
+  }
+  
+  if (cleaned.live) {
+    cleaned.live = {
+      items: cleaned.live.items || [],
+      continuation: cleaned.live.continuation || null
+    }
+  }
+  
+  // Remove client references
+  delete cleaned.client
+  
+  return cleaned
+}
+
+// Helper function to extract channel information from YouTubei v1.7.0 BaseChannel/Channel
+function extractChannelData(channel: any): any {
+  if (!channel) {
+    return null
+  }
+
+  const baseData = {
+    id: channel.id,
+    name: channel.name,
+    description: channel.description || '',
+    handle: channel.handle,
+    thumbnail: extractThumbnail(channel.thumbnails),
+    subscriberCount: channel.subscriberCount,
+    videoCount: channel.videoCount,
+    viewCount: channel.viewCount,
+    // Channel-specific properties from YouTubei v1.7.0
+    banner: channel.banner ? extractThumbnail(channel.banner) : undefined,
+    mobileBanner: channel.mobileBanner ? extractThumbnail(channel.mobileBanner) : undefined,
+    tvBanner: channel.tvBanner ? extractThumbnail(channel.tvBanner) : undefined,
+    url: channel.url,
+    shelves: channel.shelves || []
+  }
+  
+  // Clean circular references
+  return cleanChannelData(baseData)
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -45,54 +162,61 @@ export async function GET(request: NextRequest) {
     // Extract and enhance channel data
     let channelItems = results.items
       .filter((item: any) => {
-        // Validate that this looks like a channel
-        return item.id && item.name && (item.thumbnail || item.subscriberCount !== undefined)
+        // Validate that this looks like a channel using YouTubei v1.7.0 structure
+        return item.id && item.name && (item.thumbnails || item.subscriberCount !== undefined)
       })
       .map((item: any) => {
         const channelId = item.id
         const isFavorite = favoriteChannelIds.has(channelId)
         
-        const channelData = {
-          id: channelId,
+        // Extract enhanced channel data using YouTubei v1.7.0 properties
+        const channelData = extractChannelData(item)
+        
+        if (!channelData) return null
+        
+        const enhancedChannelData = {
+          ...channelData,
           channelId: channelId,
-          name: item.name,
-          description: item.description || '',
-          thumbnail: item.thumbnail?.url || item.thumbnail,
-          subscriberCount: item.subscriberCount || 0,
-          videoCount: item.videoCount || 0,
-          viewCount: item.viewCount || 0,
-          isVerified: item.verified || false,
-          isFamilyFriendly: item.familyFriendly || false,
-          joinedDate: item.joinedDate,
-          country: item.country,
-          type: 'channel',
-          // Enhanced data
           isFavorite,
+          type: 'channel',
+          // Enhanced stats
           stats: {
-            subscribers: item.subscriberCount || 0,
-            totalVideos: item.videoCount || 0,
-            totalViews: item.viewCount || 0,
-            avgViewsPerVideo: (item.videoCount && item.viewCount) ? 
-              Math.round(item.viewCount / item.videoCount) : 0
+            subscribers: channelData.subscriberCount || 0,
+            totalVideos: channelData.videoCount || 0,
+            totalViews: channelData.viewCount || 0,
+            avgViewsPerVideo: (channelData.videoCount && channelData.viewCount) ? 
+              Math.round(channelData.viewCount / channelData.videoCount) : 0
           },
           metadata: {
             searchedAt: new Date().toISOString(),
-            query: query
+            query: query,
+            hasShelves: channelData.shelves && channelData.shelves.length > 0,
+            hasLive: !!channelData.live,
+            hasPlaylists: !!channelData.playlists,
+            hasShorts: !!channelData.shorts
           }
         }
 
-        // Add additional stats if requested
+        // Add additional enhanced stats if requested
         if (includeStats) {
-          (channelData as any).enhancedStats = {
-            subscriberRank: item.subscriberCount ? Math.log10(item.subscriberCount) : 0,
-            activityScore: (item.videoCount || 0) * 0.3 + (item.viewCount || 0) * 0.000001,
-            engagementRatio: item.subscriberCount && item.viewCount ? 
-              (item.viewCount / item.subscriberCount) : 0
+          enhancedChannelData.enhancedStats = {
+            subscriberRank: channelData.subscriberCount ? Math.log10(parseInt(channelData.subscriberCount.replace(/[^\d]/g, '')) || 1) : 0,
+            activityScore: (channelData.videoCount || 0) * 0.3 + (channelData.viewCount || 0) * 0.000001,
+            engagementRatio: channelData.subscriberCount && channelData.viewCount ? 
+              (parseInt(channelData.viewCount.replace(/[^\d]/g, '')) || 0) / (parseInt(channelData.subscriberCount.replace(/[^\d]/g, '')) || 1) : 0,
+            contentVariety: {
+              hasVideos: !!channelData.videos,
+              hasShorts: !!channelData.shorts,
+              hasLive: !!channelData.live,
+              hasPlaylists: !!channelData.playlists,
+              shelvesCount: channelData.shelves?.length || 0
+            }
           }
         }
 
-        return channelData
+        return enhancedChannelData
       })
+      .filter(Boolean) // Remove any null entries
 
     // Sort channels based on criteria
     channelItems.sort((a: any, b: any) => {
