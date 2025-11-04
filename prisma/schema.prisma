@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model WatchedVideo {
+  id          String   @id @default(cuid())
+  videoId     String   @unique
+  title       String
+  channelName String
+  thumbnail   String
+  duration    String?
+  viewCount   Int?
+  watchedAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model FavoriteChannel {
+  id              String   @id @default(cuid())
+  channelId       String   @unique
+  name            String
+  thumbnail       String?
+  subscriberCount Int?
+  viewCount       Int?
+  addedAt         DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model FavoriteVideo {
+  id          String   @id @default(cuid())
+  videoId     String   @unique
+  title       String
+  channelName String
+  thumbnail   String
+  duration    String?
+  viewCount   Int?
+  addedAt     DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model VideoNote {
+  id          String   @id @default(cuid())
+  videoId     String
+  title       String
+  channelName String
+  thumbnail   String
+  note        String
+  fontSize    Int      @default(16)
+  isArchived  Boolean  @default(false)
+  startTime   Int?
+  endTime     Int?
+  isClip      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
