@@ -161,19 +161,23 @@ export async function GET(request: NextRequest) {
                 // Only include videos from this specific channel
                 if (video.channel?.id !== channel.channelId) return null
                 
-                // Fix invalid dates
-                let publishedAt = video.publishedAt
-                if (publishedAt) {
+                // Use uploadDate from YouTubei API directly, fallback to publishedAt
+                let publishedAt = video.uploadDate || video.publishedAt
+                
+                // Only try to parse as ISO date if it looks like an ISO date
+                if (publishedAt && (publishedAt.includes('T') || publishedAt.includes('-'))) {
                   try {
                     const date = new Date(publishedAt)
                     if (isNaN(date.getTime())) {
-                      publishedAt = new Date().toISOString()
+                      // If it's not a valid ISO date, keep the original relative format
+                      publishedAt = video.uploadDate || video.publishedAt || 'Unknown date'
                     }
                   } catch (error) {
-                    publishedAt = new Date().toISOString()
+                    // Keep the original relative format if parsing fails
+                    publishedAt = video.uploadDate || video.publishedAt || 'Unknown date'
                   }
-                } else {
-                  publishedAt = new Date().toISOString()
+                } else if (!publishedAt) {
+                  publishedAt = 'Unknown date'
                 }
                 
                 return {
@@ -261,7 +265,23 @@ export async function GET(request: NextRequest) {
     }
 
     // Sort videos by published date (newest first)
-    allVideos.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    // Only sort if dates are in ISO format, otherwise keep YouTubei's natural ordering
+    allVideos.sort((a, b) => {
+      const aDate = a.publishedAt
+      const bDate = b.publishedAt
+      
+      // If both are ISO dates, sort by timestamp
+      if (aDate.includes('T') && bDate.includes('T')) {
+        return new Date(bDate).getTime() - new Date(aDate).getTime()
+      }
+      
+      // If one is ISO and one is relative, prioritize ISO (more recent)
+      if (aDate.includes('T') && !bDate.includes('T')) return -1
+      if (!aDate.includes('T') && bDate.includes('T')) return 1
+      
+      // If both are relative or both are unknown, keep original order
+      return 0
+    })
 
     // Sort playlists by last updated date (newest first)
     allPlaylists.sort((a, b) => new Date(b.lastUpdatedAt || 0).getTime() - new Date(a.lastUpdatedAt || 0).getTime())

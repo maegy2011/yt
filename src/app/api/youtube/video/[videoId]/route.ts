@@ -89,10 +89,10 @@ function extractChannel(channel: any): { id: string; name: string; thumbnail?: s
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { videoId: string } }
+  { params }: { params: Promise<{ videoId: string }> }
 ) {
   try {
-    const { videoId } = params
+    const { videoId } = await params
     
     // Validate video ID
     if (!videoId || typeof videoId !== 'string') {
@@ -123,7 +123,7 @@ export async function GET(
       thumbnail: extractThumbnail(video.thumbnails || video.thumbnail),
       duration: (video as any).duration || null,
       viewCount: video.viewCount || 0,
-      publishedAt: (video as any).publishedAt || null,
+      publishedAt: (video as any).uploadDate || null, // YouTubei v1.7.0 API: uploadDate provides human-readable relative dates
       isLive: (video as any).isLive || false,
       channel: channelInfo
     }

@@ -261,7 +261,7 @@ export async function GET(request: NextRequest) {
           thumbnail: extractThumbnail(item.thumbnails || item.thumbnail),
           duration: formattedDuration,
           viewCount: item.viewCount,
-          publishedAt: item.publishedAt,
+          publishedAt: item.uploadDate, // YouTubei v1.7.0 API: uploadDate provides human-readable relative dates
           isLive: item.isLive || false,
           channel: channelInfo
         }

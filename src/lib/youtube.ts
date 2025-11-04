@@ -264,9 +264,34 @@ export function formatDuration(duration: string | number | undefined): string {
 export function formatPublishedAt(date: string): string {
   if (!date) return 'Unknown date'
   
+  // YouTubei v1.7.0 API provides human-readable relative dates directly
+  // Examples: "4 hours ago", "2 days ago", "1 month ago", etc.
+  const trimmedDate = date.trim()
+  
+  // If the date is already in a human-readable relative format, return it as-is
+  const relativePatterns = [
+    /^\d+ seconds? ago$/,
+    /^\d+ minutes? ago$/,
+    /^\d+ hours? ago$/,
+    /^\d+ days? ago$/,
+    /^\d+ weeks? ago$/,
+    /^\d+ months? ago$/,
+    /^\d+ years? ago$/,
+    /^Today$/,
+    /^Yesterday$/,
+    /^Just now$/,
+    /^Live$/  // Handle live videos
+  ]
+  
+  const isAlreadyRelative = relativePatterns.some(pattern => pattern.test(trimmedDate))
+  if (isAlreadyRelative) {
+    return trimmedDate
+  }
+  
+  // Handle ISO date strings or other formats (fallback for compatibility)
   try {
     const now = new Date()
-    const published = new Date(date)
+    const published = new Date(trimmedDate)
     
     // Check if date is valid
     if (isNaN(published.getTime())) {

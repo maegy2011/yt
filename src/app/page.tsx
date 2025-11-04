@@ -2166,7 +2166,7 @@ export default function MyTubeApp() {
                                 {video.viewCount ? `${video.viewCount.toLocaleString()} views` : 'No view count'}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                {new Date(video.publishedAt).toLocaleDateString()}
+                                {formatPublishedAt(video.publishedAt)}
                               </p>
                             </div>
                           </CardContent>
