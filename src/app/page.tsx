@@ -125,6 +125,21 @@ export default function MyTubeApp() {
   const [channelVideos, setChannelVideos] = useState<any[]>([])
   const [channelVideosLoading, setChannelVideosLoading] = useState(false)
   
+  // OpenAI content states
+  const [openAIContent, setOpenAIContent] = useState<any>(null)
+  const [openAILoading, setOpenAILoading] = useState(false)
+  const [openAIVideos, setOpenAIVideos] = useState<any[]>([])
+  const [openAIPlaylists, setOpenAIPlaylists] = useState<any[]>([])
+  const [openAIChannels, setOpenAIChannels] = useState<any[]>([])
+  
+  // OpenAI pagination states
+  const [videoPage, setVideoPage] = useState(1)
+  const [playlistPage, setPlaylistPage] = useState(1)
+  const [videoPagination, setVideoPagination] = useState<any>(null)
+  const [playlistPagination, setPlaylistPagination] = useState<any>(null)
+  const videosPerPage = 12
+  const playlistsPerPage = 6
+  
   // Infinite scroll states
   const [continuationToken, setContinuationToken] = useState<string | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -294,7 +309,8 @@ export default function MyTubeApp() {
           loadWatchedVideos(),
           loadFavoriteChannels(),
           loadFavoriteVideos(),
-          loadNotes()
+          loadNotes(),
+          loadOpenAIContent()
         ])
         if (favoriteChannels.length > 0) {
           await loadChannelVideos()
@@ -315,6 +331,35 @@ export default function MyTubeApp() {
       loadChannelVideos()
     }
   }, [favoriteChannels.length, showSplashScreen])
+
+  // Load OpenAI content when page changes
+  useEffect(() => {
+    if (videoPage > 1 || playlistPage > 1) {
+      setOpenAILoading(true)
+      const currentPage = videoPage
+      const currentPlaylistPage = playlistPage
+      
+      fetch(
+        `/api/openai-channels?maxVideos=50&maxPlaylists=20&includePlaylists=true&videoPage=${currentPage}&playlistPage=${currentPlaylistPage}&videosPerPage=${videosPerPage}&playlistsPerPage=${playlistsPerPage}`
+      ).then(response => {
+        if (response.ok) {
+          return response.json()
+        }
+        throw new Error('Failed to load OpenAI content')
+      }).then(data => {
+        setOpenAIContent(data)
+        setOpenAIVideos(data.videos || [])
+        setOpenAIPlaylists(data.playlists || [])
+        setOpenAIChannels(data.channels || [])
+        setVideoPagination(data.pagination?.videos || null)
+        setPlaylistPagination(data.pagination?.playlists || null)
+      }).catch(error => {
+        console.error('Error loading OpenAI content:', error)
+      }).finally(() => {
+        setOpenAILoading(false)
+      })
+    }
+  }, [videoPage, playlistPage])
 
   // Refresh data when switching tabs to ensure icons are up to date
   useEffect(() => {
@@ -1016,6 +1061,74 @@ export default function MyTubeApp() {
       setChannelVideosLoading(false)
     }
   }
+
+  // Load OpenAI channels content
+  const loadOpenAIContent = useCallback(async (resetPages = false) => {
+    if (resetPages) {
+      setVideoPage(1)
+      setPlaylistPage(1)
+    }
+    
+    setOpenAILoading(true)
+    try {
+      const currentPage = resetPages ? 1 : videoPage
+      const currentPlaylistPage = resetPages ? 1 : playlistPage
+      
+      const response = await fetch(
+        `/api/openai-channels?maxVideos=50&maxPlaylists=20&includePlaylists=true&videoPage=${currentPage}&playlistPage=${currentPlaylistPage}&videosPerPage=${videosPerPage}&playlistsPerPage=${playlistsPerPage}`
+      )
+      if (response.ok) {
+        const data = await response.json()
+        setOpenAIContent(data)
+        setOpenAIVideos(data.videos || [])
+        setOpenAIPlaylists(data.playlists || [])
+        setOpenAIChannels(data.channels || [])
+        setVideoPagination(data.pagination?.videos || null)
+        setPlaylistPagination(data.pagination?.playlists || null)
+        console.log('OpenAI content loaded:', {
+          videos: data.videos?.length || 0,
+          playlists: data.playlists?.length || 0,
+          channels: data.channels?.length || 0,
+          videoPage: data.pagination?.videos?.currentPage,
+          playlistPage: data.pagination?.playlists?.currentPage
+        })
+      } else {
+        console.error('Failed to load OpenAI content:', response.statusText)
+      }
+    } catch (error) {
+      console.error('Error loading OpenAI content:', error)
+    } finally {
+      setOpenAILoading(false)
+    }
+  }, [videoPage, playlistPage])
+
+  // Load next page of videos
+  const loadNextVideoPage = useCallback(() => {
+    if (videoPagination?.hasNextPage) {
+      setVideoPage(prev => prev + 1)
+    }
+  }, [videoPagination])
+
+  // Load previous page of videos
+  const loadPrevVideoPage = useCallback(() => {
+    if (videoPagination?.hasPreviousPage) {
+      setVideoPage(prev => prev - 1)
+    }
+  }, [videoPagination])
+
+  // Load next page of playlists
+  const loadNextPlaylistPage = useCallback(() => {
+    if (playlistPagination?.hasNextPage) {
+      setPlaylistPage(prev => prev + 1)
+    }
+  }, [playlistPagination])
+
+  // Load previous page of playlists
+  const loadPrevPlaylistPage = useCallback(() => {
+    if (playlistPagination?.hasPreviousPage) {
+      setPlaylistPage(prev => prev - 1)
+    }
+  }, [playlistPagination])
 
   // YouTube URL player functions
   const playYouTubeUrl = useCallback(async () => {
@@ -1889,7 +2002,279 @@ export default function MyTubeApp() {
       case 'home':
         return (
           <div className="space-y-6">
-            {/* Dynamic content will appear here when available */}
+            {/* OpenAI Channels Section */}
+            <div className="bg-gradient-to-r from-green-10 via-green-5 to-transparent rounded-2xl p-6 border border-green-20">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">
+                    OpenAI Channels
+                  </h2>
+                  <p className="text-muted-foreground">Latest videos and playlists from OpenAI's official channels</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadOpenAIContent(true)}
+                  disabled={openAILoading}
+                >
+                  {openAILoading ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Refreshing</>
+                  ) : (
+                    <><ArrowDown className="w-4 h-4 mr-2" /> Refresh</>
+                  )}
+                </Button>
+              </div>
+
+              {/* OpenAI Channels Info */}
+              {openAIChannels.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {openAIChannels.map((channel) => (
+                    <Card key={channel.id} className="p-4">
+                      <div className="flex items-center space-x-3">
+                        <img
+                          src={channel.thumbnail?.url || `https://via.placeholder.com/48x48/374151/ffffff?text=${channel.name.charAt(0)}`}
+                          alt={channel.name}
+                          className="w-12 h-12 rounded-full"
+                        />
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{channel.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {channel.subscriberCount ? `${channel.subscriberCount.toLocaleString()} subscribers` : 'No subscriber count'}
+                          </p>
+                        </div>
+                        <Badge variant="secondary">
+                          {channel.videoCount?.toLocaleString() || 0} videos
+                        </Badge>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {openAILoading && (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+                  <span className="ml-2 text-muted-foreground">Loading OpenAI content...</span>
+                </div>
+              )}
+
+              {/* OpenAI Videos */}
+              {!openAILoading && openAIVideos.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Latest Videos</h3>
+                    <Badge variant="outline">
+                      {videoPagination ? `${videoPagination.totalItems} videos` : `${openAIVideos.length} videos`}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {openAIVideos.slice(0, 12).map((video) => {
+                      const isFavorite = favoriteVideoIds.has(video.id)
+                      return (
+                        <Card key={video.id} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+                          <div className="relative">
+                            <img
+                              src={video.thumbnail?.url || `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`}
+                              alt={video.title}
+                              className="w-full h-32 object-cover rounded-t-lg"
+                              onClick={() => handleVideoPlay(video)}
+                            />
+                            {video.duration && (
+                              <Badge className="absolute bottom-2 right-2 bg-black/80 text-white text-xs">
+                                {video.duration}
+                              </Badge>
+                            )}
+                            {/* Play button overlay */}
+                            <div 
+                              className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-t-lg cursor-pointer"
+                              onClick={() => handleVideoPlay(video)}
+                            >
+                              <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform">
+                                <Play className="w-6 h-6 text-black ml-1" />
+                              </div>
+                            </div>
+                            {/* Favorite button */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggleFavorite(video)
+                              }}
+                              className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+                              isFavorite 
+                                ? 'bg-red-600 text-white shadow-lg' 
+                                : 'bg-black/60 text-white hover:bg-black/80'
+                              }`}
+                            >
+                              <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+                            </button>
+                          </div>
+                          <CardContent className="p-3">
+                            <h3 
+                              className="font-medium line-clamp-2 text-sm mb-1 cursor-pointer hover:text-primary transition-colors"
+                              onClick={() => handleVideoPlay(video)}
+                            >
+                              {video.title}
+                            </h3>
+                            <p className="text-xs text-muted-foreground">{video.channelName}</p>
+                            <div className="flex items-center justify-between mt-2">
+                              <p className="text-xs text-muted-foreground">
+                                {video.viewCount ? `${video.viewCount.toLocaleString()} views` : 'No view count'}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(video.publishedAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Video Pagination */}
+              {!openAILoading && videoPagination && videoPagination.totalPages > 1 && (
+                <div className="flex items-center justify-center space-x-2 mt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadPrevVideoPage}
+                    disabled={!videoPagination.hasPreviousPage || openAILoading}
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground px-3">
+                    Page {videoPagination.currentPage} of {videoPagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadNextVideoPage}
+                    disabled={!videoPagination.hasNextPage || openAILoading}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+
+              {/* OpenAI Playlists */}
+              {!openAILoading && openAIPlaylists.length > 0 && (
+                <div className="space-y-4 mt-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Playlists</h3>
+                    <Badge variant="outline">
+                      {playlistPagination ? `${playlistPagination.totalItems} playlists` : `${openAIPlaylists.length} playlists`}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {openAIPlaylists.slice(0, 6).map((playlist) => (
+                      <Card key={playlist.id} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+                        <div className="relative">
+                          <img
+                            src={playlist.thumbnail?.url || `https://via.placeholder.com/320x180/374151/ffffff?text=${encodeURIComponent(playlist.title)}`}
+                            alt={playlist.title}
+                            className="w-full h-32 object-cover rounded-t-lg"
+                            onClick={() => {
+                              setSelectedPlaylist(playlist)
+                              setShowPlaylistVideos(true)
+                            }}
+                          />
+                          <Badge className="absolute bottom-2 right-2 bg-black/80 text-white text-xs">
+                            {playlist.videoCount} videos
+                          </Badge>
+                          {/* Play button overlay */}
+                          <div 
+                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-t-lg cursor-pointer"
+                            onClick={() => {
+                              setSelectedPlaylist(playlist)
+                              setShowPlaylistVideos(true)
+                            }}
+                          >
+                            <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform">
+                              <Play className="w-6 h-6 text-black ml-1" />
+                            </div>
+                          </div>
+                        </div>
+                        <CardContent className="p-3">
+                          <h3 
+                            className="font-medium line-clamp-2 text-sm mb-1 cursor-pointer hover:text-primary transition-colors"
+                            onClick={() => {
+                              setSelectedPlaylist(playlist)
+                              setShowPlaylistVideos(true)
+                            }}
+                          >
+                            {playlist.title}
+                          </h3>
+                          <p className="text-xs text-muted-foreground">{playlist.channelName}</p>
+                          {playlist.lastUpdatedAt && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Updated {new Date(playlist.lastUpdatedAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Playlist Pagination */}
+              {!openAILoading && playlistPagination && playlistPagination.totalPages > 1 && (
+                <div className="flex items-center justify-center space-x-2 mt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadPrevPlaylistPage}
+                    disabled={!playlistPagination.hasPreviousPage || openAILoading}
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground px-3">
+                    Page {playlistPagination.currentPage} of {playlistPagination.totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadNextPlaylistPage}
+                    disabled={!playlistPagination.hasNextPage || openAILoading}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+
+              {/* Stats Section */}
+              {!openAILoading && openAIContent && (
+                <div className="mt-6 pt-6 border-t border-green-20">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Card className="p-4 text-center">
+                      <div className="text-2xl font-bold text-green-600">{openAIContent.stats.totalChannels}</div>
+                      <div className="text-sm text-muted-foreground">Channels</div>
+                    </Card>
+                    <Card className="p-4 text-center">
+                      <div className="text-2xl font-bold text-green-600">{openAIContent.stats.totalVideos}</div>
+                      <div className="text-sm text-muted-foreground">Videos</div>
+                    </Card>
+                    <Card className="p-4 text-center">
+                      <div className="text-2xl font-bold text-green-600">{openAIContent.stats.totalPlaylists}</div>
+                      <div className="text-sm text-muted-foreground">Playlists</div>
+                    </Card>
+                    <Card className="p-4 text-center">
+                      <div className="text-2xl font-bold text-green-600">
+                        {openAIContent.stats.totalViews > 0 ? `${(openAIContent.stats.totalViews / 1000000).toFixed(1)}M` : '0'}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Total Views</div>
+                    </Card>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Existing content sections */}
             {channelVideos.length > 0 && (
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold">Latest from Favorite Channels</h2>
@@ -2073,7 +2458,7 @@ export default function MyTubeApp() {
               </div>
             )}
 
-            {channelVideos.length === 0 && watchedVideos.length === 0 && favoriteVideos.length === 0 && (
+            {openAIContent === null && channelVideos.length === 0 && watchedVideos.length === 0 && favoriteVideos.length === 0 && (
               <Card className="p-12 text-center">
                 <div className="max-w-md mx-auto space-y-4">
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
@@ -2082,7 +2467,7 @@ export default function MyTubeApp() {
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Welcome to MyTube</h3>
                     <p className="text-muted-foreground mb-4">
-                      Start exploring YouTube content by searching for videos or adding channels to your favorites.
+                      Discover the latest content from OpenAI's official channels, or explore YouTube by searching for videos and adding channels to your favorites.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-3 justify-center">
                       <Button
