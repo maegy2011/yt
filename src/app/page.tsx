@@ -49,10 +49,10 @@ import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from
 import { validateSearchQuery, validateYouTubeUrl } from '@/lib/validation'
 import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from '@/lib/loading-messages'
 import type { Video as YouTubeVideo, Channel } from '@/lib/youtube'
-import { convertYouTubeVideo, convertYouTubePlaylist, convertToYouTubeVideo, convertDbVideoToSimple, type SimpleVideo, type SimplePlaylist, type WatchedVideo, type FavoriteVideo, type FavoriteChannel } from '@/lib/type-compatibility'
+import { convertYouTubeVideo, convertYouTubePlaylist, convertToYouTubeVideo, convertDbVideoToSimple, type SimpleVideo, type SimplePlaylist, type WatchedVideo, type FavoriteVideo, type FavoriteChannel, type VideoNote, type ChannelSearchResult, type PaginationInfo, type FollowedChannelsContent } from '@/lib/type-compatibility'
 import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleton'
 import { SplashScreen } from '@/components/splash-screen'
-import { VideoNote } from '@/components/video-note'
+import { VideoNote as VideoNoteComponent } from '@/components/video-note'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
 import { ThemeSwitch } from '@/components/theme-switch'
 
@@ -104,11 +104,11 @@ export default function MyTubeApp() {
   const [watchedVideos, setWatchedVideos] = useState<WatchedVideo[]>([])
   const [favoriteChannels, setFavoriteChannels] = useState<FavoriteChannel[]>([])
   const [favoriteVideos, setFavoriteVideos] = useState<FavoriteVideo[]>([])
-  const [allNotes, setAllNotes] = useState<any[]>([])
+  const [allNotes, setAllNotes] = useState<VideoNote[]>([])
   const [notesLoading, setNotesLoading] = useState(false)
   const [notesSearchQuery, setNotesSearchQuery] = useState('')
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [editingNote, setEditingNote] = useState<any>(null)
+  const [editingNote, setEditingNote] = useState<VideoNote | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [updatedNoteContent, setUpdatedNoteContent] = useState('')
   const [createNoteDialogOpen, setCreateNoteDialogOpen] = useState(false)
@@ -132,23 +132,23 @@ export default function MyTubeApp() {
   const [expandedPlaylistLoading, setExpandedPlaylistLoading] = useState<Map<string, boolean>>(new Map())
   
   // Channel search states
-  const [channelSearchResults, setChannelSearchResults] = useState<any[]>([])
+  const [channelSearchResults, setChannelSearchResults] = useState<ChannelSearchResult[]>([])
   const [channelSearchLoading, setChannelSearchLoading] = useState(false)
-  const [channelVideos, setChannelVideos] = useState<any[]>([])
+  const [channelVideos, setChannelVideos] = useState<SimpleVideo[]>([])
   const [channelVideosLoading, setChannelVideosLoading] = useState(false)
   
   // Followed channels content states
-  const [followedChannelsContent, setFollowedChannelsContent] = useState<any>(null)
+  const [followedChannelsContent, setFollowedChannelsContent] = useState<FollowedChannelsContent | null>(null)
   const [followedChannelsLoading, setFollowedChannelsLoading] = useState(false)
-  const [followedChannelsVideos, setFollowedChannelsVideos] = useState<any[]>([])
-  const [followedChannelsPlaylists, setFollowedChannelsPlaylists] = useState<any[]>([])
-  const [followedChannels, setFollowedChannels] = useState<any[]>([])
+  const [followedChannelsVideos, setFollowedChannelsVideos] = useState<SimpleVideo[]>([])
+  const [followedChannelsPlaylists, setFollowedChannelsPlaylists] = useState<SimplePlaylist[]>([])
+  const [followedChannels, setFollowedChannels] = useState<FavoriteChannel[]>([])
   
   // Followed channels pagination states
   const [videoPage, setVideoPage] = useState(1)
   const [playlistPage, setPlaylistPage] = useState(1)
-  const [videoPagination, setVideoPagination] = useState<any>(null)
-  const [playlistPagination, setPlaylistPagination] = useState<any>(null)
+  const [videoPagination, setVideoPagination] = useState<PaginationInfo | null>(null)
+  const [playlistPagination, setPlaylistPagination] = useState<PaginationInfo | null>(null)
   const videosPerPage = 12
   const playlistsPerPage = 6
   
@@ -297,7 +297,7 @@ export default function MyTubeApp() {
   }, [])
 
   // Show dynamic confirmation message
-  const showDynamicConfirmation = useCallback((operation: keyof typeof confirmationMessages, ...args: any[]) => {
+  const showDynamicConfirmation = useCallback((operation: keyof typeof confirmationMessages, ...args: unknown[]) => {
     const message = getConfirmationMessage(operation, args)
     addNotification('Success!', message, 'success')
     setDynamicLoadingMessage('')
@@ -308,105 +308,6 @@ export default function MyTubeApp() {
     setShowSplashScreen(false)
     addNotification('Welcome!', 'MyTube is ready to use', 'success')
   }, [addNotification])
-
-  // Load initial data
-  useEffect(() => {
-    // Load user preferences from localStorage
-    const savedAutoLoadMore = localStorage.getItem('mytube-auto-load-more')
-    if (savedAutoLoadMore !== null) {
-      setAutoLoadMore(savedAutoLoadMore === 'true')
-    }
-    
-    const savedFavoritesEnabled = localStorage.getItem('mytube-favorites-enabled')
-    if (savedFavoritesEnabled !== null) {
-      setFavoritesEnabled(savedFavoritesEnabled === 'true')
-    }
-    
-    const savedFavoritesPaused = localStorage.getItem('mytube-favorites-paused')
-    if (savedFavoritesPaused !== null) {
-      setFavoritesPaused(savedFavoritesPaused === 'true')
-    }
-
-    const loadInitialData = async () => {
-      try {
-        await Promise.all([
-          loadWatchedVideos(),
-          loadFavoriteChannels(),
-          loadFavoriteVideos(),
-          loadNotes(),
-          loadFollowedChannelsContent(true)
-        ])
-        if (favoriteChannels.length > 0) {
-          await loadChannelVideos()
-        }
-      } catch (error) {
-        addNotification('Failed to load initial data', 'Please refresh the page', 'destructive')
-      }
-    }
-    
-    if (!showSplashScreen) {
-      loadInitialData()
-    }
-  }, [showSplashScreen])
-
-  // Load channel videos when favorite channels change
-  useEffect(() => {
-    if (!showSplashScreen && favoriteChannels.length > 0) {
-      loadChannelVideos()
-    }
-  }, [favoriteChannels.length, showSplashScreen])
-
-  // Load followed channels content when page changes
-  useEffect(() => {
-    if (videoPage > 1 || playlistPage > 1) {
-      console.log('Loading followed channels content for page change:', { videoPage, playlistPage })
-      setFollowedChannelsLoading(true)
-      const currentPage = videoPage
-      const currentPlaylistPage = playlistPage
-      
-      fetch(
-        `/api/followed-channels?maxVideos=50&maxPlaylists=20&includePlaylists=true&videoPage=${currentPage}&playlistPage=${currentPlaylistPage}&videosPerPage=${videosPerPage}&playlistsPerPage=${playlistsPerPage}`
-      ).then(response => {
-        if (response.ok) {
-          return response.json()
-        }
-        throw new Error('Failed to load followed channels content')
-      }).then(data => {
-        console.log('Page change - received followed channels data:', {
-          channels: data.channels?.length || 0,
-          videos: data.videos?.length || 0,
-          playlists: data.playlists?.length || 0
-        })
-        setFollowedChannelsContent(data)
-        setFollowedChannelsVideos(data.videos || [])
-        setFollowedChannelsPlaylists(data.playlists || [])
-        setFollowedChannels(data.channels || [])
-        setVideoPagination(data.pagination?.videos || null)
-        setPlaylistPagination(data.pagination?.playlists || null)
-      }).catch(error => {
-        console.error('Error loading followed channels content:', error)
-      }).finally(() => {
-        setFollowedChannelsLoading(false)
-      })
-    }
-  }, [videoPage, playlistPage])
-
-  // Refresh data when switching tabs to ensure icons are up to date
-  useEffect(() => {
-    if (!showSplashScreen) {
-      const refreshData = async () => {
-        try {
-          await Promise.all([
-            loadWatchedVideos(),
-            loadNotes()
-          ])
-        } catch (error) {
-          console.error('Failed to refresh data:', error)
-        }
-      }
-      refreshData()
-    }
-  }, [activeTab, showSplashScreen])
 
   // Cache helper functions
   const getCachedResults = useCallback((query: string, type: string = searchType) => {
@@ -1071,7 +972,7 @@ export default function MyTubeApp() {
     }
   }
 
-  const loadChannelVideos = async () => {
+  const loadChannelVideos = useCallback(async () => {
     if (favoriteChannels.length === 0) return
     
     setChannelVideosLoading(true)
@@ -1104,7 +1005,7 @@ export default function MyTubeApp() {
     } finally {
       setChannelVideosLoading(false)
     }
-  }
+  }, [favoriteChannels])
 
   // Load followed channels content
   const loadFollowedChannelsContent = useCallback(async (resetPages = false) => {
@@ -1878,6 +1779,105 @@ export default function MyTubeApp() {
       addNotification('Error', 'Network error while following channel', 'destructive')
     }
   }
+
+  // Load initial data
+  useEffect(() => {
+    // Load user preferences from localStorage
+    const savedAutoLoadMore = localStorage.getItem('mytube-auto-load-more')
+    if (savedAutoLoadMore !== null) {
+      setAutoLoadMore(savedAutoLoadMore === 'true')
+    }
+    
+    const savedFavoritesEnabled = localStorage.getItem('mytube-favorites-enabled')
+    if (savedFavoritesEnabled !== null) {
+      setFavoritesEnabled(savedFavoritesEnabled === 'true')
+    }
+    
+    const savedFavoritesPaused = localStorage.getItem('mytube-favorites-paused')
+    if (savedFavoritesPaused !== null) {
+      setFavoritesPaused(savedFavoritesPaused === 'true')
+    }
+
+    const loadInitialData = async () => {
+      try {
+        await Promise.all([
+          loadWatchedVideos(),
+          loadFavoriteChannels(),
+          loadFavoriteVideos(),
+          loadNotes(),
+          loadFollowedChannelsContent(true)
+        ])
+        if (favoriteChannels.length > 0) {
+          await loadChannelVideos()
+        }
+      } catch (error) {
+        addNotification('Failed to load initial data', 'Please refresh the page', 'destructive')
+      }
+    }
+    
+    if (!showSplashScreen) {
+      loadInitialData()
+    }
+  }, [showSplashScreen, loadWatchedVideos, loadFavoriteChannels, loadFavoriteVideos, loadNotes, loadFollowedChannelsContent, loadChannelVideos, favoriteChannels.length, addNotification])
+
+  // Load channel videos when favorite channels change
+  useEffect(() => {
+    if (!showSplashScreen && favoriteChannels.length > 0) {
+      loadChannelVideos()
+    }
+  }, [favoriteChannels.length, showSplashScreen, loadChannelVideos])
+
+  // Load followed channels content when page changes
+  useEffect(() => {
+    if (videoPage > 1 || playlistPage > 1) {
+      console.log('Loading followed channels content for page change:', { videoPage, playlistPage })
+      setFollowedChannelsLoading(true)
+      const currentPage = videoPage
+      const currentPlaylistPage = playlistPage
+      
+      fetch(
+        `/api/followed-channels?maxVideos=50&maxPlaylists=20&includePlaylists=true&videoPage=${currentPage}&playlistPage=${currentPlaylistPage}&videosPerPage=${videosPerPage}&playlistsPerPage=${playlistsPerPage}`
+      ).then(response => {
+        if (response.ok) {
+          return response.json()
+        }
+        throw new Error('Failed to load followed channels content')
+      }).then(data => {
+        console.log('Page change - received followed channels data:', {
+          channels: data.channels?.length || 0,
+          videos: data.videos?.length || 0,
+          playlists: data.playlists?.length || 0
+        })
+        setFollowedChannelsContent(data)
+        setFollowedChannelsVideos(data.videos || [])
+        setFollowedChannelsPlaylists(data.playlists || [])
+        setFollowedChannels(data.channels || [])
+        setVideoPagination(data.pagination?.videos || null)
+        setPlaylistPagination(data.pagination?.playlists || null)
+      }).catch(error => {
+        console.error('Error loading followed channels content:', error)
+      }).finally(() => {
+        setFollowedChannelsLoading(false)
+      })
+    }
+  }, [videoPage, playlistPage])
+
+  // Refresh data when switching tabs to ensure icons are up to date
+  useEffect(() => {
+    if (!showSplashScreen) {
+      const refreshData = async () => {
+        try {
+          await Promise.all([
+            loadWatchedVideos(),
+            loadNotes()
+          ])
+        } catch (error) {
+          console.error('Failed to refresh data:', error)
+        }
+      }
+      refreshData()
+    }
+  }, [activeTab, showSplashScreen, loadWatchedVideos, loadNotes])
 
   const toggleItemSelection = useCallback((itemId: string) => {
     setSelectedItems(prev => {
@@ -3514,7 +3514,7 @@ export default function MyTubeApp() {
             {selectedVideo ? (
               <>
                 {/* Video Note Component - Video Player */}
-                <VideoNote 
+                <VideoNoteComponent 
                   videoId={selectedVideo.videoId || selectedVideo.id} 
                   videoTitle={selectedVideo.title}
                   channelName={getChannelName(selectedVideo)}

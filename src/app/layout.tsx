@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { BackgroundPlayerProvider } from "@/contexts/background-player-context";
 import { MiniPlayer } from "@/components/mini-player";
 import { ThemeProvider } from "next-themes";
+import ErrorBoundary from "@/components/error-boundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,24 +18,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Z.ai Code Scaffold - AI-Powered Development",
-  description: "Modern Next.js scaffold optimized for AI-powered development with Z.ai. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
-  keywords: ["Z.ai", "Next.js", "TypeScript", "Tailwind CSS", "shadcn/ui", "AI development", "React"],
-  authors: [{ name: "Z.ai Team" }],
+  title: "MyTube - YouTube Client",
+  description: "A modern YouTube client with favorites, notes, and background playback features.",
+  keywords: ["YouTube", "Video", "Music", "Player", "Favorites", "Notes", "Background Playback"],
+  authors: [{ name: "MyTube Team" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/logo.svg",
   },
   openGraph: {
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-    url: "https://chat.z.ai",
-    siteName: "Z.ai",
+    title: "MyTube - YouTube Client",
+    description: "A modern YouTube client with favorites, notes, and background playback features",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
+    title: "MyTube - YouTube Client",
+    description: "A modern YouTube client with favorites, notes, and background playback features",
   },
 };
 
@@ -58,11 +57,13 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <BackgroundPlayerProvider>
-            <div className="h-full flex flex-col overflow-hidden">
-              {children}
-              <MiniPlayer />
-              <Toaster />
-            </div>
+            <ErrorBoundary>
+              <div className="h-full flex flex-col overflow-hidden">
+                {children}
+                <MiniPlayer />
+                <Toaster />
+              </div>
+            </ErrorBoundary>
           </BackgroundPlayerProvider>
         </ThemeProvider>
       </body>

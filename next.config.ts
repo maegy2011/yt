@@ -1,24 +1,40 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Enable strict type checking in production
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
-  // 禁用 Next.js 热重载，由 nodemon 处理重编译
-  reactStrictMode: false,
+  // Enable React strict mode for better development experience
+  reactStrictMode: true,
+  // Optimize webpack configuration
   webpack: (config, { dev }) => {
     if (dev) {
-      // 禁用 webpack 的热模块替换
+      // Optimize watch options for better performance
       config.watchOptions = {
-        ignored: ['**/*'], // 忽略所有文件变化
+        ignored: ['**/node_modules/**', '**/.git/**', '**/.next/**'],
+        poll: 1000,
+        aggregateTimeout: 300,
       };
     }
     return config;
   },
+  // Enable ESLint during builds for code quality
   eslint: {
-    // 构建时忽略ESLint错误
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false,
+  },
+  // Security headers
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+        ],
+      },
+    ];
   },
 };
 

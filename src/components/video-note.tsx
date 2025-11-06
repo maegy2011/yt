@@ -151,12 +151,12 @@ export function VideoNote({
 
   const toggleFavorite = async () => {
     if (!favoritesEnabled) {
-      showNotification('Favorites Disabled', 'Favorites module is disabled', 'info')
+      showNotification('Favorites Disabled: Favorites module is disabled', 'info')
       return
     }
     
     if (favoritesPaused) {
-      showNotification('Favorites Paused', 'Cannot add/remove favorites while paused', 'info')
+      showNotification('Favorites Paused: Cannot add/remove favorites while paused', 'info')
       return
     }
     

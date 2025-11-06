@@ -52,6 +52,62 @@ export interface FavoriteChannel {
   thumbnail?: string
   subscriberCount?: number
   viewCount?: number
+  videoCount?: number
+}
+
+// Note-related types
+export interface VideoNote {
+  id: string
+  videoId: string
+  title: string
+  channelName: string
+  thumbnail?: string
+  note: string
+  fontSize: number
+  startTime?: number
+  endTime?: number
+  isClip: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+// Channel search types
+export interface ChannelSearchResult {
+  channelId: string
+  name: string
+  thumbnail?: string
+  subscriberCount?: number
+  videoCount?: number
+  viewCount?: number
+  description?: string
+  url?: string
+}
+
+// Pagination types
+export interface PaginationInfo {
+  currentPage: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+  hasPreviousPage: boolean
+  totalItems: number
+}
+
+// Followed channels content types
+export interface FollowedChannelsContent {
+  channels: FavoriteChannel[]
+  videos: SimpleVideo[]
+  playlists: SimplePlaylist[]
+  stats: {
+    totalVideos: number
+    totalPlaylists: number
+    totalChannels: number
+    totalViews: number
+  }
+  pagination: {
+    videos: PaginationInfo | null
+    playlists: PaginationInfo | null
+  }
 }
 
 // Convert YouTube API Video to SimpleVideo
