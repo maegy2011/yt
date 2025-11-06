@@ -2446,8 +2446,7 @@ export default function MyTubeApp() {
                             </div>
                           </div>
                           {/* Favorite button */}
-                          {favoritesEnabled && (
-                            <button
+                          <button
                             onClick={(e) => {
                               e.stopPropagation()
                               toggleFavorite(video)
@@ -2509,8 +2508,7 @@ export default function MyTubeApp() {
                             </div>
                           </div>
                           {/* Favorite button */}
-                          {favoritesEnabled && (
-                            <button
+                          <button
                             onClick={(e) => {
                               e.stopPropagation()
                               toggleFavorite(video)
@@ -2522,8 +2520,7 @@ export default function MyTubeApp() {
                             }`}
                           >
                             <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-                            </button>
-                          )}
+                          </button>
                         </div>
                         <CardContent className="p-3">
                           <h3 
@@ -2575,8 +2572,7 @@ export default function MyTubeApp() {
                             </div>
                           </div>
                           {/* Favorite button */}
-                          {favoritesEnabled && (
-                            <button
+                          <button
                             onClick={(e) => {
                               e.stopPropagation()
                               toggleFavorite(video)
@@ -2588,8 +2584,7 @@ export default function MyTubeApp() {
                             }`}
                           >
                             <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-                              </button>
-                          )}
+                          </button>
                         </div>
                         <CardContent className="p-3">
                           <h3 
