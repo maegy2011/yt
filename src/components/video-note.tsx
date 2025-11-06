@@ -71,7 +71,10 @@ interface VideoNoteProps {
   viewCount?: number
   publishedAt?: string
   thumbnail?: string
-  onFavoriteToggle?: (isFavorited: boolean) => void
+  isFavorited?: boolean
+  favoritesEnabled?: boolean
+  favoritesPaused?: boolean
+  onFavoriteToggle?: () => void
   onPreviousVideo?: () => void
   onNextVideo?: () => void
   onNotesChange?: () => void
@@ -84,6 +87,10 @@ export function VideoNote({
   viewCount, 
   publishedAt, 
   thumbnail,
+  isFavorited: propIsFavorited,
+  favoritesEnabled = true,
+  favoritesPaused = false,
+  onFavoriteToggle,
   onPreviousVideo,
   onNextVideo,
   onNotesChange
@@ -110,7 +117,6 @@ export function VideoNote({
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editingNoteTitle, setEditingNoteTitle] = useState('')
   const [editingNoteContent, setEditingNoteContent] = useState('')
-  const [isFavorited, setIsFavorited] = useState(false)
   const [playerReady, setPlayerReady] = useState(false)
   const playerRef = useRef<any>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -144,10 +150,22 @@ export function VideoNote({
   }, [onNextVideo, showNotification])
 
   const toggleFavorite = async () => {
-    setIsFavorited(!isFavorited)
-    // Here you would typically make an API call to save the favorite state
-    // For now, just toggle the local state
-    showNotification(isFavorited ? 'Added to favorites' : 'Removed from favorites', 'info')
+    if (!favoritesEnabled) {
+      showNotification('Favorites Disabled', 'Favorites module is disabled', 'info')
+      return
+    }
+    
+    if (favoritesPaused) {
+      showNotification('Favorites Paused', 'Cannot add/remove favorites while paused', 'info')
+      return
+    }
+    
+    if (onFavoriteToggle) {
+      onFavoriteToggle()
+    } else {
+      // Fallback if no callback provided
+      showNotification('Favorite toggle not available', 'info')
+    }
   }
 
   const toggleQuickNote = async () => {
@@ -620,6 +638,41 @@ export function VideoNote({
     },
   }
 
+  // Validate and get the correct video ID
+  const getValidVideoId = (id: string): string => {
+    // If it's already a valid 11-character YouTube video ID, use it
+    if (id && id.length === 11 && /^[a-zA-Z0-9_-]+$/.test(id)) {
+      return id
+    }
+    
+    // If it's a database video with videoId property, extract the actual YouTube ID
+    if (id && id.includes('-')) {
+      // This might be a database ID, not a YouTube video ID
+      // In this case, we need to get the actual videoId from the video object
+      console.error('Invalid YouTube video ID provided:', id)
+      return ''
+    }
+    
+    // Return empty string if invalid
+    console.error('Invalid YouTube video ID format:', id)
+    return ''
+  }
+
+  const validVideoId = getValidVideoId(videoId)
+  
+  // Don't render player if video ID is invalid
+  if (!validVideoId) {
+    return (
+      <Card className="p-8">
+        <div className="text-center text-red-600">
+          <p className="text-lg font-medium mb-2">Invalid Video ID</p>
+          <p className="text-sm">The video ID provided is not a valid YouTube video ID.</p>
+          <p className="text-xs mt-2 text-gray-500">Video ID: {videoId}</p>
+        </div>
+      </Card>
+    )
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Notification */}
@@ -638,7 +691,7 @@ export function VideoNote({
         {/* Video Player */}
         <div className="relative aspect-video">
           <YouTube
-            videoId={videoId}
+            videoId={validVideoId}
             opts={{
               ...opts,
               width: '100%',
@@ -690,19 +743,6 @@ export function VideoNote({
               {/* Action Buttons */}
               <div className="flex items-center gap-2">
                 <Button
-                  onClick={toggleFavorite}
-                  variant="ghost"
-                  size="sm"
-                  className={`transition-all duration-200 ${
-                    isFavorited
-                      ? 'text-red-600 hover:text-red-700'
-                      : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-                  }`}
-                >
-                  <Heart className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />
-                </Button>
-                
-                <Button
                   onClick={toggleQuickNote}
                   variant="ghost"
                   size="sm"
@@ -713,8 +753,24 @@ export function VideoNote({
                       : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
                   }`}
                 >
-                  <Scissors className={`w-5 h-5 ${quickNoteCapturing ? 'fill-current' : ''}`} />
+                  <Scissors className={`w-5 h-5 ${quickNoteCapturing ? 'animate-pulse' : ''}`} />
                 </Button>
+                
+                {favoritesEnabled && (
+                  <Button
+                    onClick={toggleFavorite}
+                    variant="ghost"
+                    size="sm"
+                    disabled={favoritesPaused}
+                    className={`transition-all duration-200 ${
+                      propIsFavorited
+                        ? 'text-red-600 hover:text-red-700'
+                        : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                    } ${favoritesPaused ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <Heart className={`w-5 h-5 ${propIsFavorited ? 'fill-current' : ''}`} />
+                  </Button>
+                )}
 
                 {/* Background Playback Controls */}
                 {backgroundVideo?.id === videoId ? (

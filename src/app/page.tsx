@@ -150,9 +150,11 @@ export default function MyTubeApp() {
   const [searchCache, setSearchCache] = useState<Map<string, { items: Video[], continuation: string | null, hasMore: boolean, timestamp: number }>>(new Map())
   const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes cache
   
-  // Dialog states
+  // Settings states
   const [showSettings, setShowSettings] = useState(false)
   const [showClearDataConfirmation, setShowClearDataConfirmation] = useState(false)
+  const [favoritesEnabled, setFavoritesEnabled] = useState(true)
+  const [favoritesPaused, setFavoritesPaused] = useState(false)
   
   // YouTube URL player state
   const [youtubeUrl, setYoutubeUrl] = useState('')
@@ -301,6 +303,16 @@ export default function MyTubeApp() {
     const savedAutoLoadMore = localStorage.getItem('mytube-auto-load-more')
     if (savedAutoLoadMore !== null) {
       setAutoLoadMore(savedAutoLoadMore === 'true')
+    }
+    
+    const savedFavoritesEnabled = localStorage.getItem('mytube-favorites-enabled')
+    if (savedFavoritesEnabled !== null) {
+      setFavoritesEnabled(savedFavoritesEnabled === 'true')
+    }
+    
+    const savedFavoritesPaused = localStorage.getItem('mytube-favorites-paused')
+    if (savedFavoritesPaused !== null) {
+      setFavoritesPaused(savedFavoritesPaused === 'true')
     }
 
     const loadInitialData = async () => {
@@ -475,16 +487,24 @@ export default function MyTubeApp() {
     }
   }, [searchInputTimeout])
 
-  // Tab definitions
-  const tabs = useMemo(() => [
-    { id: 'home' as Tab, icon: Home, label: 'Home' },
-    { id: 'search' as Tab, icon: Search, label: 'Search' },
-    { id: 'player' as Tab, icon: Play, label: 'Player' },
-    { id: 'watched' as Tab, icon: Clock, label: 'Watched' },
-    { id: 'channels' as Tab, icon: User, label: 'Channels' },
-    { id: 'favorites' as Tab, icon: Heart, label: 'Favorites' },
-    { id: 'notes' as Tab, icon: FileText, label: 'Notes' },
-  ], [])
+  // Tab definitions with conditional favorites tab
+  const tabs = useMemo(() => {
+    const baseTabs = [
+      { id: 'home' as Tab, icon: Home, label: 'Home' },
+      { id: 'search' as Tab, icon: Search, label: 'Search' },
+      { id: 'player' as Tab, icon: Play, label: 'Player' },
+      { id: 'watched' as Tab, icon: Clock, label: 'Watched' },
+      { id: 'channels' as Tab, icon: User, label: 'Channels' },
+      { id: 'notes' as Tab, icon: FileText, label: 'Notes' },
+    ]
+    
+    // Add favorites tab only if enabled
+    if (favoritesEnabled) {
+      baseTabs.splice(5, 0, { id: 'favorites' as Tab, icon: Heart, label: 'Favorites' })
+    }
+    
+    return baseTabs
+  }, [favoritesEnabled])
 
   // Enhanced tab navigation with haptic feedback
   const handleTabNavigation = useCallback((tabId: Tab) => {
@@ -576,7 +596,9 @@ export default function MyTubeApp() {
       const verticalDistance = Math.abs(touchEndY - touchStartY)
       
       if (Math.abs(swipeDistance) > minSwipeDistance && verticalDistance < maxVerticalDistance) {
-        const tabs: Tab[] = ['home', 'search', 'player', 'watched', 'channels', 'favorites', 'notes']
+        const tabs: Tab[] = favoritesEnabled 
+          ? ['home', 'search', 'player', 'watched', 'channels', 'favorites', 'notes']
+          : ['home', 'search', 'player', 'watched', 'channels', 'notes']
         const currentIndex = tabs.indexOf(activeTab)
         
         if (swipeDistance > 0) {
@@ -609,7 +631,9 @@ export default function MyTubeApp() {
         return
       }
 
-      const tabs: Tab[] = ['home', 'search', 'player', 'watched', 'channels', 'favorites', 'notes']
+      const tabs: Tab[] = favoritesEnabled 
+        ? ['home', 'search', 'player', 'watched', 'channels', 'favorites', 'notes']
+        : ['home', 'search', 'player', 'watched', 'channels', 'notes']
       const currentIndex = tabs.indexOf(activeTab)
 
       switch (e.key) {
@@ -990,6 +1014,8 @@ export default function MyTubeApp() {
       // Clear localStorage
       const keysToRemove = [
         'mytube-auto-load-more',
+        'mytube-favorites-enabled',
+        'mytube-favorites-paused',
         'mytube-search-cache',
         'mytube-user-preferences',
         'mytube-navigation-history',
@@ -1442,12 +1468,14 @@ export default function MyTubeApp() {
     setNavigationHistory(prev => [...prev, 'player'])
     
     try {
+      // Use video.videoId if available (for database videos), otherwise use video.id (for YouTube videos)
+      const videoId = video.videoId || video.id
       const thumbnailUrl = getThumbnailUrl(video)
       await fetch('/api/watched', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          videoId: video.id,
+          videoId: videoId,
           title: video.title,
           channelName: getChannelName(video),
           thumbnail: thumbnailUrl
@@ -1620,13 +1648,27 @@ export default function MyTubeApp() {
   }, [selectedVideo, searchResults, channelVideos, favoriteVideos, watchedVideos, handleVideoPlay, addNotification])
 
   const toggleFavorite = async (video: Video) => {
+    // Check if favorites are enabled
+    if (!favoritesEnabled) {
+      addNotification('Favorites Disabled', 'Favorites module is disabled in settings', 'info')
+      return
+    }
+    
+    // Check if favorites are paused
+    if (favoritesPaused) {
+      addNotification('Favorites Paused', 'Cannot add/remove favorites while paused', 'info')
+      return
+    }
+    
     try {
-      const isFavorite = favoriteVideos.some(v => v.videoId === video.id)
+      // Use video.videoId if available (for database videos), otherwise use video.id (for YouTube videos)
+      const videoId = video.videoId || video.id
+      const isFavorite = favoriteVideos.some(v => v.videoId === videoId)
       const thumbnailUrl = getThumbnailUrl(video)
       
       if (isFavorite) {
         showDynamicLoading('favorites')
-        const response = await fetch(`/api/favorites/${video.id}`, { 
+        const response = await fetch(`/api/favorites/${videoId}`, { 
           method: 'DELETE' 
         })
         
@@ -1642,10 +1684,11 @@ export default function MyTubeApp() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            videoId: video.id,
+            videoId: videoId,
             title: video.title,
             channelName: getChannelName(video),
             thumbnail: thumbnailUrl,
+            duration: video.duration,
             viewCount: video.viewCount
           })
         })
@@ -1758,8 +1801,10 @@ export default function MyTubeApp() {
   }, [activeTab, multiSelectMode, clearSelection])
 
   const VideoCard = useCallback(({ video, showActions = true }: { video: Video | any, showActions?: boolean }) => {
-    const isFavorite = favoriteVideoIds.has(video.id)
-    const isSelected = selectedItems.has(video.id)
+    // Use video.videoId if available (for database videos), otherwise use video.id (for YouTube videos)
+    const videoId = video.videoId || video.id
+    const isFavorite = favoriteVideoIds.has(videoId)
+    const isSelected = selectedItems.has(videoId)
     const thumbnailUrl = getThumbnailUrl(video)
     const channelName = getChannelName(video)
     const channelLogo = getChannelLogo(video)
@@ -1869,19 +1914,22 @@ export default function MyTubeApp() {
                   >
                     <Play className="w-4 h-4" />
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => toggleFavorite(video)}
-                    className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-500"
-                  >
-                    <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
-                  </Button>
+                  {favoritesEnabled && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => toggleFavorite(video)}
+                      className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-500"
+                      disabled={favoritesPaused}
+                    >
+                      <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500 text-red-500' : ''} ${favoritesPaused ? 'opacity-50' : ''}`} />
+                    </Button>
+                  )}
                 </div>
                 {multiSelectMode && (
                   <Checkbox
                     checked={isSelected}
-                    onCheckedChange={() => toggleItemSelection(video.id)}
+                    onCheckedChange={() => toggleItemSelection(videoId)}
                     className="w-4 h-4"
                   />
                 )}
@@ -2158,12 +2206,13 @@ export default function MyTubeApp() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {followedChannelsVideos.slice(0, 12).map((video) => {
-                      const isFavorite = favoriteVideoIds.has(video.id)
+                      const videoId = video.videoId || video.id
+                      const isFavorite = favoriteVideoIds.has(videoId)
                       return (
-                        <Card key={video.id} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+                        <Card key={videoId} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
                           <div className="relative">
                             <img
-                              src={video.thumbnail?.url || `https://img.youtube.com/vi/${video.id}/mqdefault.jpg`}
+                              src={video.thumbnail?.url || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
                               alt={video.title}
                               className="w-full h-32 object-cover rounded-t-lg"
                               onClick={() => handleVideoPlay(video)}
@@ -2369,9 +2418,10 @@ export default function MyTubeApp() {
                 <h2 className="text-xl font-semibold">Latest from Favorite Channels</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {channelVideos.slice(0, 6).map((video) => {
-                    const isFavorite = favoriteVideoIds.has(video.id)
+                    const videoId = video.videoId || video.id
+                    const isFavorite = favoriteVideoIds.has(videoId)
                     return (
-                      <Card key={video.id} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+                      <Card key={videoId} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
                         <div className="relative">
                           <img
                             src={getSafeThumbnailUrl(video)}
@@ -2429,9 +2479,10 @@ export default function MyTubeApp() {
                 <h2 className="text-xl font-semibold">Recently Watched</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {watchedVideos.slice(0, 6).map((video) => {
-                    const isFavorite = favoriteVideoIds.has(video.videoId)
+                    const videoId = video.videoId || video.id
+                    const isFavorite = favoriteVideoIds.has(videoId)
                     return (
-                      <Card key={video.id} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+                      <Card key={videoId} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
                         <div className="relative">
                           <img
                             src={getSafeThumbnailUrl(video)}
@@ -2492,9 +2543,10 @@ export default function MyTubeApp() {
                 <h2 className="text-xl font-semibold">Favorite Videos</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {favoriteVideos.slice(0, 6).map((video) => {
-                    const isFavorite = favoriteVideoIds.has(video.videoId)
+                    const videoId = video.videoId || video.id
+                    const isFavorite = favoriteVideoIds.has(videoId)
                     return (
-                      <Card key={video.id} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+                      <Card key={videoId} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
                         <div className="relative">
                           <img
                             src={getSafeThumbnailUrl(video)}
@@ -2657,7 +2709,7 @@ export default function MyTubeApp() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {playlistVideos.map((video) => (
-                      <VideoCard key={video.id} video={video} />
+                      <VideoCard key={video.videoId || video.id} video={video} />
                     ))}
                   </div>
                 )}
@@ -2708,9 +2760,9 @@ export default function MyTubeApp() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {searchResults.items.map((item) => {
                       if (item.type === 'playlist') {
-                        return <PlaylistCard key={item.id} playlist={item as Playlist} />
+                        return <PlaylistCard key={item.playlistId || item.id} playlist={item as Playlist} />
                       } else {
-                        return <VideoCard key={item.id} video={item as Video} />
+                        return <VideoCard key={(item as Video).videoId || item.id} video={item as Video} />
                       }
                     })}
                   </div>
@@ -2796,12 +2848,16 @@ export default function MyTubeApp() {
               <>
                 {/* Video Note Component - Video Player */}
                 <VideoNote 
-                  videoId={selectedVideo.id} 
+                  videoId={selectedVideo.videoId || selectedVideo.id} 
                   videoTitle={selectedVideo.title}
                   channelName={getChannelName(selectedVideo)}
                   viewCount={selectedVideo.viewCount}
                   publishedAt={selectedVideo.publishedAt}
                   thumbnail={getThumbnailUrl(selectedVideo)}
+                  isFavorited={favoriteVideoIds.has(selectedVideo.videoId || selectedVideo.id)}
+                  favoritesEnabled={favoritesEnabled}
+                  favoritesPaused={favoritesPaused}
+                  onFavoriteToggle={() => toggleFavorite(selectedVideo)}
                   onPreviousVideo={handlePreviousVideo}
                   onNextVideo={handleNextVideo}
                   onNotesChange={loadNotes}
@@ -2837,7 +2893,7 @@ export default function MyTubeApp() {
             {watchedVideos.length > 0 ? (
               <div className="space-y-3">
                 {watchedVideos.map((video) => (
-                  <VideoCard key={video.id} video={video} />
+                  <VideoCard key={video.videoId || video.id} video={video} />
                 ))}
               </div>
             ) : (
@@ -3004,7 +3060,7 @@ export default function MyTubeApp() {
             {favoriteVideos.length > 0 ? (
               <div className="space-y-3">
                 {favoriteVideos.map((video) => (
-                  <VideoCard key={video.id} video={video} />
+                  <VideoCard key={video.videoId || video.id} video={video} />
                 ))}
               </div>
             ) : (
@@ -4021,6 +4077,57 @@ export default function MyTubeApp() {
                 />
               </div>
 
+              {/* Favorites Module Settings */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium">Favorites Module</h3>
+                
+                {/* Enable/Disable Favorites */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <label className="text-sm font-medium">Enable Favorites</label>
+                    <p className="text-xs text-muted-foreground">
+                      Turn the favorites module on or off
+                    </p>
+                  </div>
+                  <Switch
+                    checked={favoritesEnabled}
+                    onCheckedChange={(checked) => {
+                      setFavoritesEnabled(checked)
+                      localStorage.setItem('mytube-favorites-enabled', checked.toString())
+                      if (!checked && activeTab === 'favorites') {
+                        setActiveTab('home')
+                      }
+                    }}
+                    disabled={loading}
+                  />
+                </div>
+
+                {/* Pause/Resume Favorites */}
+                {favoritesEnabled && (
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <label className="text-sm font-medium">Pause Favorites</label>
+                      <p className="text-xs text-muted-foreground">
+                        Temporarily pause adding/removing favorites
+                      </p>
+                    </div>
+                    <Switch
+                      checked={favoritesPaused}
+                      onCheckedChange={(checked) => {
+                        setFavoritesPaused(checked)
+                        localStorage.setItem('mytube-favorites-paused', checked.toString())
+                        addNotification(
+                          'Favorites ' + (checked ? 'Paused' : 'Resumed'), 
+                          checked ? 'Cannot add/remove favorites while paused' : 'Favorites functionality resumed',
+                          'info'
+                        )
+                      }}
+                      disabled={loading}
+                    />
+                  </div>
+                )}
+              </div>
+
               {/* Data Statistics */}
               <Card>
                 <CardHeader className="pb-3">
@@ -4035,14 +4142,16 @@ export default function MyTubeApp() {
                     <span>Favorite Channels</span>
                     <span className="font-mono">{favoriteChannels.length}</span>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span>Favorite Videos</span>
-                    <span className="font-mono">{favoriteVideos.length}</span>
-                  </div>
+                  {favoritesEnabled && (
+                    <div className="flex justify-between text-xs">
+                      <span>Favorite Videos</span>
+                      <span className="font-mono">{favoriteVideos.length}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-xs font-medium pt-2 border-t">
                     <span>Total Items</span>
                     <span className="font-mono">
-                      {watchedVideos.length + favoriteChannels.length + favoriteVideos.length}
+                      {watchedVideos.length + favoriteChannels.length + (favoritesEnabled ? favoriteVideos.length : 0)}
                     </span>
                   </div>
                 </CardContent>
@@ -4065,7 +4174,7 @@ export default function MyTubeApp() {
                   disabled={loading || (
                     watchedVideos.length === 0 && 
                     favoriteChannels.length === 0 && 
-                    favoriteVideos.length === 0
+                    (favoritesEnabled ? favoriteVideos.length : 0) === 0
                   )}
                   className="w-full"
                 >
@@ -4144,7 +4253,7 @@ export default function MyTubeApp() {
               
               <div className="pt-2 border-t">
                 <p className="text-xs text-muted-foreground">
-                  <strong>Total items to be deleted:</strong> {watchedVideos.length + favoriteChannels.length + favoriteVideos.length} database records + all local data
+                  <strong>Total items to be deleted:</strong> {watchedVideos.length + favoriteChannels.length + (favoritesEnabled ? favoriteVideos.length : 0)} database records + all local data
                 </p>
               </div>
             </div>

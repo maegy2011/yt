@@ -118,16 +118,16 @@ export function convertYouTubePlaylist(playlist: YouTubePlaylist): SimplePlaylis
 }
 
 // Convert database video to SimpleVideo
-export function convertDbVideoToSimple(dbVideo: WatchedVideo | FavoriteVideo): SimpleVideo {
+export function convertDbVideoToSimple(dbVideo: WatchedVideo | FavoriteVideo | any): SimpleVideo {
   return {
     id: dbVideo.id,
     videoId: dbVideo.videoId,
     title: dbVideo.title,
     channelName: dbVideo.channelName,
-    thumbnail: dbVideo.thumbnail,
+    thumbnail: dbVideo.thumbnail || '',
     duration: dbVideo.duration,
     viewCount: dbVideo.viewCount,
-    publishedAt: 'watchedAt' in dbVideo ? dbVideo.watchedAt : new Date().toISOString(),
+    publishedAt: 'watchedAt' in dbVideo ? dbVideo.watchedAt : ('addedAt' in dbVideo ? dbVideo.addedAt : new Date().toISOString()),
     isLive: false,
     type: 'video'
   }
