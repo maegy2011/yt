@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { BackgroundPlayerProvider } from "@/contexts/background-player-context";
 import { MiniPlayer } from "@/components/mini-player";
+import { ThemeProvider } from "next-themes";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -50,13 +51,20 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground h-full-screen overflow-hidden safe-area-inset`}
       >
-        <BackgroundPlayerProvider>
-          <div className="h-full flex flex-col overflow-hidden">
-            {children}
-            <MiniPlayer />
-            <Toaster />
-          </div>
-        </BackgroundPlayerProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <BackgroundPlayerProvider>
+            <div className="h-full flex flex-col overflow-hidden">
+              {children}
+              <MiniPlayer />
+              <Toaster />
+            </div>
+          </BackgroundPlayerProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

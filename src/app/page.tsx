@@ -31,11 +31,19 @@ import {
   Eye,
   ChevronRight,
   ChevronLeft,
+  ChevronUp,
+  ChevronDown,
   FileText,
   Menu,
   X,
   Save,
-  PlusCircle
+  PlusCircle,
+  RefreshCw,
+  Download,
+  Music,
+  SkipBack,
+  SkipForward,
+  ExternalLink
 } from 'lucide-react'
 import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
 import { validateSearchQuery, validateYouTubeUrl } from '@/lib/validation'
@@ -46,6 +54,7 @@ import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleto
 import { SplashScreen } from '@/components/splash-screen'
 import { VideoNote } from '@/components/video-note'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
+import { ThemeSwitch } from '@/components/theme-switch'
 
 // Enhanced types with better safety
 type Tab = 'home' | 'search' | 'player' | 'watched' | 'channels' | 'favorites' | 'notes'
@@ -118,6 +127,9 @@ export default function MyTubeApp() {
   const [playlistVideos, setPlaylistVideos] = useState<Video[]>([])
   const [playlistVideosLoading, setPlaylistVideosLoading] = useState(false)
   const [showPlaylistVideos, setShowPlaylistVideos] = useState(false)
+  const [expandedPlaylists, setExpandedPlaylists] = useState<Set<string>>(new Set())
+  const [expandedPlaylistVideos, setExpandedPlaylistVideos] = useState<Map<string, Video[]>>(new Map())
+  const [expandedPlaylistLoading, setExpandedPlaylistLoading] = useState<Map<string, boolean>>(new Map())
   
   // Channel search states
   const [channelSearchResults, setChannelSearchResults] = useState<any[]>([])
@@ -1412,29 +1424,123 @@ export default function MyTubeApp() {
       setShowPlaylistVideos(true)
       showDynamicLoading('search')
       
+      if (!playlist.playlistId) {
+        throw new Error('Playlist ID is required')
+      }
+      
       const response = await fetch(`/api/youtube/playlist/${playlist.playlistId}/videos?loadAll=true`)
       
       if (!response.ok) {
-        throw new Error('Failed to load playlist videos')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Failed to load playlist videos (${response.status})`)
       }
       
       const data = await response.json()
       
-      // Convert videos to SimpleVideo format
-      const convertedVideos = data.videos.map((video: any) => convertYouTubeVideo(video))
+      if (!data.videos || !Array.isArray(data.videos)) {
+        throw new Error('Invalid playlist data received')
+      }
       
-      setPlaylistVideos(convertedVideos)
-      showDynamicConfirmation('playlistLoaded', [playlist.title, data.videos.length])
+      // Convert videos to SimpleVideo format
+      const convertedVideos = data.videos.map((video: any) => {
+        try {
+          return convertYouTubeVideo(video)
+        } catch (conversionError) {
+          console.error('Failed to convert video:', video, conversionError)
+          return null
+        }
+      }).filter((video): video is Video => video !== null)
+      
+      if (convertedVideos.length === 0) {
+        addNotification('Empty Playlist', 'This playlist contains no videos', 'info')
+      } else {
+        setPlaylistVideos(convertedVideos)
+        showDynamicConfirmation('playlistLoaded', [playlist.title, convertedVideos.length])
+      }
       
       // Switch to search tab to show playlist videos
       setActiveTab('search')
       
     } catch (error) {
       console.error('Failed to load playlist videos:', error)
-      addNotification('Failed to Load Playlist', 'Could not load playlist videos', 'destructive')
+      const errorMessage = error instanceof Error ? error.message : 'Could not load playlist videos'
+      addNotification('Failed to Load Playlist', errorMessage, 'destructive')
+      
+      // Reset playlist state on error
+      setShowPlaylistVideos(false)
+      setSelectedPlaylist(null)
+      setPlaylistVideos([])
     } finally {
       setPlaylistVideosLoading(false)
       setDynamicLoadingMessage('')
+    }
+  }
+
+  // Toggle playlist expansion and load videos inline
+  const togglePlaylistExpansion = async (playlist: Playlist) => {
+    const playlistId = playlist.id || playlist.playlistId
+    if (!playlistId) return
+
+    const isExpanded = expandedPlaylists.has(playlistId)
+    
+    if (isExpanded) {
+      // Collapse playlist
+      setExpandedPlaylists(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(playlistId)
+        return newSet
+      })
+    } else {
+      // Expand playlist and load videos
+      setExpandedPlaylistLoading(prev => new Map(prev).set(playlistId, true))
+      
+      try {
+        if (!playlist.playlistId) {
+          throw new Error('Playlist ID is required')
+        }
+        
+        const response = await fetch(`/api/youtube/playlist/${playlist.playlistId}/videos?loadAll=true`)
+        
+        if (!response.ok) {
+          throw new Error('Failed to load playlist videos')
+        }
+        
+        const data = await response.json()
+        
+        if (!data.videos || !Array.isArray(data.videos)) {
+          throw new Error('Invalid playlist data received')
+        }
+        
+        // Convert videos to SimpleVideo format (limit to first 5 for inline display)
+        const convertedVideos = data.videos
+          .slice(0, 5) // Limit to 5 videos for inline display
+          .map((video: any) => {
+            try {
+              return convertYouTubeVideo(video)
+            } catch (conversionError) {
+              console.error('Failed to convert video:', video, conversionError)
+              return null
+            }
+          })
+          .filter((video): video is Video => video !== null)
+        
+        setExpandedPlaylistVideos(prev => new Map(prev).set(playlistId, convertedVideos))
+        setExpandedPlaylists(prev => new Set(prev).add(playlistId))
+        
+        if (convertedVideos.length > 0) {
+          addNotification('Playlist Expanded', `Loaded ${convertedVideos.length} videos from "${playlist.title}"`, 'success')
+        }
+        
+      } catch (error) {
+        console.error('Failed to expand playlist:', error)
+        addNotification('Failed to Expand Playlist', 'Could not load playlist videos', 'destructive')
+      } finally {
+        setExpandedPlaylistLoading(prev => {
+          const newMap = new Map(prev)
+          newMap.delete(playlistId)
+          return newMap
+        })
+      }
     }
   }
 
@@ -1828,7 +1934,7 @@ export default function MyTubeApp() {
               />
               {video.duration && (
                 <Badge className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-1.5 py-0.5">
-                  {video.duration}
+                  {formatDuration(video.duration)}
                 </Badge>
               )}
               {/* Overlay Actions on Hover */}
@@ -1943,6 +2049,10 @@ export default function MyTubeApp() {
 
   const PlaylistCard = useCallback(({ playlist }: { playlist: Playlist }) => {
     const isSelected = selectedItems.has(playlist.id)
+    const playlistId = playlist.id || playlist.playlistId
+    const isExpanded = playlistId ? expandedPlaylists.has(playlistId) : false
+    const isLoading = playlistId ? expandedPlaylistLoading.get(playlistId) || false : false
+    const videos = playlistId ? expandedPlaylistVideos.get(playlistId) || [] : []
     const thumbnailUrl = playlist.thumbnail
     
     return (
@@ -1968,11 +2078,32 @@ export default function MyTubeApp() {
               <Badge className="absolute top-2 left-2 bg-purple-600/90 text-white text-xs px-1.5 py-0.5">
                 Playlist
               </Badge>
+              
+              {/* Expand/Collapse Button */}
+              <Button
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  togglePlaylistExpansion(playlist)
+                }}
+                className="absolute top-2 right-2 h-7 w-7 p-0 bg-black/80 hover:bg-black text-white hover:text-white z-10"
+                title={isExpanded ? "Collapse playlist" : "Expand playlist"}
+              >
+                {isExpanded ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </Button>
+              
               {/* Play Button Overlay */}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100">
                 <Button
                   size="sm"
-                  onClick={() => loadPlaylistVideos(playlist)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    loadPlaylistVideos(playlist)
+                  }}
                   className="bg-white/90 hover:bg-white text-black hover:scale-110 transition-transform"
                   disabled={playlistVideosLoading}
                 >
@@ -2034,14 +2165,38 @@ export default function MyTubeApp() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => loadPlaylistVideos(playlist)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    loadPlaylistVideos(playlist)
+                  }}
                   className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
                   disabled={playlistVideosLoading}
+                  title="View full playlist"
                 >
                   {playlistVideosLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <Play className="w-4 h-4" />
+                  )}
+                </Button>
+                
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    togglePlaylistExpansion(playlist)
+                  }}
+                  className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
+                  disabled={isLoading}
+                  title={isExpanded ? "Collapse playlist" : "Expand playlist"}
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : isExpanded ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
                   )}
                 </Button>
               </div>
@@ -2053,11 +2208,338 @@ export default function MyTubeApp() {
                 />
               )}
             </div>
+            
+            {/* Expanded Playlist Videos */}
+            {isExpanded && (
+              <ExpandedPlaylistVideos 
+                playlist={playlist}
+                videos={videos}
+                isLoading={isLoading}
+                onVideoSelect={handleVideoPlay}
+              />
+            )}
           </div>
         </CardContent>
       </Card>
     )
-  }, [selectedItems, multiSelectMode, toggleItemSelection, loadPlaylistVideos, playlistVideosLoading])
+  }, [selectedItems, multiSelectMode, toggleItemSelection, loadPlaylistVideos, playlistVideosLoading, expandedPlaylists, expandedPlaylistLoading, expandedPlaylistVideos, togglePlaylistExpansion])
+
+  // Expanded Playlist Videos Component - moved outside to avoid useState hook issue
+  const ExpandedPlaylistVideos = ({ playlist, videos, isLoading, onVideoSelect }: { 
+    playlist: Playlist, 
+    videos: Video[], 
+    isLoading: boolean,
+    onVideoSelect: (video: Video) => void
+  }) => {
+    const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
+    const [isPlaying, setIsPlaying] = useState(false)
+    
+    const handlePreviousVideo = () => {
+      setCurrentVideoIndex(prev => Math.max(0, prev - 1))
+    }
+    
+    const handleNextVideo = () => {
+      setCurrentVideoIndex(prev => Math.min(videos.length - 1, prev + 1))
+    }
+    
+    const handlePlayVideo = (video: Video) => {
+      onVideoSelect(video)
+      setIsPlaying(true)
+    }
+    
+    const handlePlayAll = () => {
+      if (videos.length > 0) {
+        onVideoSelect(videos[0])
+        setIsPlaying(true)
+      }
+    }
+
+    // Auto-advance to next video when current video finishes
+    useEffect(() => {
+      if (isPlaying && backgroundVideo && backgroundCurrentTime >= backgroundDuration - 1) {
+        // Video is about to finish, advance to next
+        if (currentVideoIndex < videos.length - 1) {
+          handleNextVideo()
+          setTimeout(() => {
+            if (videos[currentVideoIndex + 1]) {
+              onVideoSelect(videos[currentVideoIndex + 1])
+            }
+          }, 100)
+        }
+      }
+    }, [backgroundCurrentTime, backgroundDuration, isPlaying, currentVideoIndex, videos.length])
+
+    // Reset playing state when background video changes
+    useEffect(() => {
+      if (backgroundVideo) {
+        const currentVideoId = backgroundVideo.videoId || backgroundVideo.id
+        const currentPlaylistVideo = videos[currentVideoIndex]
+        if (currentPlaylistVideo && (currentPlaylistVideo.videoId === currentVideoId || currentPlaylistVideo.id === currentVideoId)) {
+          setIsPlaying(isBackgroundPlaying)
+        } else {
+          setIsPlaying(false)
+        }
+      }
+    }, [backgroundVideo, isBackgroundPlaying, currentVideoIndex, videos])
+
+    if (isLoading) {
+      return (
+        <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+            <span className="ml-2 text-sm text-muted-foreground">Loading playlist videos...</span>
+          </div>
+        </div>
+      )
+    }
+
+    if (videos.length === 0) {
+      return (
+        <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+          <div className="text-center py-4">
+            <Music className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No videos found in this playlist</p>
+          </div>
+        </div>
+      )
+    }
+
+    const currentVideo = videos[currentVideoIndex]
+
+    return (
+      <div className="mt-4 space-y-4">
+        {/* Playlist Controls */}
+        <div className="bg-gradient-to-r from-purple-50 via-purple-25 to-transparent dark:from-purple-900/20 dark:via-purple-800/10 dark:to-transparent rounded-xl p-4 border border-purple-200/50 dark:border-purple-800/30 shadow-sm">
+          <div className="flex flex-col gap-4">
+            {/* Current Video Info */}
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <img
+                  src={getThumbnailUrl(currentVideo)}
+                  alt={currentVideo.title}
+                  className="w-16 h-10 object-cover rounded-md"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.src = `https://via.placeholder.com/64x40/374151/ffffff?text=Video`
+                  }}
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium text-purple-900 dark:text-purple-100 truncate">
+                  {currentVideo?.title || 'No video selected'}
+                </h4>
+                <div className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300">
+                  <span>{currentVideoIndex + 1} of {videos.length}</span>
+                  {currentVideo.duration && (
+                    <>
+                      <span>•</span>
+                      <span>{formatDuration(currentVideo.duration)}</span>
+                    </>
+                  )}
+                  {isPlaying && (
+                    <>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        Now Playing
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Playback Controls */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePreviousVideo}
+                  disabled={currentVideoIndex === 0}
+                  className="h-9 w-9 p-0"
+                  title="Previous video"
+                >
+                  <SkipBack className="w-4 h-4" />
+                </Button>
+                
+                <Button
+                  size="sm"
+                  onClick={() => isPlaying ? pauseBackgroundVideo() : handlePlayVideo(currentVideo)}
+                  className="h-9 px-4 bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
+                  title={isPlaying ? "Pause" : "Play current video"}
+                >
+                  {isPlaying ? (
+                    <>
+                      <Pause className="w-4 h-4" />
+                      Pause
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4" />
+                      Play
+                    </>
+                  )}
+                </Button>
+                
+                <Button
+                  size="sm"
+                  onClick={handlePlayAll}
+                  className="h-9 px-3 border-purple-300 text-purple-700 hover:bg-purple-50"
+                  title="Play playlist from beginning"
+                >
+                  <Play className="w-4 h-4 mr-1" />
+                  Play All
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextVideo}
+                  disabled={currentVideoIndex === videos.length - 1}
+                  className="h-9 w-9 p-0"
+                  title="Next video"
+                >
+                  <SkipForward className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {/* Volume and Progress */}
+              <div className="flex-1 flex items-center gap-3">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between text-xs text-purple-600 dark:text-purple-400 mb-1">
+                    <span>Video {currentVideoIndex + 1}</span>
+                    <span>{videos.length} total</span>
+                  </div>
+                  <div className="w-full bg-purple-200 dark:bg-purple-800 rounded-full h-2">
+                    <div 
+                      className="bg-purple-600 dark:bg-purple-400 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${((currentVideoIndex + 1) / videos.length) * 100}%` }}
+                    />
+                  </div>
+                </div>
+                
+                {backgroundVideo && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{formatTime(backgroundCurrentTime)}</span>
+                    <span>/</span>
+                    <span>{formatTime(backgroundDuration)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Videos Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {videos.map((video, index) => (
+            <div 
+              key={video.videoId || video.id} 
+              className={`relative group cursor-pointer transition-all duration-200 ${
+                index === currentVideoIndex 
+                  ? 'ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/20 shadow-md' 
+                  : 'hover:bg-muted/50 hover:shadow-sm'
+              } rounded-lg p-3 border`}
+              onClick={() => {
+                setCurrentVideoIndex(index)
+                handlePlayVideo(video)
+              }}
+            >
+              <div className="flex gap-3">
+                {/* Thumbnail */}
+                <div className="relative flex-shrink-0">
+                  <img
+                    src={getThumbnailUrl(video)}
+                    alt={video.title}
+                    className="w-20 h-12 object-cover rounded-md"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.src = `https://via.placeholder.com/80x48/374151/ffffff?text=Video`
+                    }}
+                  />
+                  {video.duration && (
+                    <Badge className="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1 py-0">
+                      {formatDuration(video.duration)}
+                    </Badge>
+                  )}
+                  {index === currentVideoIndex && (
+                    <div className="absolute inset-0 bg-purple-600/30 rounded-md flex items-center justify-center">
+                      {isPlaying ? (
+                        <div className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center">
+                          <Pause className="w-3 h-3 text-purple-600" />
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center">
+                          <Play className="w-3 h-3 text-purple-600" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Video Info */}
+                <div className="flex-1 min-w-0">
+                  <h5 className={`text-sm font-medium line-clamp-2 transition-colors ${
+                    index === currentVideoIndex 
+                      ? 'text-purple-900 dark:text-purple-100' 
+                      : 'group-hover:text-purple-600 dark:group-hover:text-purple-400'
+                  }`}>
+                    {video.title}
+                  </h5>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {getChannelName(video)}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    {video.duration && (
+                      <span className="text-xs text-muted-foreground">
+                        {formatDuration(video.duration)}
+                      </span>
+                    )}
+                    {index === currentVideoIndex && isPlaying && (
+                      <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-xs text-green-600 dark:text-green-400">Playing</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Video Number */}
+                <div className="flex-shrink-0">
+                  <Badge 
+                    variant={index === currentVideoIndex ? "default" : "secondary"}
+                    className={`text-xs ${
+                      index === currentVideoIndex 
+                        ? 'bg-purple-600 text-white' 
+                        : ''
+                    }`}
+                  >
+                    #{index + 1}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {/* View Full Playlist Button */}
+        {videos.length >= 5 && (
+          <div className="text-center pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => loadPlaylistVideos(playlist)}
+              className="text-purple-600 border-purple-300 hover:bg-purple-50 hover:text-purple-700"
+            >
+              <ExternalLink className="w-4 h-4 mr-1" />
+              View Full Playlist ({playlist.videoCount} videos)
+            </Button>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const loadMoreVideos = useCallback(async () => {
     if (loadingMore || !hasMoreVideos || !currentSearchQuery || isIntersectionLoading || hasTriggeredLoad) return
@@ -2219,7 +2701,7 @@ export default function MyTubeApp() {
                             />
                             {video.duration && (
                               <Badge className="absolute bottom-2 right-2 bg-black/80 text-white text-xs">
-                                {video.duration}
+                                {formatDuration(video.duration)}
                               </Badge>
                             )}
                             {/* Play button overlay */}
@@ -2688,37 +3170,214 @@ export default function MyTubeApp() {
 
             {/* Search Results */}
             {showPlaylistVideos && selectedPlaylist ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 mb-4 p-4 bg-muted/50 rounded-lg">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowPlaylistVideos(false)
-                      setSelectedPlaylist(null)
-                      setPlaylistVideos([])
-                    }}
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back to Search
-                  </Button>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold">{selectedPlaylist.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedPlaylist.channelName} • {playlistVideos.length} videos loaded
-                    </p>
+              <div className="space-y-6">
+                {/* Playlist Header */}
+                <div className="bg-gradient-to-r from-purple-50 via-purple-25 to-transparent dark:from-purple-900/20 dark:via-purple-800/10 dark:to-transparent rounded-xl p-6 border border-purple-200/50 dark:border-purple-800/30">
+                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                    {/* Back Button */}
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowPlaylistVideos(false)
+                        setSelectedPlaylist(null)
+                        setPlaylistVideos([])
+                      }}
+                      className="h-10 px-4 flex-shrink-0"
+                    >
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Back
+                    </Button>
+                    
+                    {/* Playlist Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h2 className="text-xl sm:text-2xl font-bold text-purple-900 dark:text-purple-100 truncate">
+                          {selectedPlaylist.title}
+                        </h2>
+                        <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200">
+                          Playlist
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-muted-foreground">
+                        <span className="font-medium text-purple-700 dark:text-purple-300">
+                          {selectedPlaylist.channelName}
+                        </span>
+                        <span className="hidden sm:inline">•</span>
+                        <span className="flex items-center gap-1">
+                          <Play className="w-3 h-3" />
+                          {playlistVideos.length} of {selectedPlaylist.videoCount} videos loaded
+                        </span>
+                        {selectedPlaylist.viewCount && (
+                          <>
+                            <span className="hidden sm:inline">•</span>
+                            <span>{formatViewCount(selectedPlaylist.viewCount)}</span>
+                          </>
+                        )}
+                      </div>
+                      
+                      {selectedPlaylist.description && (
+                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2 hidden sm:block">
+                          {selectedPlaylist.description}
+                        </p>
+                      )}
+                    </div>
+                    
+                    {/* Playlist Actions */}
+                    <div className="flex gap-2 flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadPlaylistVideos(selectedPlaylist)}
+                        disabled={playlistVideosLoading}
+                        className="h-9 px-3"
+                      >
+                        {playlistVideosLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-1" />
+                            Refresh
+                          </>
+                        )}
+                      </Button>
+                      
+                      {playlistVideos.length > 0 && (
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            if (playlistVideos.length > 0) {
+                              handleVideoPlay(playlistVideos[0])
+                            }
+                          }}
+                          className="h-9 px-3 bg-purple-600 hover:bg-purple-700"
+                        >
+                          <Play className="w-4 h-4 mr-1" />
+                          Play All
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <Badge variant="secondary">
-                    Playlist
-                  </Badge>
                 </div>
                 
+                {/* Playlist Videos */}
                 {playlistVideosLoading ? (
-                  <VideoGridSkeleton count={5} />
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-center py-12">
+                      <div className="text-center space-y-4">
+                        <Loader2 className="w-8 h-8 animate-spin text-purple-600 mx-auto" />
+                        <p className="text-lg font-medium text-purple-900 dark:text-purple-100">
+                          Loading Playlist Videos...
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Fetching videos from "{selectedPlaylist.title}"
+                        </p>
+                      </div>
+                    </div>
+                    <VideoGridSkeleton count={8} />
+                  </div>
+                ) : playlistVideos.length > 0 ? (
+                  <div className="space-y-6">
+                    {/* Video Count Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold">
+                          Playlist Videos ({playlistVideos.length})
+                        </h3>
+                        {selectedPlaylist.videoCount > playlistVideos.length && (
+                          <Badge variant="outline" className="text-xs">
+                            {selectedPlaylist.videoCount - playlistVideos.length} more available
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Sorted by playlist order
+                      </div>
+                    </div>
+                    
+                    {/* Videos Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                      {playlistVideos.map((video, index) => (
+                        <div key={video.videoId || video.id} className="group">
+                          {/* Video Number Badge */}
+                          <div className="absolute top-2 left-2 z-10">
+                            <Badge variant="secondary" className="bg-black/80 text-white text-xs px-2 py-1">
+                              #{index + 1}
+                            </Badge>
+                          </div>
+                          
+                          {/* Video Card */}
+                          <VideoCard 
+                            video={video} 
+                            showActions={true}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Load More Section */}
+                    {selectedPlaylist.videoCount > playlistVideos.length && (
+                      <div className="flex justify-center pt-4">
+                        <Button
+                          variant="outline"
+                          onClick={() => loadPlaylistVideos(selectedPlaylist)}
+                          disabled={playlistVideosLoading}
+                          className="px-6"
+                        >
+                          {playlistVideosLoading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              <Download className="w-4 h-4 mr-2" />
+                              Load More Videos
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {playlistVideos.map((video) => (
-                      <VideoCard key={video.videoId || video.id} video={video} />
-                    ))}
+                  /* Empty State */
+                  <div className="text-center py-12">
+                    <div className="space-y-4">
+                      <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center mx-auto">
+                        <Music className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100">
+                        No Videos Found
+                      </h3>
+                      <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                        This playlist appears to be empty or the videos could not be loaded. 
+                        Try refreshing or check back later.
+                      </p>
+                      <div className="flex gap-2 justify-center">
+                        <Button
+                          variant="outline"
+                          onClick={() => loadPlaylistVideos(selectedPlaylist)}
+                          disabled={playlistVideosLoading}
+                        >
+                          {playlistVideosLoading ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                          )}
+                          Try Again
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => {
+                            setShowPlaylistVideos(false)
+                            setSelectedPlaylist(null)
+                            setPlaylistVideos([])
+                          }}
+                        >
+                          Back to Search
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -3597,6 +4256,9 @@ export default function MyTubeApp() {
                   </span>
                 )}
               </Button>
+              
+              <ThemeSwitch />
+              
               <Button
                 variant="ghost"
                 size="sm"
