@@ -38,6 +38,14 @@ export function useNotificationService(): NotificationServiceHook {
 
   // Show playback notification
   const showPlaybackNotification = useCallback((video: SimpleVideo, isPlaying: boolean) => {
+    // Check if we're in a service worker context
+    const isServiceWorker = typeof window !== 'undefined' && typeof window.document === 'undefined'
+    
+    if (isServiceWorker) {
+      console.log('Cannot show notifications in service worker context')
+      return
+    }
+
     // Try to request permission if not already granted
     if (!permissionGrantedRef.current) {
       requestPermission()
@@ -51,46 +59,42 @@ export function useNotificationService(): NotificationServiceHook {
     const icon = video.thumbnail || '/logo.svg'
     
     try {
-      notificationRef.current = new Notification(`🎵 ${isPlaying ? 'Now Playing' : 'Paused'}`, {
-        body: `${video.title} - ${video.channelName}`,
-        icon,
-        badge: '/logo.svg',
-        tag: 'video-playback',
-        requireInteraction: false,
-        silent: false
-      })
+      // Check if Notification is available and not in service worker
+      if ('Notification' in window && typeof window.document !== 'undefined') {
+        notificationRef.current = new Notification(`🎵 ${isPlaying ? 'Now Playing' : 'Paused'}`, {
+          body: `${video.title} - ${video.channelName}`,
+          icon,
+          badge: '/logo.svg',
+          tag: 'video-playback',
+          requireInteraction: false,
+          silent: false
+        })
 
-      // Vibrate if supported
-      if ('vibrate' in navigator) {
-        navigator.vibrate([200, 100, 200])
-      }
+        // Vibrate if supported
+        if ('vibrate' in navigator) {
+          navigator.vibrate([200, 100, 200])
+        }
 
-      // Add actions if supported (Chrome on Android)
-      if ('actions' in Notification.prototype) {
-        // Note: Actions are not widely supported, mainly on Android Chrome
-        console.log('Notification actions supported but not implemented for cross-browser compatibility')
-      }
+        // Handle notification clicks
+        notificationRef.current.onclick = (event) => {
+          event.preventDefault()
+          window.focus()
+          
+          // Focus the tab and bring it to front
+          if (window.parent !== window) {
+            window.parent.focus()
+          }
+        }
 
-      // Handle notification clicks
-      notificationRef.current.onclick = (event) => {
-        event.preventDefault()
-        window.focus()
-        
-        // Focus the tab and bring it to front
-        if (window.parent !== window) {
-          window.parent.focus()
+        // Handle notification actions
+        notificationRef.current.onshow = () => {
+          console.log('Playback notification shown')
+        }
+
+        notificationRef.current.onerror = (error) => {
+          console.error('Notification error:', error)
         }
       }
-
-      // Handle notification actions
-      notificationRef.current.onshow = () => {
-        console.log('Playback notification shown')
-      }
-
-      notificationRef.current.onerror = (error) => {
-        console.error('Notification error:', error)
-      }
-
     } catch (error) {
       console.error('Failed to show notification:', error)
       // Fallback: console notification

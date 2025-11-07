@@ -111,6 +111,7 @@ export default function MyTubeApp() {
   const [editingNote, setEditingNote] = useState<VideoNote | null>(null)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [updatedNoteContent, setUpdatedNoteContent] = useState('')
+  const [updatedNoteTitle, setUpdatedNoteTitle] = useState('')
   const [createNoteDialogOpen, setCreateNoteDialogOpen] = useState(false)
   const [newNote, setNewNote] = useState({
     title: '',
@@ -231,6 +232,69 @@ export default function MyTubeApp() {
       return []
     })
   }, [])
+
+  // Network status state
+  const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'checking'>('online')
+  const [retryCount, setRetryCount] = useState(0)
+
+  // Check network connectivity
+  const checkNetworkConnectivity = async (): Promise<boolean> => {
+    try {
+      setNetworkStatus('checking')
+      // Try to fetch a simple endpoint to check connectivity
+      const response = await fetch('/api/health', {
+        method: 'GET',
+        cache: 'no-store',
+        signal: AbortSignal.timeout(3000) // 3 second timeout
+      })
+      const isOnline = response.ok
+      setNetworkStatus(isOnline ? 'online' : 'offline')
+      return isOnline
+    } catch (error) {
+      console.warn('Network connectivity check failed:', error)
+      setNetworkStatus('offline')
+      // Don't throw error, just return false
+      return false
+    }
+  }
+
+  // Utility function for retrying fetch requests
+  const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 3): Promise<Response> => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            ...options.headers
+          },
+          cache: 'no-store',
+          signal: AbortSignal.timeout(10000) // 10 second timeout
+        })
+        return response
+      } catch (error) {
+        console.warn(`Fetch attempt ${i + 1} failed for ${url}:`, error)
+        
+        // Don't check connectivity on first attempt to avoid circular dependency
+        if (i === 0) {
+          // First attempt failed, just continue to retry
+        } else {
+          // On subsequent attempts, check connectivity
+          const isConnected = await checkNetworkConnectivity()
+          if (!isConnected) {
+            console.warn('Network connectivity issue detected, skipping further retries')
+            throw new Error('Network connectivity issue detected')
+          }
+        }
+        
+        if (i === retries - 1) throw error
+        // Wait before retrying with exponential backoff
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000))
+      }
+    }
+    throw new Error('Max retries exceeded')
+  }
 
   // Utility function for relative time
   const getRelativeTime = useCallback((timestamp: Date): string => {
@@ -657,10 +721,13 @@ export default function MyTubeApp() {
   }, [])
 
   // Data loading functions
-  const loadWatchedVideos = async (): Promise<void> => {
+  const loadWatchedVideos = useCallback(async (): Promise<void> => {
     try {
-      const response = await fetch('/api/watched')
-      if (!response.ok) throw new Error('Failed to fetch watched videos')
+      const response = await fetchWithRetry('/api/watched')
+      if (!response.ok) {
+        console.error('Response status:', response.status, response.statusText)
+        throw new Error(`Failed to fetch watched videos: ${response.status} ${response.statusText}`)
+      }
       const data = await response.json()
       // Convert database videos to SimpleVideo format
       const convertedVideos = (data || []).map((video: WatchedVideo) => convertDbVideoToSimple(video))
@@ -668,25 +735,33 @@ export default function MyTubeApp() {
     } catch (error) {
       console.error('Failed to load watched videos:', error)
       setWatchedVideos([])
+      addNotification('Failed to load watched videos', 'Please check your connection and try again', 'destructive')
     }
-  }
+  }, [addNotification])
 
-  const loadFavoriteChannels = async (): Promise<void> => {
+  const loadFavoriteChannels = useCallback(async (): Promise<void> => {
     try {
-      const response = await fetch('/api/channels')
-      if (!response.ok) throw new Error('Failed to fetch favorite channels')
+      const response = await fetchWithRetry('/api/channels')
+      if (!response.ok) {
+        console.error('Response status:', response.status, response.statusText)
+        throw new Error(`Failed to fetch favorite channels: ${response.status} ${response.statusText}`)
+      }
       const data = await response.json()
       setFavoriteChannels(data || [])
     } catch (error) {
       console.error('Failed to load favorite channels:', error)
       setFavoriteChannels([])
+      addNotification('Failed to load favorite channels', 'Please check your connection and try again', 'destructive')
     }
-  }
+  }, [addNotification])
 
-  const loadFavoriteVideos = async (): Promise<void> => {
+  const loadFavoriteVideos = useCallback(async (): Promise<void> => {
     try {
-      const response = await fetch('/api/favorites')
-      if (!response.ok) throw new Error('Failed to fetch favorite videos')
+      const response = await fetchWithRetry('/api/favorites')
+      if (!response.ok) {
+        console.error('Response status:', response.status, response.statusText)
+        throw new Error(`Failed to fetch favorite videos: ${response.status} ${response.statusText}`)
+      }
       const data = await response.json()
       // Convert database videos to SimpleVideo format
       const convertedVideos = (data || []).map((video: FavoriteVideo) => convertDbVideoToSimple(video))
@@ -694,24 +769,50 @@ export default function MyTubeApp() {
     } catch (error) {
       console.error('Failed to load favorite videos:', error)
       setFavoriteVideos([])
+      addNotification('Failed to load favorite videos', 'Please check your connection and try again', 'destructive')
     }
-  }
+  }, [addNotification])
 
-  const loadNotes = async (): Promise<void> => {
+  const loadNotes = useCallback(async (): Promise<void> => {
     try {
       setNotesLoading(true)
-      const response = await fetch('/api/notes')
-      if (!response.ok) throw new Error('Failed to fetch notes')
+      const response = await fetchWithRetry('/api/notes')
+      if (!response.ok) {
+        console.error('Response status:', response.status, response.statusText)
+        throw new Error(`Failed to fetch notes: ${response.status} ${response.statusText}`)
+      }
       const data = await response.json()
       setAllNotes(data || [])
     } catch (error) {
       console.error('Failed to load notes:', error)
       setAllNotes([])
-      addNotification('Failed to load notes', 'Please try again', 'destructive')
+      addNotification('Failed to load notes', 'Please check your connection and try again', 'destructive')
     } finally {
       setNotesLoading(false)
     }
-  }
+  }, [addNotification])
+
+  // Retry loading all data when network comes back online
+  const retryLoadingAllData = useCallback(async () => {
+    setRetryCount(prev => prev + 1)
+    try {
+      await Promise.all([
+        loadWatchedVideos(),
+        loadFavoriteChannels(),
+        loadFavoriteVideos(),
+        loadNotes()
+      ])
+      setRetryCount(0)
+      addNotification('Connection restored', 'All data loaded successfully', 'success')
+    } catch (error) {
+      console.error('Failed to reload data:', error)
+      if (retryCount < 3) {
+        setTimeout(retryLoadingAllData, 2000 * (retryCount + 1))
+      } else {
+        addNotification('Connection issues persist', 'Please refresh the page', 'destructive')
+      }
+    }
+  }, [loadWatchedVideos, loadFavoriteChannels, loadFavoriteVideos, loadNotes, retryCount, addNotification])
 
   const deleteNote = async (noteId: string): Promise<void> => {
     try {
@@ -728,20 +829,23 @@ export default function MyTubeApp() {
     }
   }
 
-  const updateNote = async (noteId: string, newContent: string): Promise<void> => {
+  const updateNote = async (noteId: string, newTitle: string, newContent: string): Promise<void> => {
     try {
       const response = await fetch(`/api/notes/${noteId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ note: newContent })
+        body: JSON.stringify({ 
+          title: newTitle,
+          note: newContent 
+        })
       })
       if (!response.ok) throw new Error('Failed to update note')
       
-      const updatedNote = await response.json()
+      const updatedNoteData = await response.json()
       setAllNotes(prev => prev.map(note => 
-        note.id === noteId ? { ...note, note: newContent } : note
+        note.id === noteId ? { ...note, title: newTitle, note: newContent } : note
       ))
       addNotification('Note updated', 'The note has been updated successfully', 'success')
     } catch (error) {
@@ -753,15 +857,17 @@ export default function MyTubeApp() {
   const handleEditNote = (note: any) => {
     setEditingNote(note)
     setUpdatedNoteContent(note.note || '')
+    setUpdatedNoteTitle(note.title || '')
     setEditDialogOpen(true)
   }
 
   const handleSaveNoteUpdate = async () => {
-    if (editingNote && updatedNoteContent.trim()) {
-      await updateNote(editingNote.id, updatedNoteContent.trim())
+    if (editingNote && updatedNoteTitle.trim() && updatedNoteContent.trim()) {
+      await updateNote(editingNote.id, updatedNoteTitle.trim(), updatedNoteContent.trim())
       setEditDialogOpen(false)
       setEditingNote(null)
       setUpdatedNoteContent('')
+      setUpdatedNoteTitle('')
     }
   }
 
@@ -1804,8 +1910,7 @@ export default function MyTubeApp() {
           loadWatchedVideos(),
           loadFavoriteChannels(),
           loadFavoriteVideos(),
-          loadNotes(),
-          loadFollowedChannelsContent(true)
+          loadNotes()
         ])
         if (favoriteChannels.length > 0) {
           await loadChannelVideos()
@@ -1818,14 +1923,51 @@ export default function MyTubeApp() {
     if (!showSplashScreen) {
       loadInitialData()
     }
-  }, [showSplashScreen, loadWatchedVideos, loadFavoriteChannels, loadFavoriteVideos, loadNotes, loadFollowedChannelsContent, loadChannelVideos, favoriteChannels.length, addNotification])
+  }, [showSplashScreen, loadWatchedVideos, loadFavoriteChannels, loadFavoriteVideos, loadNotes, loadChannelVideos, favoriteChannels.length, addNotification])
 
-  // Load channel videos when favorite channels change
+  // Load followed channels content when favorite channels change
   useEffect(() => {
     if (!showSplashScreen && favoriteChannels.length > 0) {
       loadChannelVideos()
+      // Load followed channels content when there are channels to follow
+      if (followedChannelsContent === null) {
+        loadFollowedChannelsContent(true)
+      }
     }
-  }, [favoriteChannels.length, showSplashScreen, loadChannelVideos])
+  }, [favoriteChannels.length, showSplashScreen, loadChannelVideos, followedChannelsContent])
+
+  // Monitor network status and retry when connection is restored
+  useEffect(() => {
+    const checkConnection = async () => {
+      const isConnected = await checkNetworkConnectivity()
+      if (isConnected && networkStatus === 'offline') {
+        // Network came back online, retry loading data
+        retryLoadingAllData()
+      }
+    }
+
+    // Check connection every 30 seconds
+    const interval = setInterval(checkConnection, 30000)
+    
+    // Also check when browser comes back online
+    const handleOnline = () => {
+      setNetworkStatus('online')
+      retryLoadingAllData()
+    }
+    
+    const handleOffline = () => {
+      setNetworkStatus('offline')
+    }
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [networkStatus, checkNetworkConnectivity, retryLoadingAllData])
 
   // Load followed channels content when page changes
   useEffect(() => {
@@ -1862,9 +2004,9 @@ export default function MyTubeApp() {
     }
   }, [videoPage, playlistPage])
 
-  // Refresh data when switching tabs to ensure icons are up to date
+  // Refresh data when switching to certain tabs to ensure data is up to date
   useEffect(() => {
-    if (!showSplashScreen) {
+    if (!showSplashScreen && (activeTab === 'watched' || activeTab === 'notes')) {
       const refreshData = async () => {
         try {
           await Promise.all([
@@ -2601,7 +2743,16 @@ export default function MyTubeApp() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => loadFollowedChannelsContent(true)}
+                  onClick={() => {
+                    // Clear current data first to prevent stale state
+                    setFollowedChannelsContent(null)
+                    setFollowedChannelsVideos([])
+                    setFollowedChannelsPlaylists([])
+                    setVideoPagination(null)
+                    setPlaylistPagination(null)
+                    // Then load fresh data
+                    loadFollowedChannelsContent(true)
+                  }}
                   disabled={followedChannelsLoading}
                 >
                   {followedChannelsLoading ? (
@@ -4012,6 +4163,19 @@ export default function MyTubeApp() {
             {editingNote && (
               <>
                 <div className="space-y-2">
+                  <label htmlFor="note-title" className="text-sm font-medium">
+                    Note Title
+                  </label>
+                  <Input
+                    id="note-title"
+                    value={updatedNoteTitle}
+                    onChange={(e) => setUpdatedNoteTitle(e.target.value)}
+                    placeholder="Enter note title..."
+                    className="w-full"
+                  />
+                </div>
+                
+                <div className="space-y-2">
                   <label className="text-sm font-medium">Video Title</label>
                   <p className="text-sm text-muted-foreground">{editingNote.title}</p>
                 </div>
@@ -4053,13 +4217,14 @@ export default function MyTubeApp() {
                 setEditDialogOpen(false)
                 setEditingNote(null)
                 setUpdatedNoteContent('')
+                setUpdatedNoteTitle('')
               }}
             >
               Cancel
             </Button>
             <Button
               onClick={handleSaveNoteUpdate}
-              disabled={!updatedNoteContent.trim()}
+              disabled={!updatedNoteTitle.trim() || !updatedNoteContent.trim()}
             >
               <Save className="w-4 h-4 mr-2" />
               Save Changes
@@ -4219,6 +4384,34 @@ export default function MyTubeApp() {
                   >
                     {isBackgroundPlaying ? <Pause className="w-3 h-3" /> : <X className="w-3 h-3" />}
                   </Button>
+                </div>
+              )}
+              
+              {/* Network Status Indicator */}
+              {networkStatus === 'offline' && (
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/30 rounded-full border border-red-200 dark:border-red-800">
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span className="text-xs font-medium text-red-700 dark:text-red-300">
+                    Offline
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={retryLoadingAllData}
+                    className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50"
+                    title="Retry connection"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+              
+              {networkStatus === 'checking' && (
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/30 rounded-full border border-yellow-200 dark:border-yellow-800">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                  <span className="text-xs font-medium text-yellow-700 dark:text-yellow-300">
+                    Checking...
+                  </span>
                 </div>
               )}
             </div>

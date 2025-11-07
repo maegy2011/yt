@@ -50,18 +50,25 @@ const getChannelName = (video: any): string => {
   return video.channelName || video.channel?.name || 'Unknown Channel'
 }
 
+const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
+
 interface VideoNote {
   id: string
-  title: string
-  comment: string
-  startTime: number
-  endTime: number
   videoId: string
-  videoTitle: string
-  channelName?: string
-  viewCount?: number
-  publishedAt?: string
+  title: string
+  channelName: string
   thumbnail?: string
+  note: string
+  fontSize?: number
+  startTime?: number
+  endTime?: number
+  isClip?: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 interface VideoNoteProps {
@@ -105,7 +112,7 @@ export function VideoNote({
   } = useBackgroundPlayer()
 
   const [notes, setNotes] = useState<VideoNote[]>([])
-  const [newNote, setNewNote] = useState({ title: '', comment: '', startTime: 0, endTime: 30 })
+  const [newNote, setNewNote] = useState({ title: '', note: '', startTime: 0, endTime: 30 })
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -322,23 +329,41 @@ export function VideoNote({
     }
   }, [isPlaying, activeNoteId, notes])
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (newNote.title.trim() && newNote.startTime < newNote.endTime) {
-      const note: VideoNote = {
-        id: Date.now().toString(),
-        title: newNote.title,
-        comment: newNote.comment,
-        startTime: newNote.startTime,
-        endTime: newNote.endTime,
-        videoId,
-        videoTitle,
-        channelName: channelName || '',
-        viewCount: viewCount || 0,
-        publishedAt: publishedAt || '',
-        thumbnail: thumbnail || ''
+      try {
+        const response = await fetch('/api/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            videoId,
+            title: newNote.title,
+            channelName: channelName || '',
+            thumbnail: thumbnail || '',
+            note: newNote.note,
+            startTime: newNote.startTime,
+            endTime: newNote.endTime,
+            isClip: true
+          })
+        })
+        
+        if (response.ok) {
+          setNewNote({ title: '', note: '', startTime: 0, endTime: 30 })
+          setIsCapturing(false)
+          showNotification('Note saved successfully', 'success')
+          
+          // Call parent callback to refresh notes
+          if (onNotesChange) {
+            onNotesChange()
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
+        }
+      } catch (error) {
+        console.error('Failed to save note:', error)
+        showNotification('Failed to save note. Please try again.', 'error')
       }
-      setNotes([...notes, note])
-      setNewNote({ title: '', comment: '', startTime: 0, endTime: 30 })
     }
   }
 
@@ -405,7 +430,7 @@ export function VideoNote({
             title: newNote.title || `Clip from ${formatTime(newNote.startTime)} to ${formatTime(endTime)}`,
             channelName: channelName || '',
             thumbnail: thumbnail || '',
-            note: newNote.comment || `Clip from ${formatTime(newNote.startTime)} to ${formatTime(endTime)}`,
+            note: newNote.note || `Clip from ${formatTime(newNote.startTime)} to ${formatTime(endTime)}`,
             startTime: newNote.startTime,
             endTime: endTime,
             isClip: true
@@ -414,7 +439,7 @@ export function VideoNote({
         
         if (response.ok) {
           // Reset form
-          setNewNote({ title: '', comment: '', startTime: 0, endTime: 30 })
+          setNewNote({ title: '', note: '', startTime: 0, endTime: 30 })
           setIsCapturing(false)
           
           // Show success notification
@@ -441,20 +466,21 @@ export function VideoNote({
     }
   }
 
-  const handleUpdateNote = async (noteId: string, title: string, comment: string) => {
+  const handleUpdateNote = async (noteId: string, title: string, note: string) => {
     try {
       const response = await fetch(`/api/notes/${noteId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          note: comment,
+          note: note,
+          title: title,
           fontSize: 16 // You can make this configurable if needed
         })
       })
       
       if (response.ok) {
         setNotes(notes.map(note => 
-          note.id === noteId ? { ...note, title, comment } : note
+          note.id === noteId ? { ...note, title, note } : note
         ))
         setEditingNoteId(null)
         showNotification('The note has been updated successfully', 'success')
@@ -475,7 +501,7 @@ export function VideoNote({
   const startEditingNote = (note: VideoNote) => {
     setEditingNoteId(note.id)
     setEditingNoteTitle(note.title)
-    setEditingNoteContent(note.comment || '')
+    setEditingNoteContent(note.note || '')
   }
 
   const cancelEditingNote = () => {
@@ -890,8 +916,8 @@ export function VideoNote({
                 <Label htmlFor="note-comment">Comment</Label>
                 <Input
                   id="note-comment"
-                  value={newNote.comment}
-                  onChange={(e) => setNewNote({ ...newNote, comment: e.target.value })}
+                  value={newNote.note}
+                  onChange={(e) => setNewNote({ ...newNote, note: e.target.value })}
                   placeholder="Add your notes or comments..."
                 />
               </div>
@@ -1004,7 +1030,7 @@ export function VideoNote({
                   <Button
                     onClick={() => {
                       setIsCapturing(false)
-                      setNewNote({ title: '', comment: '', startTime: 0, endTime: 30 })
+                      setNewNote({ title: '', note: '', startTime: 0, endTime: 30 })
                       showNotification('Note capture has been cancelled', 'info')
                     }}
                     variant="outline"
