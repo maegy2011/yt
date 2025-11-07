@@ -3,58 +3,67 @@ import { db } from '@/lib/db'
 
 // Helper function to extract thumbnail URL from YouTubei v1.7.0 Thumbnails API
 function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
-  if (!thumbnails) {
+  try {
+    if (!thumbnails) {
+      return {
+        url: `https://via.placeholder.com/320x180/374151/ffffff?text=No+Thumbnail`,
+        width: 320,
+        height: 180
+      }
+    }
+
+    // Handle YouTubei v1.7.0 Thumbnails object (has .best property)
+    if (thumbnails && typeof thumbnails === 'object' && thumbnails.best && typeof thumbnails.best === 'string') {
+      return {
+        url: thumbnails.best,
+        width: 1280,
+        height: 720
+      }
+    }
+
+    // Handle YouTubei v1.7.0 Thumbnails array
+    if (Array.isArray(thumbnails) && thumbnails.length > 0) {
+      const bestThumbnail = thumbnails[thumbnails.length - 1]
+      if (bestThumbnail && bestThumbnail.url) {
+        return {
+          url: bestThumbnail.url,
+          width: bestThumbnail.width || 1280,
+          height: bestThumbnail.height || 720
+        }
+      }
+    }
+
+    // Handle single thumbnail object
+    if (thumbnails && thumbnails.url) {
+      return {
+        url: thumbnails.url,
+        width: thumbnails.width || 320,
+        height: thumbnails.height || 180
+      }
+    }
+
+    // Handle string URL
+    if (typeof thumbnails === 'string') {
+      return {
+        url: thumbnails,
+        width: 320,
+        height: 180
+      }
+    }
+
+    // Fallback
     return {
       url: `https://via.placeholder.com/320x180/374151/ffffff?text=No+Thumbnail`,
       width: 320,
       height: 180
     }
-  }
-
-  // Handle YouTubei v1.7.0 Thumbnails object (has .best property)
-  if (thumbnails.best && typeof thumbnails.best === 'string') {
+  } catch (error) {
+    console.error('Error extracting thumbnail:', error)
     return {
-      url: thumbnails.best,
-      width: 1280,
-      height: 720
-    }
-  }
-
-  // Handle YouTubei v1.7.0 Thumbnails array
-  if (Array.isArray(thumbnails) && thumbnails.length > 0) {
-    const bestThumbnail = thumbnails[thumbnails.length - 1]
-    if (bestThumbnail && bestThumbnail.url) {
-      return {
-        url: bestThumbnail.url,
-        width: bestThumbnail.width || 1280,
-        height: bestThumbnail.height || 720
-      }
-    }
-  }
-
-  // Handle single thumbnail object
-  if (thumbnails.url) {
-    return {
-      url: thumbnails.url,
-      width: thumbnails.width || 320,
-      height: thumbnails.height || 180
-    }
-  }
-
-  // Handle string URL
-  if (typeof thumbnails === 'string') {
-    return {
-      url: thumbnails,
+      url: `https://via.placeholder.com/320x180/374151/ffffff?text=Error`,
       width: 320,
       height: 180
     }
-  }
-
-  // Fallback
-  return {
-    url: `https://via.placeholder.com/320x180/374151/ffffff?text=No+Thumbnail`,
-    width: 320,
-    height: 180
   }
 }
 
@@ -154,7 +163,37 @@ export async function GET(request: NextRequest) {
           // Search for videos from this channel
           try {
             console.log(`Searching for videos from ${channel.name}...`)
-            const videoSearch = await youtube.search(channel.name, { type: 'video' })
+            
+            // Add retry logic for YouTube API calls
+            let videoSearch = null
+            let retries = 0
+            const maxRetries = 3
+            
+            while (retries < maxRetries && !videoSearch) {
+              try {
+                videoSearch = await youtube.search(channel.name, { type: 'video' })
+                
+                if (videoSearch && videoSearch.items && videoSearch.items.length > 0) {
+                  console.log(`Successfully found ${videoSearch.items.length} videos from ${channel.name} on attempt ${retries + 1}`)
+                  break
+                } else if (retries === maxRetries - 1) {
+                  console.log(`No videos found for ${channel.name} after ${maxRetries} attempts`)
+                  break
+                }
+              } catch (searchError) {
+                console.warn(`Search attempt ${retries + 1} failed for ${channel.name}:`, searchError.message)
+                if (retries === maxRetries - 1) {
+                  console.log(`Max retries reached for ${channel.name}, continuing without videos`)
+                  break
+                }
+              }
+              retries++
+              
+              // Add delay between retries
+              if (retries < maxRetries && !videoSearch) {
+                await new Promise(resolve => setTimeout(resolve, 1000 * retries)) // Exponential backoff
+              }
+            }
             
             if (videoSearch && videoSearch.items && videoSearch.items.length > 0) {
               const videos = videoSearch.items.slice(0, maxVideos).map((video: any) => {
@@ -214,7 +253,37 @@ export async function GET(request: NextRequest) {
           if (includePlaylists) {
             try {
               console.log(`Searching for playlists from ${channel.name}...`)
-              const playlistSearch = await youtube.search(channel.name, { type: 'playlist' })
+              
+              // Add retry logic for YouTube API calls
+              let playlistSearch = null
+              let retries = 0
+              const maxRetries = 3
+              
+              while (retries < maxRetries && !playlistSearch) {
+                try {
+                  playlistSearch = await youtube.search(channel.name, { type: 'playlist' })
+                  
+                  if (playlistSearch && playlistSearch.items && playlistSearch.items.length > 0) {
+                    console.log(`Successfully found ${playlistSearch.items.length} playlists from ${channel.name} on attempt ${retries + 1}`)
+                    break
+                  } else if (retries === maxRetries - 1) {
+                    console.log(`No playlists found for ${channel.name} after ${maxRetries} attempts`)
+                    break
+                  }
+                } catch (searchError) {
+                  console.warn(`Playlist search attempt ${retries + 1} failed for ${channel.name}:`, searchError.message)
+                  if (retries === maxRetries - 1) {
+                    console.log(`Max retries reached for ${channel.name}, continuing without playlists`)
+                    break
+                  }
+                }
+                retries++
+                
+                // Add delay between retries
+                if (retries < maxRetries && !playlistSearch) {
+                  await new Promise(resolve => setTimeout(resolve, 1000 * retries)) // Exponential backoff
+                }
+              }
               
               if (playlistSearch && playlistSearch.items && playlistSearch.items.length > 0) {
                 const playlists = playlistSearch.items.slice(0, maxPlaylists).map((playlist: any) => {

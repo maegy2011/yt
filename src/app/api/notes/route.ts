@@ -37,9 +37,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields: videoId, title, channelName, note' }, { status: 400 })
     }
 
-    // Validate time inputs
-    const startTimeValidation = validateTimeInput(startTime, 'Start time')
-    const endTimeValidation = validateTimeInput(endTime, 'End time')
+    // Validate time inputs (only if provided)
+    let startTimeValidation = { isValid: true, sanitized: null }
+    let endTimeValidation = { isValid: true, sanitized: null }
+    
+    if (startTime !== null && startTime !== undefined) {
+      startTimeValidation = validateTimeInput(startTime, 'Start time')
+    }
+    
+    if (endTime !== null && endTime !== undefined) {
+      endTimeValidation = validateTimeInput(endTime, 'End time')
+    }
     
     if (!startTimeValidation.isValid || !endTimeValidation.isValid) {
       return NextResponse.json({ 

@@ -82,6 +82,25 @@ export function MiniPlayer() {
   // Early return after all hooks
   if (!backgroundVideo || !showMiniPlayer) return null
 
+  // Add message listener for YouTube iframe communication
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Ignore messages that aren't from YouTube iframe
+      if (!event.data || !event.source) return
+      
+      // Log YouTube iframe messages for debugging
+      if (event.data && typeof event.data === 'object') {
+        console.log('YouTube iframe message:', event.data)
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    
+    return () => {
+      window.removeEventListener('message', handleMessage)
+    }
+  }, [backgroundVideo, showMiniPlayer])
+
   const opts = {
     height: isExpanded ? '200' : '90',
     width: isExpanded ? '355' : '160',

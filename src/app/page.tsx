@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { 
   Home, 
@@ -261,7 +261,15 @@ export default function MyTubeApp() {
   // Utility function for retrying fetch requests
   const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 3): Promise<Response> => {
     for (let i = 0; i < retries; i++) {
+      let timeoutId: NodeJS.Timeout | undefined
+      
       try {
+        // Create timeout signal manually for better compatibility
+        const controller = new AbortController()
+        timeoutId = setTimeout(() => {
+          controller.abort()
+        }, 30000) // 30 second timeout
+
         const response = await fetch(url, {
           ...options,
           headers: {
@@ -270,10 +278,16 @@ export default function MyTubeApp() {
             ...options.headers
           },
           cache: 'no-store',
-          signal: AbortSignal.timeout(10000) // 10 second timeout
+          signal: controller.signal
         })
+        
+        // Clear timeout if request succeeds
+        if (timeoutId) clearTimeout(timeoutId)
         return response
       } catch (error) {
+        // Clear timeout if request fails
+        if (timeoutId) clearTimeout(timeoutId)
+        
         console.warn(`Fetch attempt ${i + 1} failed for ${url}:`, error)
         
         // Don't check connectivity on first attempt to avoid circular dependency
@@ -1085,10 +1099,10 @@ export default function MyTubeApp() {
     try {
       const videoPromises = favoriteChannels.map(async (channel) => {
         try {
-          const response = await fetch(`/api/youtube/channel-videos?channelId=${channel.channelId}`)
+          const response = await fetch(`/api/youtube/channel/${channel.channelId}?includeVideos=true&maxVideos=5`)
           if (response.ok) {
-            const videos = await response.json()
-            return { channel, videos: videos || [] }
+            const channelData = await response.json()
+            return { channel, videos: channelData.videos || [] }
           }
         } catch (error) {
           console.error(`Failed to load videos for channel ${channel.name}:`, error)
@@ -1130,26 +1144,29 @@ export default function MyTubeApp() {
       )
       if (response.ok) {
         const data = await response.json()
-        console.log('Frontend received followed channels data:', {
-          channels: data.channels?.length || 0,
-          videos: data.videos?.length || 0,
-          playlists: data.playlists?.length || 0,
+        console.log('Frontend received followed channels data:', JSON.stringify({
+          channelsCount: data.channels?.length || 0,
+          videosCount: data.videos?.length || 0,
+          playlistsCount: data.playlists?.length || 0,
           totalVideos: data.stats?.totalVideos || 0,
-          totalPlaylists: data.stats?.totalPlaylists || 0
-        })
+          totalPlaylists: data.stats?.totalPlaylists || 0,
+          hasData: !!(data.videos?.length || data.playlists?.length)
+        }, null, 2))
         setFollowedChannelsContent(data)
         setFollowedChannelsVideos(data.videos || [])
         setFollowedChannelsPlaylists(data.playlists || [])
         setFollowedChannels(data.channels || [])
         setVideoPagination(data.pagination?.videos || null)
         setPlaylistPagination(data.pagination?.playlists || null)
-        console.log('Followed channels content loaded:', {
-          videos: data.videos?.length || 0,
-          playlists: data.playlists?.length || 0,
-          channels: data.channels?.length || 0,
+        console.log('Followed channels content loaded:', JSON.stringify({
+          videosCount: data.videos?.length || 0,
+          playlistsCount: data.playlists?.length || 0,
+          channelsCount: data.channels?.length || 0,
+          hasVideos: !!(data.videos?.length),
+          hasPlaylists: !!(data.playlists?.length),
           videoPage: data.pagination?.videos?.currentPage,
           playlistPage: data.pagination?.playlists?.currentPage
-        })
+        }, null, 2))
       } else {
         console.error('Failed to load followed channels content:', response.statusText)
       }
@@ -4157,6 +4174,9 @@ export default function MyTubeApp() {
               <Edit className="w-5 h-5" />
               Edit Note
             </DialogTitle>
+            <DialogDescription>
+              Edit the title and content of your note
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
@@ -4241,6 +4261,9 @@ export default function MyTubeApp() {
               <Plus className="w-5 h-5" />
               Create New Note
             </DialogTitle>
+            <DialogDescription>
+              Create a new note for the current video
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
@@ -4921,6 +4944,9 @@ export default function MyTubeApp() {
               <Settings className="w-5 h-5" />
               Settings & Privacy
             </DialogTitle>
+            <DialogDescription>
+              Configure your app preferences and privacy settings
+            </DialogDescription>
           </DialogHeader>
           
           <ScrollArea className="max-h-[60vh] pr-4">
@@ -5077,6 +5103,9 @@ export default function MyTubeApp() {
               <Trash2 className="w-5 h-5" />
               Confirm Clear All Data
             </DialogTitle>
+            <DialogDescription>
+              This action will permanently delete all your data and cannot be undone
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
