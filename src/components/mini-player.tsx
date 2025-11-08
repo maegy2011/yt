@@ -79,9 +79,6 @@ export function MiniPlayer() {
     }
   }, [isDragging])
 
-  // Early return after all hooks
-  if (!backgroundVideo || !showMiniPlayer) return null
-
   // Add message listener for YouTube iframe communication
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -100,6 +97,9 @@ export function MiniPlayer() {
       window.removeEventListener('message', handleMessage)
     }
   }, [backgroundVideo, showMiniPlayer])
+
+  // Early return after all hooks
+  if (!backgroundVideo || !showMiniPlayer) return null
 
   const opts = {
     height: isExpanded ? '200' : '90',
