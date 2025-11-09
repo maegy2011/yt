@@ -27,7 +27,6 @@ async function testDbConnection() {
   } catch (error) {
     console.error('Database test failed:', error);
   }
-  }
 }
 
 testDbConnection();
