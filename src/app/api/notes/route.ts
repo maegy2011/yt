@@ -4,6 +4,12 @@ import { sanitizeString, validateTimeInput, validateNumericInput, validateReques
 
 export async function GET() {
   try {
+    // Check if database is available
+    if (!db) {
+      console.error('Database connection not available')
+      return NextResponse.json({ error: 'Database connection not available' }, { status: 500 })
+    }
+    
     const notes = await db.videoNote.findMany({
       orderBy: { createdAt: 'desc' }
     })

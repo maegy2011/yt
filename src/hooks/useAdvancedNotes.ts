@@ -49,12 +49,12 @@ const defaultTemplates: NoteTemplate[] = [
 // Color options for notes
 const colorOptions = [
   { name: 'Red', value: '#ef4444', bg: 'bg-red-100', border: 'border-red-200' },
-  { name: 'Blue', value: '#3b82f6', bg: 'bg-blue-100', border: 'border-blue-200' },
-  { name: 'Green', value: '#10b981', bg: 'bg-green-100', border: 'border-green-200' },
+  { name: 'Light Gray', value: '#9ca3af', bg: 'bg-muted', border: 'border-border' },
+  { name: 'Dark Gray', value: '#374151', bg: 'bg-muted', border: 'border-border' },
   { name: 'Yellow', value: '#f59e0b', bg: 'bg-yellow-100', border: 'border-yellow-200' },
   { name: 'Purple', value: '#8b5cf6', bg: 'bg-purple-100', border: 'border-purple-200' },
   { name: 'Pink', value: '#ec4899', bg: 'bg-pink-100', border: 'border-pink-200' },
-  { name: 'Gray', value: '#6b7280', bg: 'bg-gray-100', border: 'border-gray-200' },
+  { name: 'Medium Gray', value: '#6b7280', bg: 'bg-muted', border: 'border-border' },
   { name: 'Indigo', value: '#6366f1', bg: 'bg-indigo-100', border: 'border-indigo-200' }
 ]
 

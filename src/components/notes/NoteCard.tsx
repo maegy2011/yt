@@ -108,7 +108,7 @@ export function NoteCard({ note, onEdit, onDelete, onPlay, className = '' }: Not
         {isClip && (
           <Badge 
             variant="default" 
-            className="absolute top-2 left-2 bg-blue-600 hover:bg-blue-700"
+            className="absolute top-2 left-2 bg-primary hover:bg-primary/90"
           >
             <Scissors className="w-3 h-3 mr-1" />
             Clip

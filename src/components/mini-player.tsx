@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import YouTube from 'react-youtube'
+import dynamic from 'next/dynamic'
+
+// Dynamically import YouTube to avoid SSR issues
+const YouTube = dynamic(() => import('react-youtube'), { ssr: false })
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
@@ -253,7 +256,7 @@ export function MiniPlayer() {
                 size="sm"
                 variant="ghost"
                 onClick={handleToggleNotifications}
-                className={`h-6 w-6 p-0 ${notificationsEnabled ? 'text-blue-600' : 'text-muted-foreground'}`}
+                className={`h-6 w-6 p-0 ${notificationsEnabled ? 'text-primary' : 'text-muted-foreground'}`}
                 title={notificationsEnabled ? "Disable notifications" : "Enable notifications"}
               >
                 {notificationsEnabled ? <Bell className="h-3 w-3" /> : <BellOff className="h-3 w-3" />}

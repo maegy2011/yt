@@ -704,9 +704,9 @@ export function VideoNote({
       {/* Notification */}
       {notification && (
         <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 ${
-          notification.type === 'success' ? 'bg-green-500 text-white' :
+          notification.type === 'success' ? 'bg-primary text-white' :
           notification.type === 'error' ? 'bg-red-500 text-white' :
-          'bg-blue-500 text-white'
+          'bg-primary text-white'
         }`}>
           {notification.message}
         </div>
@@ -815,7 +815,7 @@ export function VideoNote({
                     variant="ghost"
                     size="sm"
                     title="Play in background"
-                    className="text-blue-600 hover:text-blue-700 bg-blue-50 dark:bg-blue-900/20 transition-all duration-200"
+                    className="text-primary hover:text-primary/80 bg-muted transition-all duration-200"
                   >
                     <Volume2 className="w-5 h-5" />
                   </Button>
@@ -872,15 +872,15 @@ export function VideoNote({
               isCapturing 
                 ? 'bg-red-100 dark:bg-red-900/30 animate-pulse' 
                 : quickNoteCapturing
-                ? 'bg-orange-100 dark:bg-orange-900/30 animate-pulse'
-                : 'bg-green-100 dark:bg-green-900/30'
+                ? 'bg-muted animate-pulse'
+                : 'bg-muted'
             }`}>
               <MessageSquare className={`w-5 h-5 ${
                 isCapturing 
                   ? 'text-red-600 dark:text-red-400' 
                   : quickNoteCapturing
-                  ? 'text-orange-600 dark:text-orange-400'
-                  : 'text-green-600 dark:text-green-400'
+                  ? 'text-primary'
+                  : 'text-primary'
               }`} />
             </div>
             <div className="flex-1">
@@ -893,7 +893,7 @@ export function VideoNote({
                 </p>
               )}
               {quickNoteCapturing && !isCapturing && (
-                <p className="text-sm text-orange-600 dark:text-orange-400 animate-pulse">
+                <p className="text-sm text-primary animate-pulse">
                   ✂️ Quick Note recording... Click scissors icon to stop & save
                 </p>
               )}
@@ -942,14 +942,14 @@ export function VideoNote({
                     isCapturing 
                       ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20'
                       : quickNoteCapturing
-                      ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20'
+                      ? 'border-border bg-muted'
                       : ''
                   }
                 />
               </div>
               
               <div>
-                <Label htmlFor="end-time" className={isCapturing ? 'text-blue-600 dark:text-blue-400 font-semibold' : ''}>
+                <Label htmlFor="end-time" className={isCapturing ? 'text-primary font-semibold' : ''}>
                   End Time (seconds) {isCapturing && '⏳'}
                 </Label>
                 <Input
@@ -964,19 +964,19 @@ export function VideoNote({
                   disabled={isCapturing || quickNoteCapturing}
                   className={
                     isCapturing 
-                      ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20'
+                      ? 'border-border bg-muted'
                       : quickNoteCapturing
-                      ? 'border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-900/20'
+                      ? 'border-border bg-muted'
                       : ''
                   }
                 />
                 {isCapturing && (
-                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  <p className="text-xs text-primary mt-1">
                     Will be set to current time when you stop
                   </p>
                 )}
                 {quickNoteCapturing && (
-                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                  <p className="text-xs text-primary mt-1">
                     Quick Note in progress - use scissors icon to stop
                   </p>
                 )}
@@ -1050,8 +1050,8 @@ export function VideoNote({
         <Card>
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 bg-muted rounded-lg">
+                <MessageSquare className="w-5 h-5 text-primary" />
               </div>
               <h2 className="text-lg font-semibold">
                 Video Notes ({notes.length})
@@ -1065,7 +1065,7 @@ export function VideoNote({
                     key={note.id}
                     className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
                       activeNoteId === note.id
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                        ? 'border-border bg-muted'
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                     onClick={() => handlePlayNote(note)}

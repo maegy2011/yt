@@ -29,6 +29,21 @@ export interface SimplePlaylist {
   type: 'playlist'
 }
 
+export interface SimpleChannel {
+  id: string
+  channelId: string
+  title: string
+  name: string
+  thumbnail: string
+  subscriberCount?: string
+  videoCount?: number
+  viewCount?: number
+  description?: string
+  isFavorite?: boolean
+  handle?: string
+  type: 'channel'
+}
+
 export interface BaseVideoData {
   id: string
   videoId: string
@@ -170,6 +185,24 @@ export function convertYouTubePlaylist(playlist: YouTubePlaylist): SimplePlaylis
     lastUpdatedAt: playlist.lastUpdatedAt,
     description: playlist.description,
     type: 'playlist'
+  }
+}
+
+// Convert channel data to SimpleChannel
+export function convertYouTubeChannel(channel: any): SimpleChannel {
+  return {
+    id: channel.id || channel.channelId,
+    channelId: channel.id || channel.channelId,
+    title: channel.name || channel.title,
+    name: channel.name || channel.title,
+    thumbnail: channel.thumbnail?.url || channel.thumbnail || '',
+    subscriberCount: channel.subscriberCount,
+    videoCount: channel.videoCount,
+    viewCount: channel.viewCount,
+    description: channel.description,
+    isFavorite: channel.isFavorite,
+    handle: channel.handle,
+    type: 'channel'
   }
 }
 

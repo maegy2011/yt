@@ -150,26 +150,30 @@ export async function GET(request: NextRequest) {
       // Initial search
       if (type === 'all') {
         // For 'all' type, perform separate searches and combine results
-        console.log('Performing separate searches for videos and playlists')
+        console.log('Performing separate searches for videos, playlists, and channels')
         
-        const [videoResults, playlistResults] = await Promise.all([
+        const [videoResults, playlistResults, channelResults] = await Promise.all([
           youtube.search(query, { type: 'video' }),
-          youtube.search(query, { type: 'playlist' })
+          youtube.search(query, { type: 'playlist' }),
+          fetch(`${request.nextUrl.origin}/api/youtube/search-channels?query=${encodeURIComponent(query)}&limit=10`).then(r => r.json())
         ])
         
-        // Combine results, taking more videos than playlists for better balance
+        // Combine results, taking more videos than playlists and channels for better balance
         const videoItems = videoResults.items || []
         const playlistItems = playlistResults.items || []
+        const channelItems = channelResults.items || []
         
-        // Take first 15 videos and first 5 playlists for a good mix
-        const selectedVideos = videoItems.slice(0, 15)
-        const selectedPlaylists = playlistItems.slice(0, 5)
+        // Take balanced amounts: 10 videos, 3 playlists, 2 channels
+        const selectedVideos = videoItems.slice(0, 10)
+        const selectedPlaylists = playlistItems.slice(0, 3)
+        const selectedChannels = channelItems.slice(0, 2)
         
-        // Interleave results: start with some videos, then playlists, then more videos
+        // Interleave results: start with videos, then channels and playlists, then more videos
         const combinedItems = [
-          ...selectedVideos.slice(0, 8),  // First 8 videos
-          ...selectedPlaylists,           // 5 playlists  
-          ...selectedVideos.slice(8)     // Remaining videos
+          ...selectedVideos.slice(0, 6),  // First 6 videos
+          ...selectedChannels,             // 2 channels
+          ...selectedPlaylists,           // 3 playlists  
+          ...selectedVideos.slice(6)     // Remaining videos
         ]
         
         results = {
@@ -177,7 +181,7 @@ export async function GET(request: NextRequest) {
           continuation: videoResults.continuation || playlistResults.continuation
         }
         
-        console.log(`Combined search completed: ${selectedVideos.length} videos, ${selectedPlaylists.length} playlists, total: ${combinedItems.length}`)
+        console.log(`Combined search completed: ${selectedVideos.length} videos, ${selectedPlaylists.length} playlists, ${selectedChannels.length} channels, total: ${combinedItems.length}`)
       } else if (type === 'playlist') {
         // For playlist search, try to get playlist results
         results = await youtube.search(query, { type: 'playlist' })
@@ -189,15 +193,60 @@ export async function GET(request: NextRequest) {
           results = await youtube.search(query + ' playlist', { type: 'video' })
           console.log('Video search with playlist keywords completed, items count:', results.items?.length || 0)
         }
+      } else if (type === 'channel') {
+        // For channel search, use the search-channels API
+        const channelSearchUrl = new URL(`${request.nextUrl.origin}/api/youtube/search-channels`)
+        channelSearchUrl.searchParams.set('query', query)
+        channelSearchUrl.searchParams.set('limit', '20')
+        
+        const channelResponse = await fetch(channelSearchUrl.toString())
+        if (!channelResponse.ok) {
+          throw new Error('Failed to search channels')
+        }
+        
+        const channelData = await channelResponse.json()
+        
+        // Convert channel data to match expected format
+        const channelItems = channelData.items.map((channel: any) => ({
+          id: channel.channelId || channel.id,
+          type: 'channel',
+          title: channel.name,
+          description: channel.description,
+          thumbnail: channel.thumbnail,
+          subscriberCount: channel.subscriberCount,
+          videoCount: channel.videoCount,
+          viewCount: channel.viewCount,
+          channel: {
+            id: channel.channelId || channel.id,
+            name: channel.name,
+            thumbnail: channel.thumbnail,
+            subscriberCount: channel.subscriberCount,
+            handle: channel.handle
+          },
+          isFavorite: channel.isFavorite,
+          stats: channel.stats
+        }))
+        
+        results = {
+          items: channelItems,
+          continuation: null // Channel search doesn't support pagination
+        }
+        
+        console.log('Channel search completed, items count:', channelItems.length)
       } else {
-        // For specific types (video, channel), use normal search
+        // For specific types (video, playlist), use normal search
         results = await youtube.search(query, { type: type as any })
         console.log('Initial search completed, items count:', results.items?.length || 0)
       }
     }
     
-    // Extract video and playlist data
+    // Extract video, playlist, and channel data
     const videoItems = results.items?.map((item: any, index: number) => {
+      // Handle channel items
+      if (item.type === 'channel') {
+        return item // Already in correct format
+      }
+      
       // Check if this is a playlist by ID pattern (starts with PL) or has videoCount
       const isPlaylistById = item.id && typeof item.id === 'string' && item.id.startsWith('PL')
       const isPlaylistByVideoCount = item.videoCount !== undefined && !item.duration

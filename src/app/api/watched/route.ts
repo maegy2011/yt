@@ -4,6 +4,12 @@ import { sanitizeVideoId, isValidYouTubeVideoId } from '@/lib/youtube-utils'
 
 export async function GET() {
   try {
+    // Check if database is available
+    if (!db) {
+      console.error('Database connection not available')
+      return NextResponse.json({ error: 'Database connection not available' }, { status: 500 })
+    }
+    
     const watchedVideos = await db.watchedVideo.findMany({
       orderBy: { watchedAt: 'desc' }
     })

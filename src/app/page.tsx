@@ -49,7 +49,7 @@ import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from
 import { validateSearchQuery, validateYouTubeUrl } from '@/lib/validation'
 import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from '@/lib/loading-messages'
 import type { Video as YouTubeVideo, Channel } from '@/lib/youtube'
-import { convertYouTubeVideo, convertYouTubePlaylist, convertToYouTubeVideo, convertDbVideoToSimple, type SimpleVideo, type SimplePlaylist, type WatchedVideo, type FavoriteVideo, type FavoriteChannel, type VideoNote, type ChannelSearchResult, type PaginationInfo, type FollowedChannelsContent } from '@/lib/type-compatibility'
+import { convertYouTubeVideo, convertYouTubePlaylist, convertYouTubeChannel, convertToYouTubeVideo, convertDbVideoToSimple, type SimpleVideo, type SimplePlaylist, type SimpleChannel, type WatchedVideo, type FavoriteVideo, type FavoriteChannel, type VideoNote, type ChannelSearchResult, type PaginationInfo, type FollowedChannelsContent } from '@/lib/type-compatibility'
 import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleton'
 import { SplashScreen } from '@/components/splash-screen'
 import { VideoNote as VideoNoteComponent } from '@/components/video-note'
@@ -65,7 +65,8 @@ type Tab = 'home' | 'search' | 'player' | 'watched' | 'channels' | 'favorites' |
 // Use SimpleVideo for internal state
 type Video = SimpleVideo
 type Playlist = SimplePlaylist
-type SearchResultItem = Video | Playlist
+type Channel = SimpleChannel
+type SearchResultItem = Video | Playlist | Channel
 
 interface SearchResults {
   items: SearchResultItem[]
@@ -1393,10 +1394,12 @@ export default function MyTubeApp() {
       let finalItems: SearchResultItem[]
       if (append && searchResults?.items) {
         const existingVideoIds = new Set(searchResults.items.map(v => v.id))
-        // Convert YouTube videos and playlists to SimpleVideo/SimplePlaylist format
+        // Convert YouTube videos, playlists, and channels to SimpleVideo/SimplePlaylist/SimpleChannel format
         const convertedItems = data.items.map((item: any) => {
           if (item.type === 'playlist') {
             return convertYouTubePlaylist(item)
+          } else if (item.type === 'channel') {
+            return convertYouTubeChannel(item)
           } else {
             return convertYouTubeVideo(item)
           }
@@ -1410,10 +1413,12 @@ export default function MyTubeApp() {
           addNotification('No New Items', 'All items already loaded', 'info')
         }
       } else {
-        // Convert YouTube videos and playlists to SimpleVideo/SimplePlaylist format
+        // Convert YouTube videos, playlists, and channels to SimpleVideo/SimplePlaylist/SimpleChannel format
         finalItems = data.items.map((item: any) => {
           if (item.type === 'playlist') {
             return convertYouTubePlaylist(item)
+          } else if (item.type === 'channel') {
+            return convertYouTubeChannel(item)
           } else {
             return convertYouTubeVideo(item)
           }
@@ -1580,7 +1585,7 @@ export default function MyTubeApp() {
     if (query.trim()) {
       const timeout = setTimeout(() => {
         handleSearch(false)
-      }, 500) // 500ms delay
+      }, 1200) // 1.2s delay for better keyword completion
       
       setSearchInputTimeout(timeout)
     }
@@ -2209,6 +2214,126 @@ export default function MyTubeApp() {
     )
   }, [favoriteVideoIds, selectedItems, multiSelectMode, toggleItemSelection, handleVideoSelect, toggleFavorite])
 
+  const ChannelCard = useCallback(({ channel }: { channel: Channel }) => {
+    const handleFollowChannel = async () => {
+      try {
+        const response = await fetch('/api/followed-channels', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            channelId: channel.channelId,
+            name: channel.name,
+            thumbnail: channel.thumbnail,
+            subscriberCount: channel.subscriberCount
+          })
+        })
+        
+        if (response.ok) {
+          addNotification('Channel Followed', `You are now following ${channel.name}`, 'success')
+          // Update the channel's favorite status
+          setChannelSearchResults(prev => 
+            prev.map(c => c.channelId === channel.channelId ? { ...c, isFavorite: true } : c)
+          )
+        }
+      } catch (error) {
+        console.error('Error following channel:', error)
+        addNotification('Error', 'Failed to follow channel', 'destructive')
+      }
+    }
+
+    const handleUnfollowChannel = async () => {
+      try {
+        const response = await fetch(`/api/followed-channels/${channel.channelId}`, {
+          method: 'DELETE'
+        })
+        
+        if (response.ok) {
+          addNotification('Channel Unfollowed', `You are no longer following ${channel.name}`, 'success')
+          // Update the channel's favorite status
+          setChannelSearchResults(prev => 
+            prev.map(c => c.channelId === channel.channelId ? { ...c, isFavorite: false } : c)
+          )
+        }
+      } catch (error) {
+        console.error('Error unfollowing channel:', error)
+        addNotification('Error', 'Failed to unfollow channel', 'destructive')
+      }
+    }
+
+    return (
+      <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-border/50 hover:border-primary/30">
+        <CardContent className="p-3 sm:p-4">
+          <div className="space-y-3">
+            {/* Channel Header */}
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <img
+                  src={channel.thumbnail}
+                  alt={channel.name}
+                  className="w-12 h-12 rounded-full object-cover"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.src = `https://via.placeholder.com/48x48/374151/ffffff?text=${encodeURIComponent(channel.name[0] || '?')}`
+                  }}
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold text-sm sm:text-base truncate">{channel.name}</h3>
+                {channel.handle && (
+                  <p className="text-xs text-muted-foreground">@{channel.handle}</p>
+                )}
+                {channel.subscriberCount && (
+                  <p className="text-xs text-muted-foreground">{channel.subscriberCount} subscribers</p>
+                )}
+              </div>
+            </div>
+            
+            {/* Channel Stats */}
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center space-x-3">
+                {channel.videoCount && (
+                  <span>{channel.videoCount.toLocaleString()} videos</span>
+                )}
+                {channel.viewCount && (
+                  <span>{channel.viewCount.toLocaleString()} views</span>
+                )}
+              </div>
+            </div>
+            
+            {/* Channel Description */}
+            {channel.description && (
+              <p className="text-xs text-muted-foreground line-clamp-2">
+                {channel.description}
+              </p>
+            )}
+            
+            {/* Action Buttons */}
+            <div className="flex items-center justify-between pt-2">
+              <Button
+                size="sm"
+                variant={channel.isFavorite ? "secondary" : "default"}
+                onClick={channel.isFavorite ? handleUnfollowChannel : handleFollowChannel}
+                className="text-xs"
+              >
+                {channel.isFavorite ? (
+                  <>
+                    <Users className="w-3 h-3 mr-1" />
+                    Following
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-3 h-3 mr-1" />
+                    Follow
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }, [addNotification, setChannelSearchResults])
+
   const PlaylistCard = useCallback(({ playlist }: { playlist: Playlist }) => {
     const isSelected = selectedItems.has(playlist.id)
     const playlistId = playlist.id || playlist.playlistId
@@ -2237,7 +2362,7 @@ export default function MyTubeApp() {
               <Badge className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-1.5 py-0.5">
                 {playlist.videoCount} videos
               </Badge>
-              <Badge className="absolute top-2 left-2 bg-purple-600/90 text-white text-xs px-1.5 py-0.5">
+              <Badge className="absolute top-2 left-2 bg-primary/90 text-white text-xs px-1.5 py-0.5">
                 Playlist
               </Badge>
               
@@ -2448,7 +2573,7 @@ export default function MyTubeApp() {
       return (
         <div className="mt-4 p-4 bg-muted/30 rounded-lg">
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
             <span className="ml-2 text-sm text-muted-foreground">Loading playlist videos...</span>
           </div>
         </div>
@@ -2471,7 +2596,7 @@ export default function MyTubeApp() {
     return (
       <div className="mt-4 space-y-4">
         {/* Playlist Controls */}
-        <div className="bg-gradient-to-r from-purple-50 via-purple-25 to-transparent dark:from-purple-900/20 dark:via-purple-800/10 dark:to-transparent rounded-xl p-4 border border-purple-200/50 dark:border-purple-800/30 shadow-sm">
+        <div className="bg-gradient-to-r from-primary/50 via-primary/25 to-transparent dark:from-primary/95 dark:via-primary/90 dark:to-transparent rounded-xl p-4 border border-border shadow-sm">
           <div className="flex flex-col gap-4">
             {/* Current Video Info */}
             <div className="flex items-start gap-3">
@@ -2487,10 +2612,10 @@ export default function MyTubeApp() {
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-purple-900 dark:text-purple-100 truncate">
+                <h4 className="font-medium text-foreground truncate">
                   {currentVideo?.title || 'No video selected'}
                 </h4>
-                <div className="flex items-center gap-2 text-sm text-purple-700 dark:text-purple-300">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span>{currentVideoIndex + 1} of {videos.length}</span>
                   {currentVideo.duration && (
                     <>
@@ -2502,7 +2627,7 @@ export default function MyTubeApp() {
                     <>
                       <span>•</span>
                       <span className="flex items-center gap-1">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
                         Now Playing
                       </span>
                     </>
@@ -2528,7 +2653,7 @@ export default function MyTubeApp() {
                 <Button
                   size="sm"
                   onClick={() => isPlaying ? pauseBackgroundVideo() : handlePlayVideo(currentVideo)}
-                  className="h-9 px-4 bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
+                  className="h-9 px-4 bg-primary hover:bg-primary/90 flex items-center gap-2"
                   title={isPlaying ? "Pause" : "Play current video"}
                 >
                   {isPlaying ? (
@@ -2547,7 +2672,7 @@ export default function MyTubeApp() {
                 <Button
                   size="sm"
                   onClick={handlePlayAll}
-                  className="h-9 px-3 border-purple-300 text-purple-700 hover:bg-purple-50"
+                  className="h-9 px-3 border-border text-primary hover:bg-muted"
                   title="Play playlist from beginning"
                 >
                   <Play className="w-4 h-4 mr-1" />
@@ -2569,13 +2694,13 @@ export default function MyTubeApp() {
               {/* Volume and Progress */}
               <div className="flex-1 flex items-center gap-3">
                 <div className="flex-1">
-                  <div className="flex items-center justify-between text-xs text-purple-600 dark:text-purple-400 mb-1">
+                  <div className="flex items-center justify-between text-xs text-primary dark:text-primary mb-1">
                     <span>Video {currentVideoIndex + 1}</span>
                     <span>{videos.length} total</span>
                   </div>
-                  <div className="w-full bg-purple-200 dark:bg-purple-800 rounded-full h-2">
+                  <div className="w-full bg-muted dark:bg-muted rounded-full h-2">
                     <div 
-                      className="bg-purple-600 dark:bg-purple-400 h-2 rounded-full transition-all duration-300"
+                      className="bg-primary dark:bg-primary h-2 rounded-full transition-all duration-300"
                       style={{ width: `${((currentVideoIndex + 1) / videos.length) * 100}%` }}
                     />
                   </div>
@@ -2600,7 +2725,7 @@ export default function MyTubeApp() {
               key={video.videoId || video.id} 
               className={`relative group cursor-pointer transition-all duration-200 ${
                 index === currentVideoIndex 
-                  ? 'ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-900/20 shadow-md' 
+                  ? 'ring-primary bg-muted shadow-md' 
                   : 'hover:bg-muted/50 hover:shadow-sm'
               } rounded-lg p-3 border`}
               onClick={() => {
@@ -2626,14 +2751,14 @@ export default function MyTubeApp() {
                     </Badge>
                   )}
                   {index === currentVideoIndex && (
-                    <div className="absolute inset-0 bg-purple-600/30 rounded-md flex items-center justify-center">
+                    <div className="absolute inset-0 bg-primary/30 rounded-md flex items-center justify-center">
                       {isPlaying ? (
                         <div className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center">
-                          <Pause className="w-3 h-3 text-purple-600" />
+                          <Pause className="w-3 h-3 text-primary" />
                         </div>
                       ) : (
                         <div className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center">
-                          <Play className="w-3 h-3 text-purple-600" />
+                          <Play className="w-3 h-3 text-primary" />
                         </div>
                       )}
                     </div>
@@ -2644,8 +2769,8 @@ export default function MyTubeApp() {
                 <div className="flex-1 min-w-0">
                   <h5 className={`text-sm font-medium line-clamp-2 transition-colors ${
                     index === currentVideoIndex 
-                      ? 'text-purple-900 dark:text-purple-100' 
-                      : 'group-hover:text-purple-600 dark:group-hover:text-purple-400'
+                      ? 'text-foreground' 
+                      : 'group-hover:text-primary dark:group-hover:text-primary'
                   }`}>
                     {video.title}
                   </h5>
@@ -2660,8 +2785,8 @@ export default function MyTubeApp() {
                     )}
                     {index === currentVideoIndex && isPlaying && (
                       <div className="flex items-center gap-1">
-                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-xs text-green-600 dark:text-green-400">Playing</span>
+                        <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></div>
+                        <span className="text-xs text-primary">Playing</span>
                       </div>
                     )}
                   </div>
@@ -2673,7 +2798,7 @@ export default function MyTubeApp() {
                     variant={index === currentVideoIndex ? "default" : "secondary"}
                     className={`text-xs ${
                       index === currentVideoIndex 
-                        ? 'bg-purple-600 text-white' 
+                        ? 'bg-primary text-white' 
                         : ''
                     }`}
                   >
@@ -2692,7 +2817,7 @@ export default function MyTubeApp() {
               variant="outline"
               size="sm"
               onClick={() => loadPlaylistVideos(playlist)}
-              className="text-purple-600 border-purple-300 hover:bg-purple-50 hover:text-purple-700"
+              className="text-primary border-border hover:bg-muted hover:text-primary"
             >
               <ExternalLink className="w-4 h-4 mr-1" />
               View Full Playlist ({playlist.videoCount} videos)
@@ -2752,10 +2877,10 @@ export default function MyTubeApp() {
         return (
           <div className="space-y-6">
             {/* Followed Channels Section */}
-            <div className="bg-gradient-to-r from-blue-10 via-blue-5 to-transparent rounded-2xl p-6 border border-blue-20">
+            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-6 border border-border">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent">
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
                     Your Followed Channels
                   </h2>
                   <p className="text-muted-foreground">Latest videos and playlists from your favorite channels</p>
@@ -2811,7 +2936,7 @@ export default function MyTubeApp() {
 
               {followedChannelsLoading && (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
                   <span className="ml-2 text-muted-foreground">Loading content from your channels...</span>
                 </div>
               )}
@@ -3045,19 +3170,19 @@ export default function MyTubeApp() {
                 <div className="mt-6 pt-6 border-t border-border">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                     <div>
-                      <p className="text-2xl font-bold text-blue-600">{followedChannelsContent.stats?.totalChannels || 0}</p>
+                      <p className="text-2xl font-bold text-primary">{followedChannelsContent.stats?.totalChannels || 0}</p>
                       <p className="text-sm text-muted-foreground">Channels</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-blue-600">{followedChannelsContent.stats?.totalVideos || 0}</p>
+                      <p className="text-2xl font-bold text-primary">{followedChannelsContent.stats?.totalVideos || 0}</p>
                       <p className="text-sm text-muted-foreground">Videos</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-blue-600">{followedChannelsContent.stats?.totalPlaylists || 0}</p>
+                      <p className="text-2xl font-bold text-primary">{followedChannelsContent.stats?.totalPlaylists || 0}</p>
                       <p className="text-sm text-muted-foreground">Playlists</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-blue-600">
+                      <p className="text-2xl font-bold text-primary">
                         {followedChannelsContent.stats?.totalViews ? `${(followedChannelsContent.stats.totalViews / 1000000).toFixed(1)}M` : '0'}
                       </p>
                       <p className="text-sm text-muted-foreground">Total Views</p>
@@ -3299,8 +3424,8 @@ export default function MyTubeApp() {
         return (
           <div className="space-y-6">
             {/* Search Header */}
-            <div className="bg-gradient-to-r from-green-10 via-green-5 to-transparent rounded-2xl p-6 border border-green-20">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent mb-4">
+            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-6 border border-border">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent mb-4">
                 Search Content
               </h2>
               <div className="flex gap-3">
@@ -3332,7 +3457,7 @@ export default function MyTubeApp() {
                 <Button
                   onClick={() => handleSearch(false)}
                   disabled={loading}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 </Button>
@@ -3343,7 +3468,7 @@ export default function MyTubeApp() {
             {showPlaylistVideos && selectedPlaylist ? (
               <div className="space-y-6">
                 {/* Playlist Header */}
-                <div className="bg-gradient-to-r from-purple-50 via-purple-25 to-transparent dark:from-purple-900/20 dark:via-purple-800/10 dark:to-transparent rounded-xl p-6 border border-purple-200/50 dark:border-purple-800/30">
+                <div className="bg-gradient-to-r from-primary/50 via-primary/25 to-transparent dark:from-primary/95 dark:via-primary/90 dark:to-transparent rounded-xl p-6 border border-border">
                   <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
                     {/* Back Button */}
                     <Button
@@ -3362,16 +3487,16 @@ export default function MyTubeApp() {
                     {/* Playlist Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-2">
-                        <h2 className="text-xl sm:text-2xl font-bold text-purple-900 dark:text-purple-100 truncate">
+                        <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">
                           {selectedPlaylist.title}
                         </h2>
-                        <Badge variant="secondary" className="bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200">
+                        <Badge variant="secondary" className="bg-muted text-foreground dark:bg-muted dark:text-foreground">
                           Playlist
                         </Badge>
                       </div>
                       
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-muted-foreground">
-                        <span className="font-medium text-purple-700 dark:text-purple-300">
+                        <span className="font-medium text-muted-foreground">
                           {selectedPlaylist.channelName}
                         </span>
                         <span className="hidden sm:inline">•</span>
@@ -3421,7 +3546,7 @@ export default function MyTubeApp() {
                               handleVideoPlay(playlistVideos[0])
                             }
                           }}
-                          className="h-9 px-3 bg-purple-600 hover:bg-purple-700"
+                          className="h-9 px-3 bg-primary hover:bg-primary/90"
                         >
                           <Play className="w-4 h-4 mr-1" />
                           Play All
@@ -3436,8 +3561,8 @@ export default function MyTubeApp() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-center py-12">
                       <div className="text-center space-y-4">
-                        <Loader2 className="w-8 h-8 animate-spin text-purple-600 mx-auto" />
-                        <p className="text-lg font-medium text-purple-900 dark:text-purple-100">
+                        <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+                        <p className="text-lg font-medium text-foreground">
                           Loading Playlist Videos...
                         </p>
                         <p className="text-sm text-muted-foreground">
@@ -3514,10 +3639,10 @@ export default function MyTubeApp() {
                   /* Empty State */
                   <div className="text-center py-12">
                     <div className="space-y-4">
-                      <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center mx-auto">
-                        <Music className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                      <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
+                        <Music className="w-8 h-8 text-primary dark:text-primary" />
                       </div>
-                      <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100">
+                      <h3 className="text-lg font-semibold text-foreground">
                         No Videos Found
                       </h3>
                       <p className="text-sm text-muted-foreground max-w-md mx-auto">
@@ -3558,7 +3683,7 @@ export default function MyTubeApp() {
                   <div className="flex items-center gap-4">
                     <h3 className="text-lg font-semibold">
                       {searchResults.items.length > 0 
-                        ? `Found ${searchResults.items.length} results` 
+                        ? `Search Results` 
                         : 'No results found'
                       }
                     </h3>
@@ -3568,10 +3693,22 @@ export default function MyTubeApp() {
                           <span>
                             {searchResults.items.filter(item => (item as any).type === 'video').length} videos
                           </span>
-                          <span>•</span>
-                          <span>
-                            {searchResults.items.filter(item => (item as any).type === 'playlist').length} playlists
-                          </span>
+                          {searchResults.items.filter(item => (item as any).type === 'playlist').length > 0 && (
+                            <>
+                              <span>•</span>
+                              <span>
+                                {searchResults.items.filter(item => (item as any).type === 'playlist').length} playlists
+                              </span>
+                            </>
+                          )}
+                          {searchResults.items.filter(item => (item as any).type === 'channel').length > 0 && (
+                            <>
+                              <span>•</span>
+                              <span>
+                                {searchResults.items.filter(item => (item as any).type === 'channel').length} channels
+                              </span>
+                            </>
+                          )}
                         </div>
                         {hasMoreVideos && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -3589,7 +3726,7 @@ export default function MyTubeApp() {
                   </div>
                   {searchResults.items.length > 0 && (
                     <div className="text-sm text-muted-foreground">
-                      Showing results for "{currentSearchQuery}"
+                      {currentSearchQuery && `Showing results for "${currentSearchQuery}"`}
                     </div>
                   )}
                 </div>
@@ -3599,6 +3736,8 @@ export default function MyTubeApp() {
                     {searchResults.items.map((item) => {
                       if (item.type === 'playlist') {
                         return <PlaylistCard key={item.playlistId || item.id} playlist={item as Playlist} />
+                      } else if (item.type === 'channel') {
+                        return <ChannelCard key={item.channelId || item.id} channel={item as Channel} />
                       } else {
                         return <VideoCard key={(item as Video).videoId || item.id} video={item as Video} />
                       }
@@ -3648,8 +3787,8 @@ export default function MyTubeApp() {
         return (
           <div className="space-y-6">
             {/* YouTube URL Player Section */}
-            <div className="bg-gradient-to-r from-blue-10 via-blue-5 to-transparent rounded-2xl p-4 sm:p-6 border border-blue-20">
-              <h3 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent mb-4">
+            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-4 sm:p-6 border border-border">
+              <h3 className="text-lg font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent mb-4">
                 Play YouTube Video by URL
               </h3>
               <div className="space-y-4">
@@ -3677,7 +3816,7 @@ export default function MyTubeApp() {
                   <p className="text-sm text-red-600">{urlError}</p>
                 )}
                 {urlSuccess && (
-                  <p className="text-sm text-green-600">{urlSuccess}</p>
+                  <p className="text-sm text-primary">{urlSuccess}</p>
                 )}
               </div>
             </div>
@@ -3714,15 +3853,15 @@ export default function MyTubeApp() {
       case 'watched':
         return (
           <div className="space-y-6">
-            <div className="bg-gradient-to-r from-orange-10 via-orange-5 to-transparent rounded-2xl p-6 border border-orange-20">
+            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-6 border border-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent mb-2">
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent mb-2">
                     Watch History
                   </h2>
                   <p className="text-muted-foreground">Videos you've recently watched</p>
                 </div>
-                <div className="text-2xl font-bold text-orange-600">
+                <div className="text-2xl font-bold text-primary">
                   {watchedVideos.length}
                 </div>
               </div>
@@ -3748,8 +3887,8 @@ export default function MyTubeApp() {
         return (
           <div className="space-y-6">
             {/* Channel Search */}
-            <div className="bg-gradient-to-r from-blue-10 via-blue-5 to-transparent rounded-2xl p-6 border border-blue-20">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent mb-4">
+            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-6 border border-border">
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent mb-4">
                 Browse Channels
               </h2>
               <div className="flex gap-3">
@@ -3767,7 +3906,7 @@ export default function MyTubeApp() {
                 <Button
                   onClick={handleChannelSearch}
                   disabled={channelSearchLoading}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-primary hover:bg-primary/90"
                 >
                   {channelSearchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 </Button>
@@ -3816,7 +3955,7 @@ export default function MyTubeApp() {
                         className={`w-full transition-all duration-200 hover:scale-105 text-sm ${
                           favoriteChannels.some(c => c.channelId === channel.channelId)
                             ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'bg-primary hover:bg-primary/90 text-white'
                         }`}
                       >
                         {favoriteChannels.some(c => c.channelId === channel.channelId) ? 'Following' : 'Follow'}
@@ -4116,16 +4255,16 @@ export default function MyTubeApp() {
               
               {/* Background Playback Indicator */}
               {backgroundVideo && (
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 rounded-full border border-blue-200 dark:border-blue-800">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs font-medium text-blue-700 dark:text-blue-300 truncate max-w-32">
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-muted rounded-full border border-border">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                  <span className="text-xs font-medium text-foreground truncate max-w-32">
                     {backgroundVideo.title}
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={isBackgroundPlaying ? pauseBackgroundVideo : stopBackgroundVideo}
-                    className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                    className="h-6 w-6 p-0 text-primary hover:text-primary/80 hover:bg-muted"
                     title={isBackgroundPlaying ? "Pause background video" : "Stop background video"}
                   >
                     {isBackgroundPlaying ? <Pause className="w-3 h-3" /> : <X className="w-3 h-3" />}
@@ -4331,10 +4470,10 @@ export default function MyTubeApp() {
                     key={notification.id}
                     className={`group relative rounded-xl border-0 shadow-sm transition-all duration-300 animate-in slide-in-from-top-2 fade-in-0 ${
                       notification.variant === 'success'
-                        ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200/50 dark:border-green-800/30'
+                        ? 'bg-gradient-to-r from-primary/50 to-primary/30 dark:from-primary/95 dark:to-primary/90 border-border'
                         : notification.variant === 'destructive'
                         ? 'bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 border-red-200/50 dark:border-red-800/30'
-                        : 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200/50 dark:border-blue-800/30'
+                        : 'bg-gradient-to-r from-primary/50 to-primary/30 dark:from-primary/95 dark:to-primary/90 border-border'
                     } hover:shadow-md hover:scale-[1.02]`}
                     style={{
                       animationDelay: `${index * 50}ms`,
@@ -4354,8 +4493,8 @@ export default function MyTubeApp() {
                       </div>
                     )}
                     {isSwipedRight && (
-                      <div className="absolute inset-y-0 right-0 w-12 bg-green-500/10 flex items-center justify-center rounded-r-xl">
-                        <Check className="w-5 h-5 text-green-500" />
+                      <div className="absolute inset-y-0 right-0 w-12 bg-primary/10 flex items-center justify-center rounded-r-xl">
+                        <Check className="w-5 h-5 text-primary" />
                       </div>
                     )}
                     
@@ -4365,10 +4504,10 @@ export default function MyTubeApp() {
                         {/* Icon Container */}
                         <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
                           notification.variant === 'success'
-                            ? 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400'
+                            ? 'bg-muted text-primary'
                             : notification.variant === 'destructive'
                             ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400'
-                            : 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                            : 'bg-muted text-primary'
                         }`}>
                           {notification.variant === 'success' && (
                             <Check className="w-5 h-5" />
@@ -4386,10 +4525,10 @@ export default function MyTubeApp() {
                           <div className="flex items-start justify-between gap-2 mb-2">
                             <h4 className={`text-sm font-semibold leading-tight ${
                               notification.variant === 'success'
-                                ? 'text-green-800 dark:text-green-200'
+                                ? 'text-foreground'
                                 : notification.variant === 'destructive'
                                 ? 'text-red-800 dark:text-red-200'
-                                : 'text-blue-800 dark:text-blue-200'
+                                : 'text-foreground'
                             }`}>
                               {notification.title}
                             </h4>
@@ -4406,10 +4545,10 @@ export default function MyTubeApp() {
                           {notification.description && (
                             <p className={`text-sm leading-relaxed mb-2 ${
                               notification.variant === 'success'
-                                ? 'text-green-700 dark:text-green-300'
+                                ? 'text-foreground'
                                 : notification.variant === 'destructive'
                                 ? 'text-red-700 dark:text-red-300'
-                                : 'text-blue-700 dark:text-blue-300'
+                                : 'text-foreground'
                             }`}>
                               {notification.description}
                             </p>
@@ -4517,7 +4656,7 @@ export default function MyTubeApp() {
             {/* Navigation Stats/Info */}
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
                 <span>Active</span>
               </div>
               <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-lg">
@@ -4648,10 +4787,10 @@ export default function MyTubeApp() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto scroll-smooth touch-pan-y max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 pb-24 md:pb-6">
         {dynamicLoadingMessage && (
-          <div className="mb-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="mb-6 p-3 sm:p-4 bg-muted border border-border rounded-lg">
             <div className="flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-              <span className="text-sm text-blue-700 dark:text-blue-300">{dynamicLoadingMessage}</span>
+              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+              <span className="text-sm text-foreground">{dynamicLoadingMessage}</span>
             </div>
           </div>
         )}
