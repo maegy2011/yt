@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mytube-v1'
+const CACHE_NAME = 'mytube-v4'
 const urlsToCache = [
   '/',
   '/static/js/bundle.js',

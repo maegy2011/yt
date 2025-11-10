@@ -736,10 +736,10 @@ export function VideoNote({
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="w-full max-w-7xl mx-auto space-y-4 sm:space-y-6">
       {/* Notification */}
       {notification && (
-        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 ${
+        <div className={`fixed top-20 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 max-w-sm ${
           notification.type === 'success' ? 'bg-primary text-white' :
           notification.type === 'error' ? 'bg-red-500 text-white' :
           'bg-primary text-white'
@@ -749,20 +749,22 @@ export function VideoNote({
       )}
       
       {/* YouTube-like Video Player Container */}
-      <div className="bg-black rounded-lg overflow-hidden">
+      <div className="bg-black rounded-lg overflow-hidden shadow-lg">
         {/* Video Player */}
-        <div className="relative aspect-video">
-          <YouTube
-            videoId={validVideoId}
-            opts={{
-              ...opts,
-              width: '100%',
-              height: '100%'
-            }}
-            onReady={onReady}
-            onStateChange={onStateChange}
-            className="w-full h-full"
-          />
+        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+          <div className="absolute inset-0">
+            <YouTube
+              videoId={validVideoId}
+              opts={{
+                ...opts,
+                width: '100%',
+                height: '100%'
+              }}
+              onReady={onReady}
+              onStateChange={onStateChange}
+              className="w-full h-full"
+            />
+          </div>
         </div>
         
         {/* Video Info Section - YouTube Style */}

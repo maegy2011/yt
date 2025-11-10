@@ -46,7 +46,7 @@ import {
   ExternalLink
 } from 'lucide-react'
 import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
-import { validateSearchQuery, validateYouTubeUrl } from '@/lib/validation'
+import { validateSearchQuery } from '@/lib/validation'
 import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from '@/lib/loading-messages'
 import type { Video as YouTubeVideo, Channel } from '@/lib/youtube'
 import { convertYouTubeVideo, convertYouTubePlaylist, convertYouTubeChannel, convertToYouTubeVideo, convertDbVideoToSimple, type SimpleVideo, type SimplePlaylist, type SimpleChannel, type WatchedVideo, type FavoriteVideo, type FavoriteChannel, type VideoNote, type ChannelSearchResult, type PaginationInfo, type FollowedChannelsContent } from '@/lib/type-compatibility'
@@ -172,12 +172,6 @@ export default function MyTubeApp() {
   const [showClearDataConfirmation, setShowClearDataConfirmation] = useState(false)
   const [favoritesEnabled, setFavoritesEnabled] = useState(true)
   const [favoritesPaused, setFavoritesPaused] = useState(false)
-  
-  // YouTube URL player state
-  const [youtubeUrl, setYoutubeUrl] = useState('')
-  const [loadingUrl, setLoadingUrl] = useState(false)
-  const [urlError, setUrlError] = useState('')
-  const [urlSuccess, setUrlSuccess] = useState('')
   
   // Notification system state
   const [notifications, setNotifications] = useState<Array<{
@@ -1211,100 +1205,6 @@ export default function MyTubeApp() {
       setPlaylistPage(prev => prev - 1)
     }
   }, [playlistPagination])
-
-  // YouTube URL player functions
-  const playYouTubeUrl = useCallback(async () => {
-    const trimmedUrl = youtubeUrl.trim()
-    if (!trimmedUrl) {
-      setUrlError('Please enter a YouTube URL')
-      return
-    }
-
-    // Validate YouTube URL
-    const urlValidation = validateYouTubeUrl(trimmedUrl)
-    if (!urlValidation.isValid) {
-      setUrlError(urlValidation.error || 'Invalid YouTube URL')
-      return
-    }
-
-    setLoadingUrl(true)
-    setUrlError('')
-    setUrlSuccess('')
-
-    try {
-      const response = await fetch('/api/youtube/play', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: trimmedUrl })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Failed to process YouTube URL')
-      }
-
-      const data = await response.json()
-
-      if (data.success) {
-        // Validate video ID from response
-        if (!data.videoId) {
-          throw new Error('No video ID returned from server')
-        }
-
-        // Create video object from response
-        const videoObject = {
-          id: data.videoId,
-          videoId: data.videoId,
-          title: data.title || 'Unknown Video',
-          channelName: data.channelName || 'Unknown Channel',
-          thumbnail: data.thumbnail || `https://img.youtube.com/vi/${data.videoId}/mqdefault.jpg`,
-          duration: data.duration,
-          viewCount: data.viewCount || 0,
-          publishedAt: data.publishedAt,
-          isLive: data.isLive || false,
-          description: data.description || ''
-        }
-
-        setSelectedVideo(videoObject)
-        setYoutubeUrl('')
-        setUrlSuccess(`Successfully loaded: ${videoObject.title}`)
-        
-        // Add to watched history
-        try {
-          await fetch('/api/watched', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              videoId: data.videoId,
-              title: data.title,
-              channelName: data.channelName,
-              thumbnail: data.thumbnail,
-              duration: data.duration,
-              viewCount: data.viewCount
-            })
-          })
-          await loadWatchedVideos()
-        } catch (watchError) {
-          console.error('Failed to add to watched history:', watchError)
-        }
-
-        if (data.warning) {
-          addNotification('Video Loaded with Warning', data.warning, 'info')
-        } else {
-          addNotification('Video Loaded', `Now playing: ${data.title}`, 'success')
-        }
-      }
-    } catch (error) {
-      console.error('Error playing YouTube URL:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load YouTube video'
-      setUrlError(errorMessage)
-      addNotification('Error Loading Video', errorMessage, 'destructive')
-    } finally {
-      setLoadingUrl(false)
-    }
-  }, [youtubeUrl, addNotification, loadWatchedVideos])
-
-  
 
   const handleSearch = async (append: boolean = false) => {
     const trimmedQuery = searchQuery.trim()
@@ -3430,11 +3330,11 @@ export default function MyTubeApp() {
         return (
           <div className="space-y-6">
             {/* Search Header */}
-            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-6 border border-border">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent mb-4">
+            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-4 sm:p-6 border border-border">
+              <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent mb-4">
                 Search Content
               </h2>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <Input
                   placeholder="Search for videos, playlists, channels..."
                   value={searchQuery}
@@ -3448,12 +3348,12 @@ export default function MyTubeApp() {
                       handleSearch(false)
                     }
                   }}
-                  className="flex-1"
+                  className="flex-1 text-sm sm:text-base"
                 />
                 <select
                   value={searchType}
                   onChange={(e) => setSearchType(e.target.value as any)}
-                  className="px-3 py-2 border border-input bg-background rounded-md text-sm"
+                  className="px-2 sm:px-3 py-2 border border-input bg-background rounded-md text-xs sm:text-sm"
                 >
                   <option value="all">All</option>
                   <option value="video">Videos</option>
@@ -3463,7 +3363,7 @@ export default function MyTubeApp() {
                 <Button
                   onClick={() => handleSearch(false)}
                   disabled={loading}
-                  className="bg-primary hover:bg-primary/90"
+                  className="w-full sm:w-auto bg-primary hover:bg-primary/90 px-4 py-2 sm:py-2"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 </Button>
@@ -3474,8 +3374,8 @@ export default function MyTubeApp() {
             {showPlaylistVideos && selectedPlaylist ? (
               <div className="space-y-6">
                 {/* Playlist Header */}
-                <div className="bg-gradient-to-r from-primary/50 via-primary/25 to-transparent dark:from-primary/95 dark:via-primary/90 dark:to-transparent rounded-xl p-6 border border-border">
-                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                <div className="bg-gradient-to-r from-primary/50 via-primary/25 to-transparent dark:from-primary/95 dark:via-primary/90 dark:to-transparent rounded-xl p-4 sm:p-6 border border-border">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 sm:items-center">
                     {/* Back Button */}
                     <Button
                       variant="outline"
@@ -3484,32 +3384,32 @@ export default function MyTubeApp() {
                         setSelectedPlaylist(null)
                         setPlaylistVideos([])
                       }}
-                      className="h-10 px-4 flex-shrink-0"
+                      className="h-8 sm:h-10 px-3 flex-shrink-0"
                     >
-                      <ArrowLeft className="w-4 h-4 mr-2" />
-                      Back
+                      <ArrowLeft className="w-4 h-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Back</span>
                     </Button>
                     
                     {/* Playlist Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h2 className="text-xl sm:text-2xl font-bold text-foreground truncate">
+                      <div className="flex items-center gap-1 sm:gap-2 mb-2">
+                        <h2 className="text-lg sm:text-xl font-bold text-foreground truncate flex-1 min-w-0">
                           {selectedPlaylist.title}
                         </h2>
-                        <Badge variant="secondary" className="bg-muted text-foreground dark:bg-muted dark:text-foreground">
+                        <Badge variant="secondary" className="bg-muted text-foreground dark:bg-muted dark:text-foreground text-xs sm:text-sm">
                           Playlist
                         </Badge>
                       </div>
                       
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-muted-foreground">
-                        <span className="font-medium text-muted-foreground">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+                        <span className="font-medium truncate">
                           {selectedPlaylist.channelName}
                         </span>
                         <span className="hidden sm:inline">•</span>
-                        <span className="flex items-center gap-1">
-                          <Play className="w-3 h-3" />
-                          {playlistVideos.length} of {selectedPlaylist.videoCount} videos loaded
-                        </span>
+                        <div className="flex items-center gap-1">
+                          <Play className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span>{playlistVideos.length} of {selectedPlaylist.videoCount} videos</span>
+                        </div>
                         {selectedPlaylist.viewCount && (
                           <>
                             <span className="hidden sm:inline">•</span>
@@ -3532,14 +3432,14 @@ export default function MyTubeApp() {
                         size="sm"
                         onClick={() => loadPlaylistVideos(selectedPlaylist)}
                         disabled={playlistVideosLoading}
-                        className="h-9 px-3"
+                        className="h-8 sm:h-9 px-2 sm:px-3"
                       >
                         {playlistVideosLoading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
                         ) : (
                           <>
-                            <RefreshCw className="w-4 h-4 mr-1" />
-                            Refresh
+                            <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                            <span className="hidden sm:inline">Refresh</span>
                           </>
                         )}
                       </Button>
@@ -3552,10 +3452,10 @@ export default function MyTubeApp() {
                               handleVideoPlay(playlistVideos[0])
                             }
                           }}
-                          className="h-9 px-3 bg-primary hover:bg-primary/90"
+                          className="h-8 sm:h-9 px-2 sm:px-3 bg-primary hover:bg-primary/90"
                         >
-                          <Play className="w-4 h-4 mr-1" />
-                          Play All
+                          <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                          <span className="hidden sm:inline">Play</span>
                         </Button>
                       )}
                     </div>
@@ -3694,28 +3594,26 @@ export default function MyTubeApp() {
                       }
                     </h3>
                     {searchResults.items.length > 0 && (
-                      <div className="flex items-center gap-4">
-                        <div className="flex gap-2 text-sm text-muted-foreground">
-                          <span>
-                            {searchResults.items.filter(item => (item as any).type === 'video').length} videos
-                          </span>
-                          {searchResults.items.filter(item => (item as any).type === 'playlist').length > 0 && (
-                            <>
-                              <span>•</span>
-                              <span>
-                                {searchResults.items.filter(item => (item as any).type === 'playlist').length} playlists
-                              </span>
-                            </>
-                          )}
-                          {searchResults.items.filter(item => (item as any).type === 'channel').length > 0 && (
-                            <>
-                              <span>•</span>
-                              <span>
-                                {searchResults.items.filter(item => (item as any).type === 'channel').length} channels
-                              </span>
-                            </>
-                          )}
-                        </div>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
+                        <span>
+                          {searchResults.items.filter(item => (item as any).type === 'video').length} videos
+                        </span>
+                        {searchResults.items.filter(item => (item as any).type === 'playlist').length > 0 && (
+                          <>
+                            <span className="hidden sm:inline">•</span>
+                            <span>
+                              {searchResults.items.filter(item => (item as any).type === 'playlist').length} playlists
+                            </span>
+                          </>
+                        )}
+                        {searchResults.items.filter(item => (item as any).type === 'channel').length > 0 && (
+                          <>
+                            <span className="hidden sm:inline">•</span>
+                            <span>
+                              {searchResults.items.filter(item => (item as any).type === 'channel').length} channels
+                            </span>
+                          </>
+                        )}
                         {hasMoreVideos && (
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <ArrowDown className="w-4 h-4" />
@@ -3738,7 +3636,7 @@ export default function MyTubeApp() {
                 </div>
                 
                 {searchResults.items.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                     {searchResults.items.map((item) => {
                       if (item.type === 'playlist') {
                         return <PlaylistCard key={item.playlistId || item.id} playlist={item as Playlist} />
@@ -3755,19 +3653,19 @@ export default function MyTubeApp() {
                   <div className="text-center py-6 col-span-full">
                     {!autoLoadMore && (
                       <div className="text-sm text-muted-foreground mb-2">
-                        Auto-loading is disabled. Click the button below to load more videos.
+                        Auto-loading is disabled. Click button below to load more videos.
                       </div>
                     )}
                     <Button
                       onClick={() => handleSearch(true)}
                       disabled={loadingMore}
                       variant="outline"
-                      className="w-full sm:w-auto"
+                      className="w-full sm:w-auto px-4 py-2"
                     >
                       {loadingMore ? (
                         <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Loading more...
+                          <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                          <span className="hidden sm:inline">Loading more...</span>
                         </>
                       ) : (
                         'Load More Videos'
@@ -3780,10 +3678,10 @@ export default function MyTubeApp() {
                 <div id="load-more-trigger" className="h-1 col-span-full" />
               </div>
             ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <Search className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">Search for Videos</p>
-                <p>Enter a search query above to find YouTube videos</p>
+              <div className="text-center py-8 sm:py-12 text-muted-foreground">
+                <Search className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 opacity-50" />
+                <p className="text-lg sm:text-xl font-medium mb-2">Search for Videos</p>
+                <p className="text-sm sm:text-base">Enter a search query above to find YouTube videos</p>
               </div>
             )}
           </div>
@@ -3792,41 +3690,6 @@ export default function MyTubeApp() {
       case 'player':
         return (
           <div className="space-y-6">
-            {/* YouTube URL Player Section */}
-            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-4 sm:p-6 border border-border">
-              <h3 className="text-lg font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent mb-4">
-                Play YouTube Video by URL
-              </h3>
-              <div className="space-y-4">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Paste YouTube video URL (youtube.com, youtu.be, m.youtube.com, etc.)"
-                    value={youtubeUrl}
-                    onChange={(e) => setYoutubeUrl(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={playYouTubeUrl}
-                    disabled={!youtubeUrl.trim() || loadingUrl}
-                    className="px-4"
-                  >
-                    {loadingUrl ? (
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    ) : (
-                      <Play className="w-4 h-4 mr-2" />
-                    )}
-                    Play
-                  </Button>
-                </div>
-                {urlError && (
-                  <p className="text-sm text-red-600">{urlError}</p>
-                )}
-                {urlSuccess && (
-                  <p className="text-sm text-primary">{urlSuccess}</p>
-                )}
-              </div>
-            </div>
-
             {selectedVideo ? (
               <>
                 {/* Video Note Component - Video Player */}
@@ -3850,7 +3713,7 @@ export default function MyTubeApp() {
               <div className="text-center py-12 text-muted-foreground">
                 <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
                 <p className="text-lg font-medium mb-2">No Video Selected</p>
-                <p>Search and select a video or paste a YouTube URL to create video notes</p>
+                <p>Search for videos from the Search tab, then select any video to start watching and creating notes</p>
               </div>
             )}
           </div>
@@ -3923,33 +3786,33 @@ export default function MyTubeApp() {
             {channelSearchResults.length > 0 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Search Results</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {channelSearchResults.map((channel) => (
-                    <Card key={channel.channelId} className="p-4 hover:shadow-md transition-shadow">
+                    <Card key={channel.channelId} className="p-3 sm:p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-start gap-3 mb-3">
                         <img
                           src={getChannelThumbnailUrl(channel)}
                           alt={channel.name}
-                          className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                          className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover flex-shrink-0"
                         />
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium line-clamp-2 text-sm leading-tight mb-2">{channel.name}</h4>
+                          <h4 className="font-medium text-sm sm:text-base line-clamp-2 leading-tight mb-2">{channel.name}</h4>
                           <div className="space-y-1">
                             {channel.subscriberCount && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Users className="w-3 h-3" />
+                              <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+                                <Users className="w-3 h-3 sm:w-4 sm:h-4" />
                                 <span>{formatViewCount(channel.subscriberCount)} subscribers</span>
                               </div>
                             )}
                             {channel.viewCount && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Eye className="w-3 h-3" />
+                              <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+                                <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                                 <span>{formatViewCount(channel.viewCount)} total views</span>
                               </div>
                             )}
                             {channel.videoCount && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Play className="w-3 h-3" />
+                              <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
+                                <Play className="w-3 h-3 sm:w-4 sm:h-4" />
                                 <span>{channel.videoCount.toLocaleString()} videos</span>
                               </div>
                             )}
@@ -3958,7 +3821,7 @@ export default function MyTubeApp() {
                       </div>
                       <Button
                         onClick={() => handleFollowChannel(channel)}
-                        className={`w-full transition-all duration-200 hover:scale-105 text-sm ${
+                        className={`w-full transition-all duration-200 hover:scale-105 text-xs sm:text-sm ${
                           favoriteChannels.some(c => c.channelId === channel.channelId)
                             ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                             : 'bg-primary hover:bg-primary/90 text-white'
@@ -4014,9 +3877,9 @@ export default function MyTubeApp() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <User className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>No favorite channels yet</p>
+                <div className="text-center py-6 sm:py-8 text-muted-foreground">
+                  <User className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-base sm:text-lg font-medium">No favorite channels yet</p>
                 </div>
               )}
             </div>

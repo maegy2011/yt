@@ -52,44 +52,6 @@ export function validateSearchQuery(query: any): { isValid: boolean; sanitized: 
 }
 
 /**
- * Validates a YouTube URL
- */
-export function validateYouTubeUrl(url: any): { isValid: boolean; error?: string } {
-  if (!url || typeof url !== 'string') {
-    return { isValid: false, error: 'URL is required' }
-  }
-  
-  const trimmed = url.trim()
-  if (trimmed.length === 0) {
-    return { isValid: false, error: 'URL cannot be empty' }
-  }
-  
-  if (trimmed.length > 500) {
-    return { isValid: false, error: 'URL is too long' }
-  }
-  
-  // Basic URL pattern check for YouTube
-  const youtubePatterns = [
-    /^https?:\/\/(www\.)?youtube\.com\/watch\?v=/,
-    /^https?:\/\/youtu\.be\//,
-    /^https?:\/\/(www\.)?youtube\.com\/embed\//,
-    /^https?:\/\/(www\.)?youtube\.com\/v\//,
-    /^https?:\/\/(www\.)?youtube\.com\/shorts\//,
-    /^https?:\/\/m\.youtube\.com\/watch\?v=/,
-    /^https?:\/\/tv\.youtube\.com\/watch\?v=/,
-    /^https?:\/\/music\.youtube\.com\/watch\?v=/
-  ]
-  
-  const isValidYouTubeUrl = youtubePatterns.some(pattern => pattern.test(trimmed))
-  
-  if (!isValidYouTubeUrl) {
-    return { isValid: false, error: 'Invalid YouTube URL format' }
-  }
-  
-  return { isValid: true }
-}
-
-/**
  * Validates video ID format
  */
 export function validateVideoId(videoId: any): { isValid: boolean; sanitized: string; error?: string } {
