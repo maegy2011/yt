@@ -69,6 +69,16 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     }
   }, [showConfirmation, onComplete])
 
+  // Add a safety timeout to prevent getting stuck
+  useEffect(() => {
+    const safetyTimeout = setTimeout(() => {
+      console.log('Splash screen safety timeout triggered')
+      onComplete()
+    }, 15000) // 15 seconds max
+
+    return () => clearTimeout(safetyTimeout)
+  }, [onComplete])
+
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-background via-card to-background flex items-center justify-center z-50 h-full-screen w-screen overflow-hidden">
       <div className="text-center space-y-8 max-w-md mx-auto px-6 h-full flex flex-col justify-center">

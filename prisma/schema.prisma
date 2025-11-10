@@ -30,7 +30,7 @@ model WatchedVideo {
 
 model FavoriteVideo {
   id        String   @id @default(cuid())
-  videoId   String
+  videoId   String   @unique
   title      String
   channelName String
   thumbnail  String
@@ -43,10 +43,10 @@ model FavoriteVideo {
 
 model FavoriteChannel {
   id        String   @id @default(cuid())
-  channelId  String
+  channelId  String   @unique
   name       String
   thumbnail  String?
-  subscriberCount String?
+  subscriberCount Int?
   videoCount  Int?
   viewCount   Int?
   createdAt DateTime @default(now())

@@ -54,8 +54,8 @@ async function getSingleChannelStats(channelId: string, includeComparison: boole
       subscriberCount: channelData.subscriberCount || 0,
       videoCount: channelData.videoCount || 0,
       viewCount: (channelData as any).viewCount || 0,
-      addedToFavorites: favoriteChannel.addedAt,
-      daysInFavorites: Math.floor((Date.now() - new Date(favoriteChannel.addedAt).getTime()) / (1000 * 60 * 60 * 24)),
+      createdAt: favoriteChannel.createdAt,
+      daysInFavorites: Math.floor((Date.now() - new Date(favoriteChannel.createdAt).getTime()) / (1000 * 60 * 60 * 24)),
       stats: {
         subscribers: channelData.subscriberCount || 0,
         totalVideos: channelData.videoCount || 0,
@@ -102,7 +102,7 @@ async function getAllChannelsStats(includeComparison: boolean, timeframe: string
   try {
     // Get all favorite channels
     const favoriteChannels = await db.favoriteChannel.findMany({
-      orderBy: { addedAt: 'desc' }
+      orderBy: { createdAt: 'desc' }
     })
 
     if (favoriteChannels.length === 0) {
@@ -155,11 +155,11 @@ async function getAllChannelsStats(includeComparison: boolean, timeframe: string
             subscriberCount: subscribers,
             videoCount: videos,
             viewCount: views,
-            addedAt: favoriteChannel.addedAt,
+            createdAt: favoriteChannel.createdAt,
             isVerified: (channelData as any).verified || false,
             stats: {
               avgViewsPerVideo: videos ? Math.round(Number(views) / Number(videos)) : 0,
-              daysInFavorites: Math.floor((Date.now() - new Date(favoriteChannel.addedAt).getTime()) / (1000 * 60 * 60 * 24))
+              daysInFavorites: Math.floor((Date.now() - new Date(favoriteChannel.createdAt).getTime()) / (1000 * 60 * 60 * 24))
             }
           }
 
@@ -176,11 +176,11 @@ async function getAllChannelsStats(includeComparison: boolean, timeframe: string
           subscriberCount: favoriteChannel.subscriberCount || 0,
           videoCount: 0,
           viewCount: 0,
-          addedAt: favoriteChannel.addedAt,
+          createdAt: favoriteChannel.createdAt,
           isVerified: false,
           stats: {
             avgViewsPerVideo: 0,
-            daysInFavorites: Math.floor((Date.now() - new Date(favoriteChannel.addedAt).getTime()) / (1000 * 60 * 60 * 24))
+            daysInFavorites: Math.floor((Date.now() - new Date(favoriteChannel.createdAt).getTime()) / (1000 * 60 * 60 * 24))
           },
           error: 'Failed to fetch detailed data'
         })
@@ -204,8 +204,8 @@ async function getAllChannelsStats(includeComparison: boolean, timeframe: string
       avgVideos,
       avgViews,
       topChannel: channelDetails[0] || null,
-      newestChannel: favoriteChannels.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime())[0],
-      oldestChannel: favoriteChannels.sort((a, b) => new Date(a.addedAt).getTime() - new Date(b.addedAt).getTime())[0]
+      newestChannel: favoriteChannels.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0],
+      oldestChannel: favoriteChannels.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0]
     }
 
     // Add distribution data

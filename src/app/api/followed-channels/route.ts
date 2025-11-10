@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
 
     // Get all favorite channels from database
     const favoriteChannels = await db.favoriteChannel.findMany({
-      orderBy: { addedAt: 'desc' }
+      orderBy: { createdAt: 'desc' }
     })
 
     if (favoriteChannels.length === 0) {
@@ -157,7 +157,7 @@ export async function GET(request: NextRequest) {
             videoCount: channelData.videoCount || 0,
             url: `https://youtube.com/channel/${channelData.id}`,
             handle: channelData.handle || `@${channelData.name.toLowerCase().replace(/\s+/g, '')}`,
-            addedAt: channel.addedAt
+            createdAt: channel.createdAt
           })
 
           // Search for videos from this channel

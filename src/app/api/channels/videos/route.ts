@@ -210,7 +210,7 @@ async function getAllFavoriteChannelsVideos(
   try {
     // Get all favorite channels
     const favoriteChannels = await db.favoriteChannel.findMany({
-      orderBy: { addedAt: 'desc' }
+      orderBy: { createdAt: 'desc' }
     })
 
     if (favoriteChannels.length === 0) {

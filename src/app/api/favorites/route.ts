@@ -77,14 +77,17 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+      console.log('Adding favorite with videoId:', sanitizedVideoId)
       const existing = await db.favoriteVideo.findUnique({
         where: { videoId: sanitizedVideoId }
       })
 
       if (existing) {
+        console.log('Video already exists:', existing)
         return NextResponse.json({ error: 'Video already in favorites' }, { status: 409 })
       }
 
+      console.log('Creating new favorite entry...')
       const favorite = await db.favoriteVideo.create({
         data: {
           videoId: sanitizedVideoId,
@@ -96,6 +99,7 @@ export async function POST(request: NextRequest) {
         }
       })
 
+      console.log('Favorite created successfully:', favorite)
       return NextResponse.json(favorite)
     } catch (dbError) {
       console.error('Database error:', dbError)

@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import { FavoriteVideo } from '@/types/favorites'
 import { FavoriteCard } from './FavoriteCard'
-import { getFavoritesStats, getUniqueChannels, sortFavoritesByDate, sortFavoritesByTitle, sortFavoritesByViews } from '@/utils/favorites'
+import { getFavoritesStats, getUniqueChannels, sortFavoritesByDate, sortFavoritesByTitle, sortFavoritesByViews, formatViewCount } from '@/utils/favorites'
 
 interface FavoriteListProps {
   favorites: FavoriteVideo[]

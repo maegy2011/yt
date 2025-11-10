@@ -757,7 +757,7 @@ export default function MyTubeApp() {
     }
   }, [addNotification])
 
-  const loadFavoriteChannels = useCallback(async (): Promise<void> => {
+  const loadFavoriteChannels = useCallback(async (): Promise<FavoriteChannel[]> => {
     try {
       const response = await fetchWithRetry('/api/channels')
       if (!response.ok) {
@@ -766,10 +766,12 @@ export default function MyTubeApp() {
       }
       const data = await response.json()
       setFavoriteChannels(data || [])
+      return data || []
     } catch (error) {
       console.error('Failed to load favorite channels:', error)
       setFavoriteChannels([])
       addNotification('Failed to load favorite channels', 'Please check your connection and try again', 'destructive')
+      return []
     }
   }, [addNotification])
 
@@ -1096,12 +1098,13 @@ export default function MyTubeApp() {
     }
   }
 
-  const loadChannelVideos = useCallback(async () => {
-    if (favoriteChannels.length === 0) return
+  const loadChannelVideos = useCallback(async (channels?: FavoriteChannel[]) => {
+    const channelsToLoad = channels || favoriteChannels
+    if (channelsToLoad.length === 0) return
     
     setChannelVideosLoading(true)
     try {
-      const videoPromises = favoriteChannels.map(async (channel) => {
+      const videoPromises = channelsToLoad.map(async (channel) => {
         try {
           const response = await fetch(`/api/youtube/channel/${channel.channelId}?includeVideos=true&maxVideos=5`)
           if (response.ok) {
@@ -1931,14 +1934,17 @@ export default function MyTubeApp() {
 
     const loadInitialData = async () => {
       try {
-        await Promise.all([
+        const results = await Promise.all([
           loadWatchedVideos(),
           loadFavoriteChannels(),
           loadFavoriteVideos(),
           loadNotes()
         ])
-        if (favoriteChannels.length > 0) {
-          await loadChannelVideos()
+        
+        // The second result is favoriteChannels data
+        const favoriteChannelsData = results[1]
+        if (favoriteChannelsData && favoriteChannelsData.length > 0) {
+          await loadChannelVideos(favoriteChannelsData)
         }
       } catch (error) {
         addNotification('Failed to load initial data', 'Please refresh the page', 'destructive')
@@ -1948,7 +1954,7 @@ export default function MyTubeApp() {
     if (!showSplashScreen) {
       loadInitialData()
     }
-  }, [showSplashScreen, loadWatchedVideos, loadFavoriteChannels, loadFavoriteVideos, loadNotes, loadChannelVideos, favoriteChannels.length, addNotification])
+  }, [showSplashScreen, loadWatchedVideos, loadFavoriteChannels, loadFavoriteVideos, loadNotes, addNotification])
 
   // Load followed channels content when favorite channels change
   useEffect(() => {
