@@ -188,4 +188,47 @@
       height: -webkit-fill-available;
     }
   }
+  
+  /* Additional responsive utilities */
+  @layer utilities {
+    .container-responsive {
+      @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    }
+    
+    .text-responsive-xs {
+      @apply text-xs sm:text-sm;
+    }
+    
+    .text-responsive-sm {
+      @apply text-sm sm:text-base;
+    }
+    
+    .text-responsive-base {
+      @apply text-sm sm:text-base md:text-lg;
+    }
+    
+    .text-responsive-lg {
+      @apply text-base sm:text-lg md:text-xl;
+    }
+    
+    .text-responsive-xl {
+      @apply text-lg sm:text-xl md:text-2xl;
+    }
+    
+    .gap-responsive {
+      @apply gap-2 sm:gap-3 md:gap-4;
+    }
+    
+    .p-responsive {
+      @apply p-2 sm:p-3 md:p-4;
+    }
+    
+    .px-responsive {
+      @apply px-2 sm:px-3 md:px-4;
+    }
+    
+    .py-responsive {
+      @apply py-2 sm:py-3 md:py-4;
+    }
+  }
 }

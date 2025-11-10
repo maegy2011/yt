@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Play, Pause, RotateCcw, Plus, Trash2, Save, Bookmark, Edit, Clock, MessageSquare, User, Eye, Heart, ChevronLeft, ChevronRight, Loader2, Scissors, Volume2, VolumeX, Maximize2 } from 'lucide-react'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
 
@@ -112,6 +113,8 @@ export function VideoNote({
   } = useBackgroundPlayer()
 
   const [notes, setNotes] = useState<VideoNote[]>([])
+  const [filteredNotes, setFilteredNotes] = useState<VideoNote[]>([])
+  const [notesSearchQuery, setNotesSearchQuery] = useState('')
   const [newNote, setNewNote] = useState({ title: '', note: '', startTime: 0, endTime: 30 })
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -124,6 +127,8 @@ export function VideoNote({
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editingNoteTitle, setEditingNoteTitle] = useState('')
   const [editingNoteContent, setEditingNoteContent] = useState('')
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [noteToDelete, setNoteToDelete] = useState<string | null>(null)
   const [playerReady, setPlayerReady] = useState(false)
   const playerRef = useRef<any>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -243,6 +248,21 @@ export function VideoNote({
       }
     }
   }
+
+  // Filter notes based on search query
+  useEffect(() => {
+    if (!notesSearchQuery.trim()) {
+      setFilteredNotes(notes)
+    } else {
+      const query = notesSearchQuery.toLowerCase()
+      const filtered = notes.filter(note => 
+        note.title.toLowerCase().includes(query) ||
+        note.note.toLowerCase().includes(query) ||
+        note.channelName?.toLowerCase().includes(query)
+      )
+      setFilteredNotes(filtered)
+    }
+  }, [notes, notesSearchQuery])
 
   // Load notes from API
   useEffect(() => {
@@ -516,18 +536,27 @@ export function VideoNote({
     }
   }
 
-  const handleDeleteNote = async (id: string) => {
+  const handleDeleteNote = (id: string) => {
+    setNoteToDelete(id)
+    setDeleteConfirmOpen(true)
+  }
+
+  const confirmDeleteNote = async () => {
+    if (!noteToDelete) return
+    
     try {
-      const response = await fetch(`/api/notes/${id}`, {
+      const response = await fetch(`/api/notes/${noteToDelete}`, {
         method: 'DELETE'
       })
       
       if (response.ok) {
-        setNotes(notes.filter(note => note.id !== id))
-        if (activeNoteId === id) {
+        setNotes(notes.filter(note => note.id !== noteToDelete))
+        if (activeNoteId === noteToDelete) {
           setActiveNoteId(null)
         }
         showNotification('The note has been removed successfully', 'success')
+        setDeleteConfirmOpen(false)
+        setNoteToDelete(null)
         
         // Call parent callback to refresh notes
         if (onNotesChange) {
@@ -539,7 +568,14 @@ export function VideoNote({
     } catch (error) {
       console.error('Failed to delete note:', error)
       showNotification('Failed to delete note. Please try again.', 'error')
+      setDeleteConfirmOpen(false)
+      setNoteToDelete(null)
     }
+  }
+
+  const cancelDeleteNote = () => {
+    setDeleteConfirmOpen(false)
+    setNoteToDelete(null)
   }
 
   const handlePlayNote = (note: VideoNote) => {
@@ -865,7 +901,7 @@ export function VideoNote({
       </div>
 
       {/* Note Creation Section */}
-      <Card>
+      <Card data-testid="note-creation-form">
         <CardContent className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className={`p-2 rounded-lg transition-colors ${
@@ -998,7 +1034,7 @@ export function VideoNote({
                   <Button
                     onClick={handleCaptureStart}
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 text-foreground hover:text-foreground"
                     disabled={!playerReady || isCapturing || quickNoteCapturing}
                   >
                     <Bookmark className="w-4 h-4 mr-2" />
@@ -1046,100 +1082,138 @@ export function VideoNote({
       </Card>
 
       {/* Video Notes List */}
-      {notes.length > 0 && (
+      {notes.length > 0 ? (
         <Card>
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-muted rounded-lg">
-                <MessageSquare className="w-5 h-5 text-primary" />
+          <CardContent className="p-3 sm:p-4 md:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <div className="p-1.5 sm:p-2 bg-muted rounded-lg">
+                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               </div>
-              <h2 className="text-lg font-semibold">
-                Video Notes ({notes.length})
-              </h2>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-base sm:text-lg font-semibold">
+                  Video Notes ({filteredNotes.length})
+                </h2>
+                {notes.length > 0 && (
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                    {filteredNotes.length < notes.length ? `Showing ${filteredNotes.length} of ${notes.length} notes` : 'All notes loaded'}
+                  </p>
+                )}
+              </div>
             </div>
             
-            <ScrollArea className="max-h-96 overflow-y-auto">
-              <div className="space-y-3">
-                {notes.map((note) => (
+            {/* Search/Filter Section */}
+            {notes.length > 0 && (
+              <div className="mb-3 sm:mb-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Search notes by title, content, or channel..."
+                    value={notesSearchQuery}
+                    onChange={(e) => setNotesSearchQuery(e.target.value)}
+                    className="flex-1 text-sm"
+                  />
+                  {notesSearchQuery && (
+                    <Button
+                  onClick={() => setNotesSearchQuery('')}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs sm:text-sm text-foreground hover:text-foreground"
+                >
+                      <span className="hidden sm:inline">Clear</span>
+                      <span className="sm:hidden">✕</span>
+                    </Button>
+                  )}
+                </div>
+                {notesSearchQuery && filteredNotes.length === 0 && (
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-2 text-center">
+                    No notes found matching "{notesSearchQuery}"
+                  </p>
+                )}
+              </div>
+            )}
+            
+            <ScrollArea className="max-h-80 sm:max-h-96 overflow-y-auto">
+              <div className="space-y-2 sm:space-y-3">
+                {filteredNotes.map((note) => (
                   <div
                     key={note.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
+                    className={`p-3 sm:p-4 border rounded-lg cursor-pointer transition-all duration-200 ${
                       activeNoteId === note.id
                         ? 'border-border bg-muted'
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                     onClick={() => handlePlayNote(note)}
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start justify-between gap-2 sm:gap-3">
                       <div className="flex-1 min-w-0">
                         {editingNoteId === note.id ? (
-                          <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
+                          <div className="space-y-2 sm:space-y-3" onClick={(e) => e.stopPropagation()}>
                             <Input
                               value={editingNoteTitle}
                               onChange={(e) => setEditingNoteTitle(e.target.value)}
                               placeholder="Note title"
-                              className="font-medium"
+                              className="font-medium text-sm"
                             />
                             <textarea
                               value={editingNoteContent}
                               onChange={(e) => setEditingNoteContent(e.target.value)}
                               placeholder="Note content"
-                              className="w-full p-2 border rounded-md text-sm resize-none"
+                              className="w-full p-2 border rounded-md text-xs sm:text-sm resize-none"
                               rows={3}
                             />
-                            <div className="flex gap-2">
+                            <div className="flex gap-1 sm:gap-2">
                               <Button
                                 onClick={saveEditingNote}
                                 size="sm"
-                                className="flex-1"
+                                className="flex-1 text-xs sm:text-sm"
                               >
-                                <Save className="w-3 h-3 mr-1" />
-                                Save
+                                <Save className="w-3 h-3 sm:w-3 sm:h-3 mr-1" />
+                                <span className="hidden sm:inline">Save</span>
                               </Button>
                               <Button
                                 onClick={cancelEditingNote}
                                 size="sm"
                                 variant="outline"
-                                className="flex-1"
+                                className="flex-1 text-xs sm:text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                               >
-                                Cancel
+                                <span className="hidden sm:inline">Cancel</span>
                               </Button>
                             </div>
                           </div>
                         ) : (
                           <>
-                            <h3 className="font-medium text-gray-900 dark:text-white mb-1 truncate">
+                            <h3 className="font-medium text-gray-900 dark:text-white mb-1 truncate text-sm sm:text-base">
                               {note.title}
                             </h3>
                             
-                            {note.comment && (
-                              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
-                                {note.comment}
+                            {note.note && (
+                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                                {note.note}
                               </p>
                             )}
                             
-                            <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-gray-500 dark:text-gray-400">
                               <span className="flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
                                 {formatTime(note.startTime)} - {formatTime(note.endTime)}
                               </span>
-                              <span>Duration: {formatTime(note.endTime - note.startTime)}</span>
+                              <span className="hidden sm:inline">Duration: {formatTime(note.endTime - note.startTime)}</span>
                             </div>
                           </>
                         )}
                       </div>
                       
                       {editingNoteId !== note.id && (
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-1 sm:gap-2">
                           <Button
                             onClick={(e) => {
                               e.stopPropagation()
                               handlePlayNote(note)
                             }}
                             size="sm"
+                            className="text-xs sm:text-sm"
                           >
-                            <Play className="w-3 h-3 mr-1" />
-                            Play
+                            <Play className="w-3 h-3 sm:w-3 sm:h-3 mr-1" />
+                            <span className="hidden sm:inline">Play</span>
                           </Button>
                           
                           <Button
@@ -1149,8 +1223,10 @@ export function VideoNote({
                             }}
                             size="sm"
                             variant="outline"
+                            className="text-xs sm:text-sm"
                           >
-                            <Edit className="w-3 h-3" />
+                            <Edit className="w-3 h-3 sm:w-3 sm:h-3" />
+                            <span className="hidden sm:inline">Edit</span>
                           </Button>
                           
                           <Button
@@ -1160,7 +1236,7 @@ export function VideoNote({
                             }}
                             size="sm"
                             variant="outline"
-                            className="text-destructive hover:text-destructive"
+                            className="text-destructive hover:text-destructive text-xs sm:text-sm"
                           >
                             <Trash2 className="w-3 h-3" />
                           </Button>
@@ -1173,7 +1249,68 @@ export function VideoNote({
             </ScrollArea>
           </CardContent>
         </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-6 sm:p-8 text-center">
+            <div className="p-4 sm:p-6 bg-muted rounded-lg mb-4">
+              <MessageSquare className="w-8 h-8 sm:w-10 sm:h-10 text-muted-foreground mx-auto mb-4" />
+            </div>
+            <h3 className="text-lg sm:text-xl font-semibold text-muted-foreground mb-2">
+              No Notes Yet
+            </h3>
+            <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+              Create your first note for this video! Use the note creation form above to add timestamps, comments, or highlights while watching the video.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-center">
+              <Button
+                onClick={() => {
+                  const noteForm = document.querySelector('[data-testid="note-creation-form"]')
+                  if (noteForm) {
+                    noteForm.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  }
+                }}
+                variant="outline"
+                className="text-sm text-foreground hover:text-foreground"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Create First Note
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
+      
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-[425px] mx-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" />
+              Delete Note
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this note? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex gap-3 mt-4">
+            <Button
+              onClick={cancelDeleteNote}
+              variant="outline"
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmDeleteNote}
+              variant="destructive"
+              className="flex-1"
+            >
+              Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

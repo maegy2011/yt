@@ -70,7 +70,9 @@ export function BottomNavigation({
     // Reduced heights for smaller screen footprint
     if (vw < 640) { // sm breakpoint - mobile
       return Math.max(56, Math.min(64, vh * 0.06)) // 6% of viewport height, min 56px, max 64px
-    } else if (vw < 1024) { // md/lg breakpoint - tablet
+    } else if (vw < 768) { // md breakpoint - large mobile
+      return Math.max(52, Math.min(60, vh * 0.055)) // 5.5% of viewport height, min 52px, max 60px
+    } else if (vw < 1024) { // lg breakpoint - tablet
       return Math.max(48, Math.min(56, vh * 0.05)) // 5% of viewport height, min 48px, max 56px
     } else { // desktop
       return Math.max(40, Math.min(48, vh * 0.04)) // 4% of viewport height, min 40px, max 48px
@@ -121,7 +123,7 @@ export function BottomNavigation({
       'flex flex-col items-center justify-center',
       'transition-all duration-200 ease-in-out',
       'rounded-lg px-2 py-1 sm:px-3 sm:py-2',
-      'min-w-[40px] sm:min-w-[44px] touch-manipulation', // Reduced min width
+      'min-w-[36px] sm:min-w-[40px] md:min-w-[44px] touch-manipulation', // Responsive min width
       'hover:bg-accent hover:text-accent-foreground',
       'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'
     )
@@ -135,14 +137,18 @@ export function BottomNavigation({
 
   const getIconClasses = (isActive: boolean) => {
     const baseClasses = 'transition-all duration-200'
-    const sizeClasses = isExpanded ? 'w-4 h-4 sm:w-5 sm:h-5' : 'w-4 h-4' // Reduced icon sizes
+    const sizeClasses = isExpanded 
+      ? 'w-4 h-4 sm:w-5 sm:h-5' 
+      : 'w-4 h-4 sm:w-4 sm:h-4' // Responsive icon sizes
     
     return cn(baseClasses, sizeClasses, isActive ? 'scale-110' : 'scale-100')
   }
 
   const getLabelClasses = (isActive: boolean) => {
-    const baseClasses = 'text-xs font-medium transition-all duration-200'
-    const sizeClasses = isExpanded ? 'text-[10px] sm:text-xs' : 'text-[9px] sm:text-[10px]' // Reduced font sizes
+    const baseClasses = 'font-medium transition-all duration-200'
+    const sizeClasses = isExpanded 
+      ? 'text-[10px] sm:text-xs' 
+      : 'text-[9px] sm:text-[10px]' // Reduced font sizes
     
     return cn(baseClasses, sizeClasses, isActive ? 'opacity-100' : 'opacity-80')
   }
@@ -208,6 +214,8 @@ export function useNavigationHeight() {
       let height: number
       if (vw < 640) {
         height = Math.max(56, Math.min(64, vh * 0.06)) // Mobile: 6%
+      } else if (vw < 768) {
+        height = Math.max(52, Math.min(60, vh * 0.055)) // Large mobile: 5.5%
       } else if (vw < 1024) {
         height = Math.max(48, Math.min(56, vh * 0.05)) // Tablet: 5%
       } else {

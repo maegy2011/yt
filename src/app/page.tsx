@@ -2092,8 +2092,8 @@ export default function MyTubeApp() {
       <Card className={`group relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-border/50 hover:border-primary/30 ${
         isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
       }`}>
-        <CardContent className="p-3 sm:p-4">
-          <div className="space-y-3">
+        <CardContent className="p-2 sm:p-3 md:p-4">
+          <div className="space-y-2 sm:space-y-3">
             {/* Thumbnail Section */}
             <div className="relative aspect-video w-full">
               <img
@@ -2106,7 +2106,7 @@ export default function MyTubeApp() {
                 }}
               />
               {video.duration && (
-                <Badge className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-1.5 py-0.5">
+                <Badge className="absolute bottom-1 sm:bottom-2 right-1 sm:right-2 bg-black/80 text-white text-xs px-1 sm:px-1.5 py-0.5">
                   {formatDuration(video.duration)}
                 </Badge>
               )}
@@ -2115,28 +2115,28 @@ export default function MyTubeApp() {
                 <Button
                   size="sm"
                   onClick={() => handleVideoSelect(video)}
-                  className="bg-white/90 hover:bg-white text-black hover:scale-110 transition-transform"
+                  className="bg-white/90 hover:bg-white text-black hover:scale-110 transition-transform text-xs sm:text-sm px-2 sm:px-3"
                 >
-                  <Play className="w-4 h-4 mr-1" />
-                  Play
+                  <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                  <span className="hidden sm:inline">Play</span>
                 </Button>
               </div>
             </div>
             
             {/* Content Section */}
-            <div className="space-y-2">
+            <div className="space-y-1.5 sm:space-y-2">
               {/* Title */}
-              <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors leading-tight">
+              <h3 className="font-semibold text-xs sm:text-sm line-clamp-2 group-hover:text-primary transition-colors leading-tight">
                 {video.title}
               </h3>
               
               {/* Channel Info */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 {channelLogo && (
                   <img 
                     src={channelLogo} 
                     alt={channelName}
-                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full object-cover flex-shrink-0"
+                    className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 rounded-full object-cover flex-shrink-0"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none'
                     }}
@@ -2155,7 +2155,7 @@ export default function MyTubeApp() {
               </div>
               
               {/* Video Stats */}
-              <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-muted-foreground flex-wrap">
                 {video.viewCount && (
                   <span>{formatViewCount(video.viewCount)}</span>
                 )}
@@ -2175,7 +2175,7 @@ export default function MyTubeApp() {
               
               {/* Description - Hidden on mobile */}
               {video.description && (
-                <p className="text-xs text-muted-foreground line-clamp-2 hidden sm:block">
+                <p className="text-xs text-muted-foreground line-clamp-1 sm:line-clamp-2 hidden md:block">
                   {video.description}
                 </p>
               )}
@@ -2725,7 +2725,7 @@ export default function MyTubeApp() {
         </div>
         
         {/* Videos Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
           {videos.map((video, index) => (
             <div 
               key={video.videoId || video.id} 
@@ -2916,7 +2916,7 @@ export default function MyTubeApp() {
 
               {/* Followed Channels Info */}
               {followedChannels.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                   {followedChannels.map((channel) => (
                     <Card key={channel.id} className="p-4">
                       <div className="flex items-center space-x-3">
@@ -2988,7 +2988,7 @@ export default function MyTubeApp() {
                       {videoPagination ? `${videoPagination.totalItems} videos` : `${followedChannelsVideos.length} videos`}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                     {followedChannelsVideos.slice(0, 12).map((video) => {
                       const videoId = video.videoId || video.id
                       const isFavorite = favoriteVideoIds.has(videoId)
@@ -3598,7 +3598,7 @@ export default function MyTubeApp() {
                     </div>
                     
                     {/* Videos Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                       {playlistVideos.map((video, index) => (
                         <div key={video.videoId || video.id} className="group">
                           {/* Video Number Badge */}
@@ -3738,7 +3738,7 @@ export default function MyTubeApp() {
                 </div>
                 
                 {searchResults.items.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                     {searchResults.items.map((item) => {
                       if (item.type === 'playlist') {
                         return <PlaylistCard key={item.playlistId || item.id} playlist={item as Playlist} />
@@ -4036,13 +4036,13 @@ export default function MyTubeApp() {
 
       {/* Edit Note Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Edit className="w-5 h-5" />
+        <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-[500px] mx-auto">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Edit className="w-5 h-5 sm:w-6 sm:h-6" />
               Edit Note
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm sm:text-base">
               Edit the title and content of your note
             </DialogDescription>
           </DialogHeader>
@@ -4123,13 +4123,13 @@ export default function MyTubeApp() {
 
       {/* Create Note Dialog */}
       <Dialog open={createNoteDialogOpen} onOpenChange={setCreateNoteDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Plus className="w-5 h-5" />
+        <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-[500px] mx-auto">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
               Create New Note
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm sm:text-base">
               Create a new note for the current video
             </DialogDescription>
           </DialogHeader>
@@ -4240,24 +4240,24 @@ export default function MyTubeApp() {
       {/* Header - Always Visible */}
       <header className="bg-card/95 backdrop-blur-lg border-b border-border sticky top-0 z-50 shadow-sm flex-shrink-0">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-16">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between h-12 sm:h-14 md:h-16">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {/* Back Button */}
               {canGoBack && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={handleGoBack}
-                  className="h-9 w-9 sm:h-10 sm:w-10 p-0 transition-all duration-200 hover:scale-105 hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                  className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 p-0 transition-all duration-200 hover:scale-105 hover:bg-muted/50 text-muted-foreground hover:text-foreground"
                   title="Go back"
                 >
-                  <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <ArrowLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
                 </Button>
               )}
-              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-red-600 to-red-500 rounded-lg flex items-center justify-center">
-                <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+              <div className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-gradient-to-r from-red-600 to-red-500 rounded-lg flex items-center justify-center">
+                <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 text-white" />
               </div>
-              <h1 className="text-lg sm:text-xl font-bold">MyTube</h1>
+              <h1 className="text-base sm:text-lg md:text-xl font-bold">MyTube</h1>
               
               {/* Background Playback Indicator */}
               {backgroundVideo && (
@@ -4307,19 +4307,19 @@ export default function MyTubeApp() {
               )}
             </div>
             
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2">
               {/* Mobile Menu Toggle */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={toggleMobileMenu}
-                className="md:hidden h-9 w-9 p-0 transition-all duration-200 hover:scale-105 hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                className="md:hidden h-8 w-8 sm:h-9 sm:w-9 p-0 transition-all duration-200 hover:scale-105 hover:bg-muted/50 text-muted-foreground hover:text-foreground"
                 title="Toggle menu"
               >
                 {mobileMenuOpen ? (
-                  <X className="w-5 h-5 transition-transform duration-200" />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-200" />
                 ) : (
-                  <Menu className="w-5 h-5 transition-transform duration-200" />
+                  <Menu className="w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-200" />
                 )}
               </Button>
               
@@ -4327,15 +4327,15 @@ export default function MyTubeApp() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowNotifications(!showNotifications)}
-                className={`h-9 w-9 sm:h-10 sm:w-10 p-0 relative transition-all duration-200 hover:scale-105 ${
+                className={`h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 p-0 relative transition-all duration-200 hover:scale-105 ${
                   showNotifications 
                     ? 'bg-primary/10 text-primary hover:bg-primary/20' 
                     : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
                 }`}
               >
-                <Bell className="w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-200" />
+                <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 transition-transform duration-200" />
                 {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-background animate-bounce">
+                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] sm:text-xs font-bold w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border-2 border-background animate-bounce">
                     {notifications.length > 9 ? '9+' : notifications.length}
                   </span>
                 )}
@@ -4347,9 +4347,9 @@ export default function MyTubeApp() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowSettings(true)}
-                className="h-9 w-9 sm:h-10 sm:w-10 p-0 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105"
+                className="h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 p-0 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105"
               >
-                <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5" />
               </Button>
             </div>
           </div>
@@ -4791,7 +4791,7 @@ export default function MyTubeApp() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto scroll-smooth touch-pan-y max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 pb-24 md:pb-6">
+      <main className="flex-1 overflow-y-auto scroll-smooth touch-pan-y max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-20 sm:pb-24 md:pb-6 lg:pb-8">
         {dynamicLoadingMessage && (
           <div className="mb-6 p-3 sm:p-4 bg-muted border border-border rounded-lg">
             <div className="flex items-center gap-2">
@@ -4806,19 +4806,19 @@ export default function MyTubeApp() {
 
       {/* Settings Dialog */}
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
+        <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-[425px] mx-auto">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
               Settings & Privacy
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm sm:text-base">
               Configure your app preferences and privacy settings
             </DialogDescription>
           </DialogHeader>
           
-          <ScrollArea className="max-h-[60vh] pr-4">
-            <div className="space-y-6">
+          <ScrollArea className="max-h-[50vh] sm:max-h-[60vh] md:max-h-[60vh] pr-2 sm:pr-4">
+            <div className="space-y-4 sm:space-y-6">
               {/* Auto Load More Setting */}
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
@@ -4965,13 +4965,13 @@ export default function MyTubeApp() {
 
       {/* Clear Data Confirmation Dialog */}
       <Dialog open={showClearDataConfirmation} onOpenChange={setShowClearDataConfirmation}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <Trash2 className="w-5 h-5" />
+        <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-[425px] mx-auto">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="flex items-center gap-2 text-destructive text-lg sm:text-xl">
+              <Trash2 className="w-5 h-5 sm:w-6 sm:h-6" />
               Confirm Clear All Data
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm sm:text-base">
               This action will permanently delete all your data and cannot be undone
             </DialogDescription>
           </DialogHeader>
