@@ -19,7 +19,8 @@ import {
   SortDesc,
   Settings,
   Pause,
-  Power
+  Power,
+  RefreshCw
 } from 'lucide-react'
 import { FavoriteVideo } from '@/types/favorites'
 import { FavoriteCard } from './FavoriteCard'
@@ -30,6 +31,7 @@ interface FavoriteListProps {
   loading: boolean
   onRemove: (videoId: string) => void
   onPlay?: (favorite: FavoriteVideo) => void
+  onRefresh?: () => void
   onToggleEnabled: (enabled: boolean) => void
   onTogglePaused: (paused: boolean) => void
   enabled: boolean
@@ -42,6 +44,7 @@ export function FavoriteList({
   loading, 
   onRemove, 
   onPlay, 
+  onRefresh,
   onToggleEnabled,
   onTogglePaused,
   enabled,
@@ -141,8 +144,8 @@ export function FavoriteList({
       {/* Header */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Heart className="w-5 h-5 text-red-500" />
                 Favorite Videos
@@ -168,7 +171,7 @@ export function FavoriteList({
               </div>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -178,6 +181,22 @@ export function FavoriteList({
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </Button>
+              {onRefresh && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onRefresh}
+                  disabled={loading}
+                  className="w-full sm:w-auto"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 mr-2 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                  )}
+                  Refresh
+                </Button>
+              )}
             </div>
           </div>
           
@@ -240,15 +259,15 @@ export function FavoriteList({
               />
             </div>
 
-            {/* Filter Controls */}
-            <div className="flex flex-wrap gap-2">
+            {/* Filter Controls - Mobile First */}
+            <div className="space-y-3">
               {/* Channel Filter */}
-              <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+              <div className="flex items-center gap-1 p-2 bg-muted rounded-lg">
                 <Button
                   variant={channelFilter === 'all' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setChannelFilter('all')}
-                  className="text-xs"
+                  className="text-xs flex-1 justify-start"
                 >
                   All Channels
                 </Button>
@@ -258,61 +277,66 @@ export function FavoriteList({
                     variant={channelFilter === channel ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setChannelFilter(channel)}
-                    className="text-xs"
+                    className="text-xs flex-1 justify-start"
                   >
-                    <Users className="w-3 h-3 mr-1" />
+                    <Users className="w-3 h-3 mr-2" />
                     {channel}
                   </Button>
                 ))}
               </div>
 
-              {/* Sort Options */}
-              <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
-                <Button
-                  variant={sortBy === 'date' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setSortBy('date')}
-                  className="text-xs"
-                >
-                  <Clock className="w-3 h-3 mr-1" />
-                  Date
-                </Button>
-                <Button
-                  variant={sortBy === 'title' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setSortBy('title')}
-                  className="text-xs"
-                >
-                  A-Z
-                </Button>
-                <Button
-                  variant={sortBy === 'views' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setSortBy('views')}
-                  className="text-xs"
-                >
-                  Views
-                </Button>
-              </div>
+              {/* Sort and View Options */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                {/* Sort Options */}
+                <div className="flex items-center gap-1 p-2 bg-muted rounded-lg flex-1">
+                  <Button
+                    variant={sortBy === 'date' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setSortBy('date')}
+                    className="text-xs flex-1 justify-start"
+                  >
+                    <Clock className="w-3 h-3 mr-2" />
+                    Date
+                  </Button>
+                  <Button
+                    variant={sortBy === 'title' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setSortBy('title')}
+                    className="text-xs flex-1 justify-start"
+                  >
+                    A-Z
+                  </Button>
+                  <Button
+                    variant={sortBy === 'views' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setSortBy('views')}
+                    className="text-xs flex-1 justify-start"
+                  >
+                    Views
+                  </Button>
+                </div>
 
-              {/* View Mode */}
-              <div className="flex items-center gap-1 p-1 bg-muted rounded-lg ml-auto">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="text-xs"
-                >
-                  <Grid className="w-3 h-3" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="text-xs"
-                >
-                  <List className="w-3 h-3" />
-                </Button>
+                {/* View Mode */}
+                <div className="flex items-center gap-1 p-2 bg-muted rounded-lg">
+                  <Button
+                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('grid')}
+                    className="text-xs flex-1 justify-start"
+                  >
+                    <Grid className="w-3 h-3 mr-2" />
+                    Grid
+                  </Button>
+                  <Button
+                    variant={viewMode === 'list' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('list')}
+                    className="text-xs flex-1 justify-start"
+                  >
+                    <List className="w-3 h-3 mr-2" />
+                    List
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

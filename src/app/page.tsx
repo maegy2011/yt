@@ -59,6 +59,7 @@ import { BottomNavigation } from '@/components/navigation/BottomNavigation'
 import { NavigationSpacer } from '@/components/navigation/NavigationSpacer'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { useRealTimeUpdates } from '@/hooks/use-real-time-updates'
 
 // Enhanced types with better safety
 type Tab = 'home' | 'search' | 'player' | 'watched' | 'channels' | 'favorites' | 'notes'
@@ -184,6 +185,46 @@ export default function MyTubeApp() {
     autoHide?: boolean
   }>>([])
   const [showNotifications, setShowNotifications] = useState(false)
+
+  // Real-time updates
+  const {
+    isConnected: isRealTimeConnected,
+    emitWatchedUpdate,
+    emitFavoritesUpdate,
+    emitNotesUpdate
+  } = useRealTimeUpdates({
+    onWatchedChanged: (data) => {
+      console.log('Real-time watched update received:', data)
+      // Refresh watched videos when changes are detected
+      loadWatchedVideos()
+      
+      // Show notification for real-time updates
+      if (data.type === 'added') {
+        addNotification('New Video Watched', `"${data.video?.title}" was added to watch history`, 'info')
+      }
+    },
+    onFavoritesChanged: (data) => {
+      console.log('Real-time favorites update received:', data)
+      // Refresh favorites when changes are detected
+      loadFavoriteVideos()
+      loadFavoriteChannels()
+      
+      // Show notification for real-time updates
+      if (data.type === 'added') {
+        addNotification('New Favorite', `"${data.item?.title || data.item?.name}" was added to favorites`, 'info')
+      }
+    },
+    onNotesChanged: (data) => {
+      console.log('Real-time notes update received:', data)
+      // Refresh notes when changes are detected
+      loadNotes()
+      
+      // Show notification for real-time updates
+      if (data.type === 'added') {
+        addNotification('New Note', `"${data.note?.title}" was created`, 'info')
+      }
+    }
+  })
 
   // Enhanced notification system with dynamic messages
   const addNotification = useCallback((title: string, description?: string, variant: 'success' | 'destructive' | 'info' = 'info', autoHide: boolean = true) => {
@@ -1509,24 +1550,8 @@ export default function MyTubeApp() {
     // Update navigation history for player
     setNavigationHistory(prev => [...prev, 'player'])
     
-    try {
-      // Use video.videoId if available (for database videos), otherwise use video.id (for YouTube videos)
-      const videoId = video.videoId || video.id
-      const thumbnailUrl = getThumbnailUrl(video)
-      await fetch('/api/watched', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          videoId: videoId,
-          title: video.title,
-          channelName: getChannelName(video),
-          thumbnail: thumbnailUrl
-        })
-      })
-      await loadWatchedVideos()
-    } catch (error) {
-      console.error('Failed to add to watched:', error)
-    }
+    // Note: Watched tracking is now handled by the background player after 5 seconds of playback
+    // No immediate tracking needed here anymore
   }
 
   const handleFavoritesVideoPlay = (favoriteVideo: FavoriteVideo) => {
@@ -3780,8 +3805,22 @@ export default function MyTubeApp() {
                   </h2>
                   <p className="text-muted-foreground">Videos you've recently watched</p>
                 </div>
-                <div className="text-2xl font-bold text-primary">
-                  {watchedVideos.length}
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={loadWatchedVideos}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                  </Button>
+                  <div className="text-2xl font-bold text-primary">
+                    {watchedVideos.length}
+                  </div>
                 </div>
               </div>
             </div>
@@ -3807,9 +3846,31 @@ export default function MyTubeApp() {
           <div className="space-y-6">
             {/* Channel Search */}
             <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-6 border border-border">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent mb-4">
-                Browse Channels
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
+                    Browse Channels
+                  </h2>
+                  <p className="text-muted-foreground">Search and explore YouTube channels</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setChannelSearchQuery('')
+                    setChannelSearchResults([])
+                    setChannelVideos([])
+                    setChannelVideosLoading(false)
+                  }}
+                  disabled={channelSearchLoading}
+                >
+                  {channelSearchLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
               <div className="flex gap-3">
                 <Input
                   placeholder="Search for channels..."
@@ -4258,6 +4319,14 @@ export default function MyTubeApp() {
               </Button>
               
               <ThemeSwitch />
+              
+              {/* Real-time connection indicator */}
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${isRealTimeConnected ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
+                <span className="text-xs text-muted-foreground hidden sm:inline">
+                  {isRealTimeConnected ? 'Live' : 'Offline'}
+                </span>
+              </div>
               
               <Button
                 variant="ghost"

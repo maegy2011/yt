@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Play, Pause, RotateCcw, Plus, Trash2, Save, Bookmark, Edit, Clock, MessageSquare, User, Eye, Heart, ChevronLeft, ChevronRight, Loader2, Scissors, Volume2, VolumeX, Maximize2 } from 'lucide-react'
+import { Play, Pause, RotateCcw, Plus, Trash2, Save, Bookmark, Edit, Clock, MessageSquare, User, Eye, Heart, ChevronLeft, ChevronRight, Loader2, Scissors, Volume2, VolumeX, Maximize2, RefreshCw } from 'lucide-react'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
 
 // Import YouTube utility functions (we'll need to create these)
@@ -132,6 +132,17 @@ export function VideoNote({
   const [playerReady, setPlayerReady] = useState(false)
   const playerRef = useRef<any>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  
+  // Watched tracking state
+  const [watchedTracking, setWatchedTracking] = useState<{
+    videoId: string | null
+    startTime: number | null
+    hasBeenLogged: boolean
+  }>({
+    videoId: null,
+    startTime: null,
+    hasBeenLogged: false
+  })
 
   // Local notification system
   const [notification, setNotification] = useState<{
@@ -143,6 +154,52 @@ export function VideoNote({
     setNotification({ message, type })
     setTimeout(() => setNotification(null), 3000)
   }, [])
+
+  // Function to add video to watched history
+  const addToWatchedHistory = useCallback(async () => {
+    if (watchedTracking.hasBeenLogged) return
+    
+    try {
+      await fetch('/api/watched', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoId: videoId,
+          title: videoTitle,
+          channelName: channelName || '',
+          thumbnail: thumbnail || '',
+          duration: duration,
+          viewCount: viewCount
+        })
+      })
+      console.log('Video added to watched history:', videoTitle)
+      setWatchedTracking(prev => ({ ...prev, hasBeenLogged: true }))
+    } catch (error) {
+      console.error('Failed to add to watched history:', error)
+    }
+  }, [videoId, videoTitle, channelName, thumbnail, duration, viewCount, watchedTracking.hasBeenLogged])
+
+  // Function to refresh notes
+  const refreshNotes = useCallback(async () => {
+    try {
+      const response = await fetch('/api/notes')
+      if (response.ok) {
+        const data = await response.json()
+        // Filter notes for this video
+        const videoNotes = data.filter((note: any) => note.videoId === videoId)
+        setNotes(videoNotes)
+        showNotification('Notes refreshed successfully', 'success')
+        
+        // Call parent callback to refresh notes
+        if (onNotesChange) {
+          onNotesChange()
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh notes:', error)
+      showNotification('Failed to refresh notes', 'error')
+    }
+  }, [videoId, onNotesChange, showNotification])
 
   // Navigation functions
   const handlePreviousVideo = useCallback(() => {
@@ -291,6 +348,11 @@ export function VideoNote({
         try {
           const currentTime = playerRef.current.getCurrentTime()
           setCurrentTime(currentTime)
+          
+          // Check if 5 seconds have passed and video hasn't been logged yet
+          if (!watchedTracking.hasBeenLogged && currentTime >= 5) {
+            addToWatchedHistory()
+          }
         } catch (error) {
           console.error('Error getting current time:', error)
         }
@@ -298,7 +360,7 @@ export function VideoNote({
     }, 100) // Update every 100ms for more accuracy
 
     return () => clearInterval(interval)
-  }, []) // Run once on mount
+  }, [watchedTracking.hasBeenLogged, addToWatchedHistory]) // Include dependencies
 
   // Monitor video progress and enforce timestamp limits
   useEffect(() => {
@@ -649,6 +711,13 @@ export function VideoNote({
     playerRef.current = event.target
     setDuration(event.target.getDuration())
     setPlayerReady(true)
+    
+    // Initialize watched tracking for this video
+    setWatchedTracking({
+      videoId: videoId,
+      startTime: Date.now(),
+      hasBeenLogged: false
+    })
     
     // Initialize current time from player
     try {
@@ -1101,6 +1170,14 @@ export function VideoNote({
                   </p>
                 )}
               </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refreshNotes}
+                className="text-xs sm:text-sm"
+              >
+                <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
+              </Button>
             </div>
             
             {/* Search/Filter Section */}

@@ -51,6 +51,14 @@ export function FavoritesContainer({ className = '', onVideoPlay }: FavoritesCon
     }
   }, [onVideoPlay])
 
+  const handleRefresh = useCallback(async () => {
+    try {
+      await fetchFavorites()
+    } catch (error) {
+      console.error('Failed to refresh favorites:', error)
+    }
+  }, [fetchFavorites])
+
   const getContainerClasses = () => {
     const baseClasses = 'w-full h-full'
     return `${baseClasses} ${className}`
@@ -71,6 +79,7 @@ export function FavoritesContainer({ className = '', onVideoPlay }: FavoritesCon
         loading={loading}
         onRemove={handleRemove}
         onPlay={handlePlay}
+        onRefresh={handleRefresh}
         onToggleEnabled={toggleEnabled}
         onTogglePaused={togglePaused}
         enabled={enabled}

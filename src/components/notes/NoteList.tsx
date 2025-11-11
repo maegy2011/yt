@@ -16,7 +16,8 @@ import {
   Scissors,
   Clock,
   SortAsc,
-  SortDesc
+  SortDesc,
+  RefreshCw
 } from 'lucide-react'
 import { VideoNote } from '@/types/notes'
 import { NoteCard } from './NoteCard'
@@ -29,6 +30,7 @@ interface NoteListProps {
   onDelete: (noteId: string) => void
   onPlay?: (note: VideoNote) => void
   onCreateNew: () => void
+  onRefresh?: () => void
   className?: string
 }
 
@@ -39,6 +41,7 @@ export function NoteList({
   onDelete, 
   onPlay, 
   onCreateNew,
+  onRefresh,
   className = '' 
 }: NoteListProps) {
   const [searchQuery, setSearchQuery] = useState('')
@@ -114,29 +117,49 @@ export function NoteList({
       {/* Header */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Video Notes
-              </CardTitle>
-              <div className="flex flex-wrap gap-2 mt-2">
-                <Badge variant="secondary">
-                  {stats.total} total
-                </Badge>
-                <Badge variant="outline">
-                  {stats.clips} clips
-                </Badge>
-                <Badge variant="outline">
-                  {stats.regularNotes} notes
-                </Badge>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Video Notes
+                </CardTitle>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <Badge variant="secondary">
+                    {stats.total} total
+                  </Badge>
+                  <Badge variant="outline">
+                    {stats.clips} clips
+                  </Badge>
+                  <Badge variant="outline">
+                    {stats.regularNotes} notes
+                  </Badge>
+                </div>
               </div>
             </div>
             
-            <Button onClick={onCreateNew} className="w-full sm:w-auto">
-              <Plus className="w-4 h-4 mr-2" />
-              New Note
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button onClick={onCreateNew} className="w-full sm:w-auto">
+                <Plus className="w-4 h-4 mr-2" />
+                New Note
+              </Button>
+              {onRefresh && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onRefresh}
+                  disabled={loading}
+                  className="w-full sm:w-auto"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 mr-2 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                  )}
+                  Refresh
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         
@@ -154,15 +177,15 @@ export function NoteList({
               />
             </div>
 
-            {/* Filter Controls */}
-            <div className="flex flex-wrap gap-2">
+            {/* Filter Controls - Mobile First */}
+            <div className="space-y-3">
               {/* Type Filter */}
-              <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+              <div className="flex items-center gap-1 p-2 bg-muted rounded-lg">
                 <Button
                   variant={filterType === 'all' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setFilterType('all')}
-                  className="text-xs"
+                  className="text-xs flex-1 justify-start"
                 >
                   All ({stats.total})
                 </Button>
@@ -170,70 +193,75 @@ export function NoteList({
                   variant={filterType === 'clips' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setFilterType('clips')}
-                  className="text-xs"
+                  className="text-xs flex-1 justify-start"
                 >
-                  <Scissors className="w-3 h-3 mr-1" />
+                  <Scissors className="w-3 h-3 mr-2" />
                   Clips ({stats.clips})
                 </Button>
                 <Button
                   variant={filterType === 'notes' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setFilterType('notes')}
-                  className="text-xs"
+                  className="text-xs flex-1 justify-start"
                 >
-                  <FileText className="w-3 h-3 mr-1" />
+                  <FileText className="w-3 h-3 mr-2" />
                   Notes ({stats.regularNotes})
                 </Button>
               </div>
 
-              {/* Sort Options */}
-              <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
-                <Button
-                  variant={sortBy === 'date' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setSortBy('date')}
-                  className="text-xs"
-                >
-                  <Clock className="w-3 h-3 mr-1" />
-                  Date
-                </Button>
-                <Button
-                  variant={sortBy === 'title' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setSortBy('title')}
-                  className="text-xs"
-                >
-                  A-Z
-                </Button>
-                <Button
-                  variant={sortBy === 'time' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setSortBy('time')}
-                  className="text-xs"
-                >
-                  <Clock className="w-3 h-3 mr-1" />
-                  Time
-                </Button>
-              </div>
+              {/* Sort and View Options */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                {/* Sort Options */}
+                <div className="flex items-center gap-1 p-2 bg-muted rounded-lg flex-1">
+                  <Button
+                    variant={sortBy === 'date' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setSortBy('date')}
+                    className="text-xs flex-1 justify-start"
+                  >
+                    <Clock className="w-3 h-3 mr-2" />
+                    Date
+                  </Button>
+                  <Button
+                    variant={sortBy === 'title' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setSortBy('title')}
+                    className="text-xs flex-1 justify-start"
+                  >
+                    A-Z
+                  </Button>
+                  <Button
+                    variant={sortBy === 'time' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setSortBy('time')}
+                    className="text-xs flex-1 justify-start"
+                  >
+                    <Clock className="w-3 h-3 mr-2" />
+                    Time
+                  </Button>
+                </div>
 
-              {/* View Mode */}
-              <div className="flex items-center gap-1 p-1 bg-muted rounded-lg ml-auto">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className="text-xs"
-                >
-                  <Grid className="w-3 h-3" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="text-xs"
-                >
-                  <List className="w-3 h-3" />
-                </Button>
+                {/* View Mode */}
+                <div className="flex items-center gap-1 p-2 bg-muted rounded-lg">
+                  <Button
+                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('grid')}
+                    className="text-xs flex-1 justify-start"
+                  >
+                    <Grid className="w-3 h-3 mr-2" />
+                    Grid
+                  </Button>
+                  <Button
+                    variant={viewMode === 'list' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('list')}
+                    className="text-xs flex-1 justify-start"
+                  >
+                    <List className="w-3 h-3 mr-2" />
+                    List
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

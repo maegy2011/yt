@@ -88,6 +88,14 @@ export function NotesContainer({ videoData, onVideoPlay, className = '' }: Notes
     }
   }, [createNote, updateNote, fetchNotes])
 
+  const handleRefresh = useCallback(async () => {
+    try {
+      await fetchNotes()
+    } catch (error) {
+      console.error('Failed to refresh notes:', error)
+    }
+  }, [fetchNotes])
+
   const getContainerClasses = () => {
     const baseClasses = 'w-full h-full'
     return `${baseClasses} ${className}`
@@ -110,6 +118,7 @@ export function NotesContainer({ videoData, onVideoPlay, className = '' }: Notes
         onDelete={handleDelete}
         onPlay={handlePlay}
         onCreateNew={handleCreateNew}
+        onRefresh={handleRefresh}
       />
 
       {/* Note Editor */}
