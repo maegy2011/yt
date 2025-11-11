@@ -1,51 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { sanitizeVideoId, isValidYouTubeVideoId } from '@/lib/youtube-utils'
-import { createServer } from 'http'
-import { Server as ServerIO } from 'socket.io'
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-}
-
-// Helper function to get Socket.IO server instance
-const getSocketServer = async () => {
-  if (typeof window === 'undefined') {
-    // Check if we already have a server instance
-    if (!global.socketServer) {
-      const httpServer = createServer()
-      global.socketServer = new ServerIO(httpServer, {
-        path: '/api/socketio',
-        addTrailingSlash: false,
-        cors: {
-          origin: "*",
-          methods: ["GET", "POST"]
-        }
-      })
-      
-      // Setup socket handlers using dynamic import
-      const { setupSocket } = await import('@/lib/socket')
-      setupSocket(global.socketServer)
-      
-      // Start the server on a different port to avoid conflicts
-      httpServer.listen(3001)
-      console.log('Socket.IO server running on port 3001')
-    }
-    
-    return global.socketServer
-  }
-  return null
-}
-
-// Helper function to emit socket events
-const emitSocketEvent = async (event: string, data: any) => {
-  const socketServer = await getSocketServer()
-  if (socketServer) {
-    socketServer.emit(event, data)
-  }
-}
 
 export async function GET() {
   try {
@@ -131,12 +86,6 @@ export async function POST(request: NextRequest) {
         }
       })
     }
-
-    // Emit socket event for real-time updates
-    await emitSocketEvent('watched-changed', {
-      type: existing ? 'updated' : 'added',
-      video: watchedVideo
-    })
 
     return NextResponse.json(watchedVideo)
   } catch (error) {

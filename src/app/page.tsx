@@ -58,7 +58,7 @@ import { BottomNavigation } from '@/components/navigation/BottomNavigation'
 import { NavigationSpacer } from '@/components/navigation/NavigationSpacer'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { useRealTimeUpdates } from '@/hooks/use-real-time-updates'
+
 
 // Enhanced types with better safety
 type Tab = 'home' | 'search' | 'player' | 'channels' | 'favorites' | 'notes'
@@ -184,35 +184,6 @@ export default function MyTubeApp() {
     autoHide?: boolean
   }>>([])
   const [showNotifications, setShowNotifications] = useState(false)
-
-  // Real-time updates
-  const {
-    isConnected: isRealTimeConnected,
-    emitFavoritesUpdate,
-    emitNotesUpdate
-  } = useRealTimeUpdates({
-    onFavoritesChanged: (data) => {
-      console.log('Real-time favorites update received:', data)
-      // Refresh favorites when changes are detected
-      loadFavoriteVideos()
-      loadFavoriteChannels()
-      
-      // Show notification for real-time updates
-      if (data.type === 'added') {
-        addNotification('New Favorite', `"${data.item?.title || data.item?.name}" was added to favorites`, 'info')
-      }
-    },
-    onNotesChanged: (data) => {
-      console.log('Real-time notes update received:', data)
-      // Refresh notes when changes are detected
-      loadNotes()
-      
-      // Show notification for real-time updates
-      if (data.type === 'added') {
-        addNotification('New Note', `"${data.note?.title}" was created`, 'info')
-      }
-    }
-  })
 
   // Enhanced notification system with dynamic messages
   const addNotification = useCallback((title: string, description?: string, variant: 'success' | 'destructive' | 'info' = 'info', autoHide: boolean = true) => {
@@ -4140,14 +4111,6 @@ export default function MyTubeApp() {
               </Button>
               
               <ThemeSwitch />
-              
-              {/* Real-time connection indicator */}
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${isRealTimeConnected ? 'bg-green-500' : 'bg-red-500'} animate-pulse`} />
-                <span className="text-xs text-muted-foreground hidden sm:inline">
-                  {isRealTimeConnected ? 'Live' : 'Offline'}
-                </span>
-              </div>
               
               <Button
                 variant="ghost"
