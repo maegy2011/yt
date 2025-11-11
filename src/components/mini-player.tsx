@@ -19,11 +19,10 @@ import {
   SkipForward,
   ChevronUp,
   ChevronDown,
-  Bell,
-  BellOff
+
 } from 'lucide-react'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
-import { useNotificationService } from '@/hooks/use-notification-service'
+
 import { formatDuration } from '@/lib/youtube'
 
 export function MiniPlayer() {
@@ -45,14 +44,14 @@ export function MiniPlayer() {
     updatePlayingState,
   } = useBackgroundPlayer()
 
-  const { showPlaybackNotification, hideNotification } = useNotificationService()
+
 
   const [isExpanded, setIsExpanded] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
   const [previousVolume, setPreviousVolume] = useState(volume)
   const [isDragging, setIsDragging] = useState(false)
   const [position, setPosition] = useState({ x: 20, y: 20 })
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
+
   const dragRef = useRef<HTMLDivElement>(null)
   const dragStartPos = useRef({ x: 0, y: 0 })
 
@@ -185,16 +184,7 @@ export function MiniPlayer() {
     stopBackgroundVideo()
   }
 
-  const handleToggleNotifications = () => {
-    setNotificationsEnabled(!notificationsEnabled)
-    if (!notificationsEnabled && backgroundVideo) {
-      // Enable notifications and show current playback
-      showPlaybackNotification(backgroundVideo, isPlaying)
-    } else {
-      // Disable notifications and hide current notification
-      hideNotification()
-    }
-  }
+
 
   // Drag functionality
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -252,15 +242,7 @@ export function MiniPlayer() {
               >
                 {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronUp className="h-3 w-3" />}
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleToggleNotifications}
-                className={`h-6 w-6 p-0 ${notificationsEnabled ? 'text-primary' : 'text-muted-foreground'}`}
-                title={notificationsEnabled ? "Disable notifications" : "Enable notifications"}
-              >
-                {notificationsEnabled ? <Bell className="h-3 w-3" /> : <BellOff className="h-3 w-3" />}
-              </Button>
+
               <Button
                 size="sm"
                 variant="ghost"

@@ -134,16 +134,7 @@ export function VideoNote({
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   
   
-  // Local notification system
-  const [notification, setNotification] = useState<{
-    message: string
-    type: 'success' | 'error' | 'info'
-  } | null>(null)
-
-  const showNotification = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    setNotification({ message, type })
-    setTimeout(() => setNotification(null), 3000)
-  }, [])
+  
 
   
 
@@ -156,7 +147,6 @@ export function VideoNote({
         // Filter notes for this video
         const videoNotes = data.filter((note: any) => note.videoId === videoId)
         setNotes(videoNotes)
-        showNotification('Notes refreshed successfully', 'success')
         
         // Call parent callback to refresh notes
         if (onNotesChange) {
@@ -165,49 +155,38 @@ export function VideoNote({
       }
     } catch (error) {
       console.error('Failed to refresh notes:', error)
-      showNotification('Failed to refresh notes', 'error')
     }
-  }, [videoId, onNotesChange, showNotification])
+  }, [videoId, onNotesChange])
 
   // Navigation functions
   const handlePreviousVideo = useCallback(() => {
     if (onPreviousVideo) {
       onPreviousVideo()
-    } else {
-      showNotification('Previous video feature not available', 'info')
     }
-  }, [onPreviousVideo, showNotification])
+  }, [onPreviousVideo])
 
   const handleNextVideo = useCallback(() => {
     if (onNextVideo) {
       onNextVideo()
-    } else {
-      showNotification('Next video feature not available', 'info')
     }
-  }, [onNextVideo, showNotification])
+  }, [onNextVideo])
 
   const toggleFavorite = async () => {
     if (!favoritesEnabled) {
-      showNotification('Favorites Disabled: Favorites module is disabled', 'info')
       return
     }
     
     if (favoritesPaused) {
-      showNotification('Favorites Paused: Cannot add/remove favorites while paused', 'info')
       return
     }
     
     if (onFavoriteToggle) {
       onFavoriteToggle()
-    } else {
-      // Fallback if no callback provided
-      showNotification('Favorite toggle not available', 'info')
     }
   }
 
   const toggleQuickNote = async () => {
     if (!playerRef.current || !playerReady) {
-      showNotification('Please wait for the video to load', 'error')
       return
     }
 
@@ -223,7 +202,6 @@ export function VideoNote({
       const startTime = Math.floor(accurateCurrentTime)
       setQuickNoteStartTime(startTime)
       setQuickNoteCapturing(true)
-      showNotification(`Recording from ${formatTime(startTime)}`, 'info')
     } else {
       // Stop and save
       let accurateCurrentTime = currentTime
@@ -254,7 +232,6 @@ export function VideoNote({
           if (response.ok) {
             setQuickNoteCapturing(false)
             setQuickNoteStartTime(0)
-            showNotification(`Clip saved from ${formatTime(quickNoteStartTime)} to ${formatTime(endTime)}`, 'success')
             
             // Call parent callback to refresh notes
             if (onNotesChange) {
@@ -266,10 +243,9 @@ export function VideoNote({
           }
         } catch (error) {
           console.error('Failed to save quick note:', error)
-          showNotification('Failed to save quick note. Please try again.', 'error')
         }
       } else {
-        showNotification('End time must be greater than start time', 'error')
+        // End time must be greater than start time
       }
     }
   }
@@ -302,7 +278,6 @@ export function VideoNote({
         }
       } catch (error) {
         console.error('Failed to load notes:', error)
-        showNotification('Failed to load notes', 'error')
       }
     }
     
@@ -395,7 +370,6 @@ export function VideoNote({
         if (response.ok) {
           setNewNote({ title: '', note: '', startTime: 0, endTime: 30 })
           setIsCapturing(false)
-          showNotification('Note saved successfully', 'success')
           
           // Call parent callback to refresh notes
           if (onNotesChange) {
@@ -407,7 +381,6 @@ export function VideoNote({
         }
       } catch (error) {
         console.error('Failed to save note:', error)
-        showNotification('Failed to save note. Please try again.', 'error')
       }
     }
   }
@@ -444,9 +417,6 @@ export function VideoNote({
     })
     setIsCapturing(true)
     console.log('Start time set to:', startTime, 'from current time:', accurateCurrentTime)
-    
-    // Show notification to user
-    showNotification(`Start time set to ${formatTime(startTime)}`, 'success')
   }
 
   const handleSaveNote = async () => {
@@ -487,9 +457,6 @@ export function VideoNote({
           setNewNote({ title: '', note: '', startTime: 0, endTime: 30 })
           setIsCapturing(false)
           
-          // Show success notification
-          showNotification(`Clip saved from ${formatTime(newNote.startTime)} to ${formatTime(endTime)}`, 'success')
-          
           // Call parent callback to refresh notes
           if (onNotesChange) {
             onNotesChange()
@@ -502,11 +469,9 @@ export function VideoNote({
         }
       } catch (error) {
         console.error('Failed to save note:', error)
-        showNotification('Failed to save note. Please try again.', 'error')
       }
     } else {
-      // Show error notification
-      showNotification('End time must be greater than start time. Please play the video forward before saving.', 'error')
+      // End time must be greater than start time
       console.log('End time not greater than start time:', endTime, '<=', newNote.startTime)
     }
   }
@@ -528,7 +493,6 @@ export function VideoNote({
           note.id === noteId ? { ...note, title, note } : note
         ))
         setEditingNoteId(null)
-        showNotification('The note has been updated successfully', 'success')
         
         // Call parent callback to refresh notes
         if (onNotesChange) {
@@ -539,7 +503,6 @@ export function VideoNote({
       }
     } catch (error) {
       console.error('Failed to update note:', error)
-      showNotification('Failed to update note. Please try again.', 'error')
     }
   }
 
@@ -579,7 +542,6 @@ export function VideoNote({
         if (activeNoteId === noteToDelete) {
           setActiveNoteId(null)
         }
-        showNotification('The note has been removed successfully', 'success')
         setDeleteConfirmOpen(false)
         setNoteToDelete(null)
         
@@ -592,7 +554,6 @@ export function VideoNote({
       }
     } catch (error) {
       console.error('Failed to delete note:', error)
-      showNotification('Failed to delete note. Please try again.', 'error')
       setDeleteConfirmOpen(false)
       setNoteToDelete(null)
     }
@@ -653,13 +614,10 @@ export function VideoNote({
         playerRef.current.seekTo(currentTime, true)
       }
     }, 500)
-    
-    showNotification('Playing in background', 'info')
   }
 
   const handleStopBackground = () => {
     stopBackgroundVideo()
-    showNotification('Background playback stopped', 'info')
   }
 
   const handleReset = () => {
@@ -762,17 +720,6 @@ export function VideoNote({
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-4 sm:space-y-6">
-      {/* Notification */}
-      {notification && (
-        <div className={`fixed top-20 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 max-w-sm ${
-          notification.type === 'success' ? 'bg-primary text-white' :
-          notification.type === 'error' ? 'bg-red-500 text-white' :
-          'bg-primary text-white'
-        }`}>
-          {notification.message}
-        </div>
-      )}
-      
       {/* YouTube-like Video Player Container */}
       <div className="bg-black rounded-lg overflow-hidden shadow-lg">
         {/* Video Player */}
@@ -1094,7 +1041,6 @@ export function VideoNote({
                     onClick={() => {
                       setIsCapturing(false)
                       setNewNote({ title: '', note: '', startTime: 0, endTime: 30 })
-                      showNotification('Note capture has been cancelled', 'info')
                     }}
                     variant="outline"
                     className="flex-1"

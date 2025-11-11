@@ -26,7 +26,6 @@ import {
   Settings,
   ArrowDown,
   ArrowLeft,
-  Bell,
   Eye,
   ChevronRight,
   ChevronLeft,
@@ -174,63 +173,7 @@ export default function MyTubeApp() {
   const [favoritesEnabled, setFavoritesEnabled] = useState(true)
   const [favoritesPaused, setFavoritesPaused] = useState(false)
   
-  // Notification system state
-  const [notifications, setNotifications] = useState<Array<{
-    id: string
-    title: string
-    description?: string
-    variant: 'success' | 'destructive' | 'info'
-    timestamp: Date
-    autoHide?: boolean
-  }>>([])
-  const [showNotifications, setShowNotifications] = useState(false)
-
-  // Enhanced notification system with dynamic messages
-  const addNotification = useCallback((title: string, description?: string, variant: 'success' | 'destructive' | 'info' = 'info', autoHide: boolean = true) => {
-    const id = Date.now().toString() + Math.random().toString(36).substr(2, 9)
-    const newNotification = {
-      id,
-      title,
-      description,
-      variant,
-      timestamp: new Date(),
-      autoHide
-    }
-    
-    setNotifications(prev => [newNotification, ...prev].slice(0, 10)) // Keep max 10 notifications
-    
-    // Auto hide after 5 seconds if autoHide is true
-    if (autoHide) {
-      const timeoutId = setTimeout(() => {
-        removeNotification(id)
-      }, 5000)
-      
-      // Store timeout ID for potential cleanup
-      ;(newNotification as any).timeoutId = timeoutId
-    }
-  }, [])
   
-  const removeNotification = useCallback((id: string) => {
-    setNotifications(prev => {
-      const notification = prev.find(n => n.id === id)
-      if (notification && (notification as any).timeoutId) {
-        clearTimeout((notification as any).timeoutId)
-      }
-      return prev.filter(n => n.id !== id)
-    })
-  }, [])
-  
-  const clearAllNotifications = useCallback(() => {
-    setNotifications(prev => {
-      // Clear all pending timeouts
-      prev.forEach(notification => {
-        if ((notification as any).timeoutId) {
-          clearTimeout((notification as any).timeoutId)
-        }
-      })
-      return []
-    })
-  }, [])
 
   // Network status state
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'checking'>('online')
@@ -336,35 +279,7 @@ export default function MyTubeApp() {
     }
   }, [])
 
-  // Swipe gesture handling for notifications
-  const [swipeStates, setSwipeStates] = useState<Map<string, { translateX: number; isSwiping: boolean }>>(new Map())
   
-  const handleTouchStart = useCallback((e: React.TouchEvent, notificationId: string) => {
-    const touch = e.touches[0]
-    setSwipeStates(prev => new Map(prev).set(notificationId, { translateX: 0, isSwiping: true }))
-  }, [])
-  
-  const handleTouchMove = useCallback((e: React.TouchEvent, notificationId: string) => {
-    const touch = e.touches[0]
-    const swipeState = swipeStates.get(notificationId)
-    if (!swipeState?.isSwiping) return
-    
-    const translateX = touch.clientX - e.currentTarget.getBoundingClientRect().left
-    setSwipeStates(prev => new Map(prev).set(notificationId, { translateX, isSwiping: true }))
-  }, [swipeStates])
-  
-  const handleTouchEnd = useCallback((e: React.TouchEvent, notificationId: string) => {
-    const swipeState = swipeStates.get(notificationId)
-    if (!swipeState?.isSwiping) return
-    
-    const threshold = 100 // Swipe threshold to remove
-    if (Math.abs(swipeState.translateX) > threshold) {
-      removeNotification(notificationId)
-    } else {
-      // Reset position
-      setSwipeStates(prev => new Map(prev).set(notificationId, { translateX: 0, isSwiping: false }))
-    }
-  }, [swipeStates, removeNotification])
 
   // Show dynamic loading message
   const showDynamicLoading = useCallback((operation: 'search' | 'loadMore' | 'favorites' | 'channels' | 'general') => {
@@ -376,15 +291,13 @@ export default function MyTubeApp() {
   // Show dynamic confirmation message
   const showDynamicConfirmation = useCallback((operation: keyof typeof confirmationMessages, ...args: unknown[]) => {
     const message = getConfirmationMessage(operation, args)
-    addNotification('Success!', message, 'success')
     setDynamicLoadingMessage('')
-  }, [addNotification])
+  }, [])
 
   // Handle splash screen completion
   const handleSplashComplete = useCallback(() => {
     setShowSplashScreen(false)
-    addNotification('Welcome!', 'MyTube is ready to use', 'success')
-  }, [addNotification])
+  }, [])
 
   // Cache helper functions
   const getCachedResults = useCallback((query: string, type: string = searchType) => {
@@ -521,9 +434,9 @@ export default function MyTubeApp() {
     
     const tab = tabs.find(t => t.id === tabId)
     if (tab) {
-      addNotification('Navigation', `Switched to ${tab.label}`, 'info')
+      
     }
-  }, [activeTab, tabs, addNotification, triggerHapticFeedback, showPlaylistVideos])
+  }, [activeTab, tabs, triggerHapticFeedback, showPlaylistVideos])
 
   // Back button functionality
   const handleGoBack = useCallback(() => {
@@ -532,7 +445,6 @@ export default function MyTubeApp() {
       setActiveTab(previousTab)
       setNavigationHistory(prev => prev.slice(0, -1)) // Remove player from history
       triggerHapticFeedback()
-      addNotification('Navigation', `Returned to ${tabs.find(t => t.id === previousTab)?.label || 'previous'}`, 'info')
     } else if (navigationHistory.length > 1) {
       // Go to previous tab in history
       const newHistory = [...navigationHistory]
@@ -546,7 +458,7 @@ export default function MyTubeApp() {
         
         const tab = tabs.find(t => t.id === previousTabInHistory)
         if (tab) {
-          addNotification('Navigation', `Went back to ${tab.label}`, 'info')
+          
         }
       }
     } else if (activeTab !== 'home') {
@@ -554,9 +466,9 @@ export default function MyTubeApp() {
       setActiveTab('home')
       setNavigationHistory(['home'])
       triggerHapticFeedback()
-      addNotification('Navigation', 'Went back to Home', 'info')
+      
     }
-  }, [activeTab, previousTab, navigationHistory, tabs, addNotification, triggerHapticFeedback])
+  }, [activeTab, previousTab, navigationHistory, tabs, triggerHapticFeedback])
 
   // Check if back button should be shown
   const canGoBack = navigationHistory.length > 1 || activeTab !== 'home'
@@ -612,7 +524,7 @@ export default function MyTubeApp() {
       document.removeEventListener('touchstart', handleTouchStart)
       document.removeEventListener('touchend', handleTouchEnd)
     }
-  }, [activeTab, addNotification, handleTabNavigation])
+  }, [activeTab, handleTabNavigation])
 
   // Keyboard navigation for tabs
   useEffect(() => {
@@ -646,7 +558,7 @@ export default function MyTubeApp() {
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [activeTab, addNotification, handleTabNavigation])
+  }, [activeTab, handleTabNavigation])
 
   // Safe thumbnail extraction with multiple fallback options
   const getThumbnailUrl = useCallback((video: Video | any): string => {
@@ -749,10 +661,10 @@ export default function MyTubeApp() {
     } catch (error) {
       console.error('Failed to load favorite channels:', error)
       setFavoriteChannels([])
-      addNotification('Failed to load favorite channels', 'Please check your connection and try again', 'destructive')
+      
       return []
     }
-  }, [addNotification])
+  }, [])
 
   const loadFavoriteVideos = useCallback(async (): Promise<void> => {
     try {
@@ -768,9 +680,9 @@ export default function MyTubeApp() {
     } catch (error) {
       console.error('Failed to load favorite videos:', error)
       setFavoriteVideos([])
-      addNotification('Failed to load favorite videos', 'Please check your connection and try again', 'destructive')
+      
     }
-  }, [addNotification])
+  }, [])
 
   const loadNotes = useCallback(async (): Promise<void> => {
     try {
@@ -785,11 +697,11 @@ export default function MyTubeApp() {
     } catch (error) {
       console.error('Failed to load notes:', error)
       setAllNotes([])
-      addNotification('Failed to load notes', 'Please check your connection and try again', 'destructive')
+      
     } finally {
       setNotesLoading(false)
     }
-  }, [addNotification])
+  }, [])
 
   // Retry loading all data when network comes back online
   const retryLoadingAllData = useCallback(async () => {
@@ -801,16 +713,16 @@ export default function MyTubeApp() {
         loadNotes()
       ])
       setRetryCount(0)
-      addNotification('Connection restored', 'All data loaded successfully', 'success')
+      
     } catch (error) {
       console.error('Failed to reload data:', error)
       if (retryCount < 3) {
         setTimeout(retryLoadingAllData, 2000 * (retryCount + 1))
       } else {
-        addNotification('Connection issues persist', 'Please refresh the page', 'destructive')
+        
       }
     }
-  }, [loadFavoriteChannels, loadFavoriteVideos, loadNotes, retryCount, addNotification])
+  }, [loadFavoriteChannels, loadFavoriteVideos, loadNotes, retryCount])
 
   const deleteNote = async (noteId: string): Promise<void> => {
     try {
@@ -820,10 +732,10 @@ export default function MyTubeApp() {
       if (!response.ok) throw new Error('Failed to delete note')
       
       setAllNotes(prev => prev.filter(note => note.id !== noteId))
-      addNotification('Note deleted', 'The note has been removed successfully', 'success')
+      
     } catch (error) {
       console.error('Failed to delete note:', error)
-      addNotification('Failed to delete note', 'Please try again', 'destructive')
+      
     }
   }
 
@@ -845,10 +757,10 @@ export default function MyTubeApp() {
       setAllNotes(prev => prev.map(note => 
         note.id === noteId ? { ...note, title: newTitle, note: newContent } : note
       ))
-      addNotification('Note updated', 'The note has been updated successfully', 'success')
+      
     } catch (error) {
       console.error('Failed to update note:', error)
-      addNotification('Failed to update note', 'Please try again', 'destructive')
+      
     }
   }
 
@@ -925,13 +837,13 @@ export default function MyTubeApp() {
             channelName: '',
             thumbnail: ''
           })
-          addNotification('Note created', 'The note has been created successfully', 'success')
+          
         } else {
           throw new Error('Failed to create note')
         }
       } catch (error) {
         console.error('Failed to create note:', error)
-        addNotification('Failed to create note', 'Please try again', 'destructive')
+        
       }
     }
   }
@@ -966,10 +878,9 @@ export default function MyTubeApp() {
       setAllNotes(prev => prev.filter(note => !selectedNotes.has(note.id)))
       setSelectedNotes(new Set())
       setMultiSelectMode(false)
-      addNotification('Notes deleted', `${selectedNotes.size} note(s) have been removed successfully`, 'success')
     } catch (error) {
       console.error('Failed to delete notes:', error)
-      addNotification('Failed to delete notes', 'Please try again', 'destructive')
+      
     }
   }
 
@@ -1010,7 +921,7 @@ export default function MyTubeApp() {
     try {
       setLoading(true)
       setShowClearDataConfirmation(false)
-      addNotification('Clearing data', 'Removing all your data...', 'info', false)
+      
       
       // Clear database
       const response = await fetch('/api/clear-all-data', {
@@ -1053,7 +964,6 @@ export default function MyTubeApp() {
       setSearchResults(null)
       setSelectedVideo(null)
       setSelectedItems(new Set())
-      setNotifications([])
       setMultiSelectMode(false)
       
       // Reload fresh data
@@ -1062,12 +972,12 @@ export default function MyTubeApp() {
         loadFavoriteVideos()
       ])
       
-      addNotification('Success!', `Cleared ${result.deleted.total} items from database and all local data`, 'success')
+      
       setShowSettings(false)
       
     } catch (error) {
       console.error('Failed to clear all data:', error)
-      addNotification('Error', 'Failed to clear all data. Please try again.', 'destructive')
+      
     } finally {
       setLoading(false)
     }
@@ -1198,7 +1108,7 @@ export default function MyTubeApp() {
     // Validate search query
     const validation = validateSearchQuery(append ? currentSearchQuery : trimmedQuery)
     if (!validation.isValid) {
-      addNotification('Invalid Search Query', validation.error || 'Invalid search query', 'destructive')
+      
       if (!append) {
         setHasMoreVideos(false)
       }
@@ -1251,18 +1161,18 @@ export default function MyTubeApp() {
       const data = await response.json()
       
       if (data.error) {
-        addNotification('Search Error', data.error, 'destructive')
+        
         if (!append) setSearchResults(null)
         return
       }
       
       if (!data.items || data.items.length === 0) {
         if (!append) {
-          addNotification('No Results', `No videos found for "${queryToUse}"`, 'info')
+          
           setSearchResults({ items: [] })
           setCachedResults(queryToUse, [], null, false, searchType)
         } else {
-          addNotification('No More Videos', 'No more videos found for this search', 'info')
+          
         }
         setHasMoreVideos(false)
         return
@@ -1294,7 +1204,7 @@ export default function MyTubeApp() {
           finalItems = [...searchResults.items, ...newItems]
         } else {
           finalItems = searchResults.items
-          addNotification('No New Items', 'All items already loaded', 'info')
+          
         }
       } else {
         // Convert YouTube videos, playlists, and channels to SimpleVideo/SimplePlaylist/SimpleChannel format
@@ -1323,7 +1233,7 @@ export default function MyTubeApp() {
       
     } catch (error) {
       console.error('Search error:', error)
-      addNotification('Search Failed', 'An error occurred while searching. Please try again.', 'destructive')
+      
       if (!append) setSearchResults(null)
     } finally {
       setLoading(false)
@@ -1368,7 +1278,7 @@ export default function MyTubeApp() {
       }).filter((video): video is Video => video !== null)
       
       if (convertedVideos.length === 0) {
-        addNotification('Empty Playlist', 'This playlist contains no videos', 'info')
+        
       } else {
         setPlaylistVideos(convertedVideos)
         showDynamicConfirmation('playlistLoaded', [playlist.title, convertedVideos.length])
@@ -1380,7 +1290,7 @@ export default function MyTubeApp() {
     } catch (error) {
       console.error('Failed to load playlist videos:', error)
       const errorMessage = error instanceof Error ? error.message : 'Could not load playlist videos'
-      addNotification('Failed to Load Playlist', errorMessage, 'destructive')
+      
       
       // Reset playlist state on error
       setShowPlaylistVideos(false)
@@ -1444,12 +1354,12 @@ export default function MyTubeApp() {
         setExpandedPlaylists(prev => new Set(prev).add(playlistId))
         
         if (convertedVideos.length > 0) {
-          addNotification('Playlist Expanded', `Loaded ${convertedVideos.length} videos from "${playlist.title}"`, 'success')
+          
         }
         
       } catch (error) {
         console.error('Failed to expand playlist:', error)
-        addNotification('Failed to Expand Playlist', 'Could not load playlist videos', 'destructive')
+        
       } finally {
         setExpandedPlaylistLoading(prev => {
           const newMap = new Map(prev)
@@ -1571,7 +1481,7 @@ export default function MyTubeApp() {
     )
 
     if (uniqueVideos.length === 0) {
-      addNotification('No more videos', 'No next video available', 'info')
+      
       return
     }
 
@@ -1589,11 +1499,11 @@ export default function MyTubeApp() {
 
     if (nextVideo) {
       handleVideoPlay(nextVideo)
-      addNotification('Next video', `Now playing: ${nextVideo.title}`, 'info')
+      
     } else {
-      addNotification('No more videos', 'No next video available', 'info')
+      
     }
-  }, [selectedVideo, searchResults, channelVideos, favoriteVideos, handleVideoPlay, addNotification])
+  }, [selectedVideo, searchResults, channelVideos, favoriteVideos, handleVideoPlay])
 
   const handlePreviousVideo = useCallback(() => {
     if (!selectedVideo) return
@@ -1633,7 +1543,7 @@ export default function MyTubeApp() {
     )
 
     if (uniqueVideos.length === 0) {
-      addNotification('No more videos', 'No previous video available', 'info')
+      
       return
     }
 
@@ -1651,22 +1561,22 @@ export default function MyTubeApp() {
 
     if (previousVideo) {
       handleVideoPlay(previousVideo)
-      addNotification('Previous video', `Now playing: ${previousVideo.title}`, 'info')
+      
     } else {
-      addNotification('No more videos', 'No previous video available', 'info')
+      
     }
-  }, [selectedVideo, searchResults, channelVideos, favoriteVideos, handleVideoPlay, addNotification])
+  }, [selectedVideo, searchResults, channelVideos, favoriteVideos, handleVideoPlay])
 
   const toggleFavorite = async (video: Video) => {
     // Check if favorites are enabled
     if (!favoritesEnabled) {
-      addNotification('Favorites Disabled', 'Favorites module is disabled in settings', 'info')
+      
       return
     }
     
     // Check if favorites are paused
     if (favoritesPaused) {
-      addNotification('Favorites Paused', 'Cannot add/remove favorites while paused', 'info')
+      
       return
     }
     
@@ -1686,7 +1596,7 @@ export default function MyTubeApp() {
           showDynamicConfirmation('favorites', 'remove')
           await loadFavoriteVideos()
         } else {
-          addNotification('Error', 'Failed to remove from favorites', 'destructive')
+          
         }
       } else {
         showDynamicLoading('favorites')
@@ -1707,12 +1617,12 @@ export default function MyTubeApp() {
           showDynamicConfirmation('favorites', 'add')
           await loadFavoriteVideos()
         } else {
-          addNotification('Error', 'Failed to add to favorites', 'destructive')
+          
         }
       }
     } catch (error) {
       console.error('Error toggling favorite:', error)
-      addNotification('Error', 'Network error while updating favorites', 'destructive')
+      
     } finally {
       setDynamicLoadingMessage('')
     }
@@ -1721,7 +1631,7 @@ export default function MyTubeApp() {
   const handleChannelSearch = async (): Promise<void> => {
     const trimmedQuery = channelSearchQuery.trim()
     if (!trimmedQuery) {
-      addNotification('Channel Search Required', 'Please enter a channel name to search', 'info')
+      
       return
     }
 
@@ -1735,7 +1645,7 @@ export default function MyTubeApp() {
       setChannelSearchResults(data.items || [])
     } catch (error) {
       console.error('Error searching channels:', error)
-      addNotification('Error', 'Failed to search channels', 'destructive')
+      
       setChannelSearchResults([])
     } finally {
       setChannelSearchLoading(false)
@@ -1752,10 +1662,10 @@ export default function MyTubeApp() {
         })
         
         if (response.ok) {
-          addNotification('Unfollowed', `You are no longer following ${channel.name}`, 'success')
+          
           await loadFavoriteChannels()
         } else {
-          addNotification('Error', 'Failed to unfollow channel', 'destructive')
+          
         }
       } else {
         const response = await fetch('/api/channels', {
@@ -1771,15 +1681,15 @@ export default function MyTubeApp() {
         })
         
         if (response.ok) {
-          addNotification('Following', `You are now following ${channel.name}`, 'success')
+          
           await loadFavoriteChannels()
         } else {
-          addNotification('Error', 'Failed to follow channel', 'destructive')
+          
         }
       }
     } catch (error) {
       console.error('Error following channel:', error)
-      addNotification('Error', 'Network error while following channel', 'destructive')
+      
     }
   }
 
@@ -1815,14 +1725,14 @@ export default function MyTubeApp() {
           await loadChannelVideos(favoriteChannelsData)
         }
       } catch (error) {
-        addNotification('Failed to load initial data', 'Please refresh the page', 'destructive')
+        
       }
     }
     
     if (!showSplashScreen) {
       loadInitialData()
     }
-  }, [showSplashScreen, loadFavoriteChannels, loadFavoriteVideos, loadNotes, addNotification])
+  }, [showSplashScreen, loadFavoriteChannels, loadFavoriteVideos, loadNotes])
 
   // Load followed channels content when favorite channels change
   useEffect(() => {
@@ -2115,7 +2025,7 @@ export default function MyTubeApp() {
         })
         
         if (response.ok) {
-          addNotification('Channel Followed', `You are now following ${channel.name}`, 'success')
+          
           // Update the channel's favorite status
           setChannelSearchResults(prev => 
             prev.map(c => c.channelId === channel.channelId ? { ...c, isFavorite: true } : c)
@@ -2123,7 +2033,7 @@ export default function MyTubeApp() {
         }
       } catch (error) {
         console.error('Error following channel:', error)
-        addNotification('Error', 'Failed to follow channel', 'destructive')
+        
       }
     }
 
@@ -2134,7 +2044,7 @@ export default function MyTubeApp() {
         })
         
         if (response.ok) {
-          addNotification('Channel Unfollowed', `You are no longer following ${channel.name}`, 'success')
+          
           // Update the channel's favorite status
           setChannelSearchResults(prev => 
             prev.map(c => c.channelId === channel.channelId ? { ...c, isFavorite: false } : c)
@@ -2142,7 +2052,7 @@ export default function MyTubeApp() {
         }
       } catch (error) {
         console.error('Error unfollowing channel:', error)
-        addNotification('Error', 'Failed to unfollow channel', 'destructive')
+        
       }
     }
 
@@ -2218,7 +2128,7 @@ export default function MyTubeApp() {
         </CardContent>
       </Card>
     )
-  }, [addNotification, setChannelSearchResults])
+  }, [])
 
   const PlaylistCard = useCallback(({ playlist }: { playlist: Playlist }) => {
     const isSelected = selectedItems.has(playlist.id)
@@ -4092,23 +4002,6 @@ export default function MyTubeApp() {
                 )}
               </Button>
               
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowNotifications(!showNotifications)}
-                className={`h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 p-0 relative transition-all duration-200 hover:scale-105 ${
-                  showNotifications 
-                    ? 'bg-primary/10 text-primary hover:bg-primary/20' 
-                    : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 transition-transform duration-200" />
-                {notifications.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] sm:text-xs font-bold w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center border-2 border-background animate-bounce">
-                    {notifications.length > 9 ? '9+' : notifications.length}
-                  </span>
-                )}
-              </Button>
               
               <ThemeSwitch />
               
@@ -4179,190 +4072,6 @@ export default function MyTubeApp() {
         </div>
       )}
 
-      {/* Notification Area - Below Header */}
-      <div className={`bg-background/95 backdrop-blur-lg border-b border-border/50 transition-all duration-300 ease-in-out ${
-        showNotifications ? 'max-h-96 opacity-100 shadow-sm' : 'max-h-0 opacity-0 overflow-hidden'
-      }`}>
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4">
-          {/* Notification Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                <div className="absolute inset-0 w-2 h-2 bg-primary rounded-full animate-ping"></div>
-              </div>
-              <h2 className="text-base font-semibold text-foreground">Notifications</h2>
-              {notifications.length > 0 && (
-                <span className="bg-primary text-primary-foreground text-xs font-medium px-2 py-1 rounded-full min-w-[20px] text-center">
-                  {notifications.length}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-1">
-              {notifications.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearAllNotifications}
-                  className="h-8 px-3 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                >
-                  Clear All
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-              >
-                {showNotifications ? (
-                  <ArrowDown className="w-4 h-4 rotate-180 transition-transform duration-200" />
-                ) : (
-                  <ArrowDown className="w-4 h-4 transition-transform duration-200" />
-                )}
-              </Button>
-            </div>
-          </div>
-          
-          {/* Notification Content */}
-          <div className="space-y-3 max-h-72 overflow-y-auto scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
-            {notifications.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <div className="w-16 h-16 bg-muted/50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-border/50">
-                  <Check className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <h3 className="text-base font-medium text-foreground mb-1">All caught up!</h3>
-                <p className="text-sm text-muted-foreground">No new notifications to show</p>
-              </div>
-            ) : (
-              notifications.map((notification, index) => {
-                const swipeState = swipeStates.get(notification.id) || { translateX: 0, isSwiping: false }
-                const isSwipedLeft = swipeState.translateX < -50
-                const isSwipedRight = swipeState.translateX > 50
-                
-                return (
-                  <div
-                    key={notification.id}
-                    className={`group relative rounded-xl border-0 shadow-sm transition-all duration-300 animate-in slide-in-from-top-2 fade-in-0 ${
-                      notification.variant === 'success'
-                        ? 'bg-gradient-to-r from-primary/50 to-primary/30 dark:from-primary/95 dark:to-primary/90 border-border'
-                        : notification.variant === 'destructive'
-                        ? 'bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 border-red-200/50 dark:border-red-800/30'
-                        : 'bg-gradient-to-r from-primary/50 to-primary/30 dark:from-primary/95 dark:to-primary/90 border-border'
-                    } hover:shadow-md hover:scale-[1.02]`}
-                    style={{
-                      animationDelay: `${index * 50}ms`,
-                      animationFillMode: 'both',
-                      transform: `translateX(${swipeState.translateX}px)`,
-                      opacity: Math.abs(swipeState.translateX) > 100 ? 0.5 : 1,
-                      transition: swipeState.isSwiping ? 'none' : 'all 0.3s ease'
-                    }}
-                    onTouchStart={(e) => handleTouchStart(e, notification.id)}
-                    onTouchMove={(e) => handleTouchMove(e, notification.id)}
-                    onTouchEnd={(e) => handleTouchEnd(e, notification.id)}
-                  >
-                    {/* Swipe indicator overlay */}
-                    {isSwipedLeft && (
-                      <div className="absolute inset-y-0 left-0 w-12 bg-red-500/10 flex items-center justify-center rounded-l-xl">
-                        <Trash2 className="w-5 h-5 text-red-500" />
-                      </div>
-                    )}
-                    {isSwipedRight && (
-                      <div className="absolute inset-y-0 right-0 w-12 bg-primary/10 flex items-center justify-center rounded-r-xl">
-                        <Check className="w-5 h-5 text-primary" />
-                      </div>
-                    )}
-                    
-                    {/* Notification Card */}
-                    <div className="p-4 sm:p-5">
-                      <div className="flex items-start gap-3 sm:gap-4">
-                        {/* Icon Container */}
-                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                          notification.variant === 'success'
-                            ? 'bg-muted text-primary'
-                            : notification.variant === 'destructive'
-                            ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400'
-                            : 'bg-muted text-primary'
-                        }`}>
-                          {notification.variant === 'success' && (
-                            <Check className="w-5 h-5" />
-                          )}
-                          {notification.variant === 'destructive' && (
-                            <Trash2 className="w-5 h-5" />
-                          )}
-                          {notification.variant === 'info' && (
-                            <Play className="w-5 h-5" />
-                          )}
-                        </div>
-                        
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <h4 className={`text-sm font-semibold leading-tight ${
-                              notification.variant === 'success'
-                                ? 'text-foreground'
-                                : notification.variant === 'destructive'
-                                ? 'text-red-800 dark:text-red-200'
-                                : 'text-foreground'
-                            }`}>
-                              {notification.title}
-                            </h4>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeNotification(notification.id)}
-                              className="h-6 w-6 p-0 text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 rounded-md transition-all duration-200 flex-shrink-0"
-                            >
-                              <span className="text-lg leading-none">×</span>
-                            </Button>
-                          </div>
-                          
-                          {notification.description && (
-                            <p className={`text-sm leading-relaxed mb-2 ${
-                              notification.variant === 'success'
-                                ? 'text-foreground'
-                                : notification.variant === 'destructive'
-                                ? 'text-red-700 dark:text-red-300'
-                                : 'text-foreground'
-                            }`}>
-                              {notification.description}
-                            </p>
-                          )}
-                          
-                          {/* Timestamp */}
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">
-                              {notification.timestamp.toLocaleTimeString([], { 
-                                hour: '2-digit', 
-                                minute: '2-digit',
-                                hour12: true 
-                              })}
-                            </span>
-                            <span className="text-xs text-muted-foreground/50">•</span>
-                            <span className="text-xs text-muted-foreground">
-                              {getRelativeTime(notification.timestamp)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Progress Bar for Auto-hide */}
-                    {notification.autoHide && (
-                      <div className="absolute bottom-0 left-0 h-0.5 bg-current opacity-20 animate-pulse"
-                        style={{
-                          animation: 'shrink 5s linear forwards',
-                          animationDelay: `${index * 50}ms`
-                        }}
-                      />
-                    )}
-                  </div>
-                )
-              })
-            )}
-          </div>
-        </div>
-      </div>
 
       {/* Desktop Tabs Bar - Visible on desktop only */}
       <div className="hidden md:block bg-background/95 backdrop-blur-xl border-b border-border/50 sticky top-16 z-30 shadow-lg shadow-black/5 dark:shadow-black/20">
@@ -4642,11 +4351,6 @@ export default function MyTubeApp() {
                       onCheckedChange={(checked) => {
                         setFavoritesPaused(checked)
                         localStorage.setItem('mytube-favorites-paused', checked.toString())
-                        addNotification(
-                          'Favorites ' + (checked ? 'Paused' : 'Resumed'), 
-                          checked ? 'Cannot add/remove favorites while paused' : 'Favorites functionality resumed',
-                          'info'
-                        )
                       }}
                       disabled={loading}
                     />

@@ -73,31 +73,3 @@ self.addEventListener('sync', (event) => {
   }
 })
 
-// Push notification handler
-self.addEventListener('push', (event) => {
-  const options = {
-    body: event.data ? event.data.text() : 'New notification',
-    icon: '/logo.svg',
-    badge: '/logo.svg',
-    vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    }
-  }
-
-  event.waitUntil(
-    self.registration.showNotification('MyTube', options)
-  )
-})
-
-// Notification click handler
-self.addEventListener('notificationclick', (event) => {
-  console.log('Service Worker: Notification click received')
-  
-  event.notification.close()
-  
-  event.waitUntil(
-    clients.openWindow('/')
-  )
-})

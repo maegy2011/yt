@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from 'react'
 import { SimpleVideo } from '@/lib/type-compatibility'
-import { useNotificationService } from '@/hooks/use-notification-service'
+
 import { useKeepAliveService } from '@/hooks/use-keep-alive'
 
 interface BackgroundPlayerContextType {
@@ -53,15 +53,7 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
   const playerRef = useRef<any>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   
-  // Notification and Keep-Alive services
-  const {
-    requestPermission,
-    showPlaybackNotification,
-    hideNotification,
-    updateMediaSession,
-    clearMediaSession
-  } = useNotificationService()
-
+  // Keep-Alive services
   const {
     startKeepAlive,
     stopKeepAlive,
@@ -102,18 +94,9 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
     
     startMonitoring()
     
-    // Request notification permission on first use
-    requestPermission()
-    
-    // Show playback notification
-    showPlaybackNotification(video, true)
-    
-    // Update media session for browser controls
-    updateMediaSession(video, true, currentTime, duration)
-    
     // Start keep-alive mechanisms
     startKeepAlive()
-  }, [startMonitoring, requestPermission, showPlaybackNotification, updateMediaSession, startKeepAlive, currentTime, duration])
+  }, [startMonitoring, startKeepAlive])
 
   const pauseBackgroundVideo = useCallback(() => {
     setIsPlaying(false)
@@ -121,13 +104,7 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
       playerRef.current.pauseVideo()
     }
     stopMonitoring()
-    
-    // Update notification and media session
-    if (backgroundVideo) {
-      showPlaybackNotification(backgroundVideo, false)
-      updateMediaSession(backgroundVideo, false, currentTime, duration)
-    }
-  }, [stopMonitoring, backgroundVideo, showPlaybackNotification, updateMediaSession, currentTime, duration])
+  }, [stopMonitoring])
 
   const stopBackgroundVideo = useCallback(() => {
     setBackgroundVideo(null)
@@ -142,13 +119,9 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
     }
     stopMonitoring()
     
-    // Hide notification and clear media session
-    hideNotification()
-    clearMediaSession()
-    
     // Stop keep-alive mechanisms
     stopKeepAlive()
-  }, [stopMonitoring, hideNotification, clearMediaSession, stopKeepAlive])
+  }, [stopMonitoring, stopKeepAlive])
 
   const seekTo = useCallback((time: number) => {
     if (playerRef.current) {
@@ -192,10 +165,8 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
   // Cleanup on unmount
   const cleanup = useCallback(() => {
     stopMonitoring()
-    hideNotification()
-    clearMediaSession()
     stopKeepAlive()
-  }, [stopMonitoring, hideNotification, clearMediaSession, stopKeepAlive])
+  }, [stopMonitoring, stopKeepAlive])
 
   // Handle media session events
   useEffect(() => {
@@ -206,8 +177,6 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
         if (playerRef.current) {
           playerRef.current.playVideo()
         }
-        showPlaybackNotification(backgroundVideo, true)
-        updateMediaSession(backgroundVideo, true, currentTime, duration)
       }
     }
 
@@ -261,14 +230,9 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
       window.removeEventListener('media-session-previous', handleMediaSessionPrevious as EventListener)
       window.removeEventListener('media-session-next', handleMediaSessionNext as EventListener)
     }
-  }, [backgroundVideo, isPlaying, currentTime, duration, pauseBackgroundVideo, stopBackgroundVideo, seekTo, showPlaybackNotification, updateMediaSession])
+  }, [backgroundVideo, isPlaying, currentTime, duration, pauseBackgroundVideo, stopBackgroundVideo, seekTo])
 
-  // Update media session when time changes
-  useEffect(() => {
-    if (backgroundVideo && isPlaying) {
-      updateMediaSession(backgroundVideo, true, currentTime, duration)
-    }
-  }, [backgroundVideo, isPlaying, currentTime, duration, updateMediaSession])
+  
 
   return (
     <BackgroundPlayerContext.Provider
