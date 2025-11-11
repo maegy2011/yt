@@ -50,6 +50,14 @@ export function NoteCard({ note, onEdit, onDelete, onPlay, className = '' }: Not
     }
   }
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent playing video if clicking on buttons
+    if ((e.target as HTMLElement).closest('button')) {
+      return
+    }
+    handlePlay()
+  }
+
   const handleEdit = () => {
     onEdit(note)
     setIsMenuOpen(false)
@@ -61,7 +69,7 @@ export function NoteCard({ note, onEdit, onDelete, onPlay, className = '' }: Not
   }
 
   const getCardClasses = () => {
-    const baseClasses = 'group relative transition-all duration-200 hover:shadow-md'
+    const baseClasses = 'group relative transition-all duration-200 hover:shadow-md cursor-pointer'
     const mobileClasses = 'w-full max-w-sm mx-auto'
     const desktopClasses = 'w-full'
     
@@ -73,6 +81,7 @@ export function NoteCard({ note, onEdit, onDelete, onPlay, className = '' }: Not
       className={getCardClasses()}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={handleCardClick}
     >
       {/* Video Thumbnail */}
       <div className="relative aspect-video bg-muted overflow-hidden">
@@ -116,19 +125,15 @@ export function NoteCard({ note, onEdit, onDelete, onPlay, className = '' }: Not
         )}
         
         {/* Play Overlay */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
-          <Button
-            size="sm"
-            variant="secondary"
-            className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-            onClick={handlePlay}
-          >
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center pointer-events-none">
+          <div className="bg-white/90 rounded-lg px-3 py-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             {isCurrentVideo && isBackgroundPlaying ? (
-              <Pause className="w-4 h-4" />
+              <Pause className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
             ) : (
-              <Play className="w-4 h-4" />
+              <Play className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
             )}
-          </Button>
+            <span className="text-black text-xs sm:text-sm font-medium">Click to play</span>
+          </div>
         </div>
       </div>
 
@@ -150,7 +155,10 @@ export function NoteCard({ note, onEdit, onDelete, onPlay, className = '' }: Not
               size="sm"
               variant="ghost"
               className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsMenuOpen(!isMenuOpen)
+              }}
             >
               <MoreVertical className="w-4 h-4" />
             </Button>
@@ -162,7 +170,10 @@ export function NoteCard({ note, onEdit, onDelete, onPlay, className = '' }: Not
                   variant="ghost"
                   size="sm"
                   className="w-full justify-start text-xs h-8 px-3"
-                  onClick={handleEdit}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleEdit()
+                  }}
                 >
                   <Edit className="w-3 h-3 mr-2" />
                   Edit
@@ -171,7 +182,10 @@ export function NoteCard({ note, onEdit, onDelete, onPlay, className = '' }: Not
                   variant="ghost"
                   size="sm"
                   className="w-full justify-start text-xs h-8 px-3 text-destructive hover:text-destructive"
-                  onClick={handleDelete}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDelete()
+                  }}
                 >
                   <Trash2 className="w-3 h-3 mr-2" />
                   Delete

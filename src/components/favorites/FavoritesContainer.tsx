@@ -4,13 +4,13 @@ import { useCallback } from 'react'
 import { FavoriteList } from './FavoriteList'
 import { FavoriteVideo } from '@/types/favorites'
 import { useFavorites } from '@/hooks/useFavorites'
-import { useBackgroundPlayer } from '@/contexts/background-player-context'
 
 interface FavoritesContainerProps {
   className?: string
+  onVideoPlay?: (video: FavoriteVideo) => void
 }
 
-export function FavoritesContainer({ className = '' }: FavoritesContainerProps) {
+export function FavoritesContainer({ className = '', onVideoPlay }: FavoritesContainerProps) {
   const {
     favorites,
     loading,
@@ -23,11 +23,6 @@ export function FavoritesContainer({ className = '' }: FavoritesContainerProps) 
     togglePaused
   } = useFavorites()
 
-  const {
-    backgroundVideo,
-    playBackgroundVideo
-  } = useBackgroundPlayer()
-
   const handleRemove = useCallback(async (videoId: string) => {
     try {
       await removeFavorite(videoId)
@@ -37,15 +32,24 @@ export function FavoritesContainer({ className = '' }: FavoritesContainerProps) 
   }, [removeFavorite])
 
   const handlePlay = useCallback((favorite: FavoriteVideo) => {
-    if (favorite.videoId === backgroundVideo?.videoId) {
-      // If it's the same video, just play it
-      playBackgroundVideo()
-    } else {
-      // If it's a different video, we'd need to load it first
-      // For now, just show a message or handle accordingly
-      console.log('Playing different video:', favorite.videoId)
+    // Convert FavoriteVideo to Video format for the main app
+    const video = {
+      videoId: favorite.videoId,
+      id: favorite.videoId, // Also set id for compatibility
+      title: favorite.title,
+      channelName: favorite.channelName,
+      thumbnail: favorite.thumbnail,
+      duration: favorite.duration,
+      viewCount: favorite.viewCount,
+      publishedAt: null, // Favorite videos don't have publishedAt
+      description: ''
     }
-  }, [backgroundVideo, playBackgroundVideo])
+    
+    // Call the parent's onVideoPlay function if provided
+    if (onVideoPlay) {
+      onVideoPlay(video)
+    }
+  }, [onVideoPlay])
 
   const getContainerClasses = () => {
     const baseClasses = 'w-full h-full'

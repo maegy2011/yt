@@ -48,14 +48,15 @@ import {
 import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
 import { validateSearchQuery } from '@/lib/validation'
 import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from '@/lib/loading-messages'
-import type { Video as YouTubeVideo, Channel } from '@/lib/youtube'
+import type { Video as YouTubeVideo } from '@/lib/youtube'
 import { convertYouTubeVideo, convertYouTubePlaylist, convertYouTubeChannel, convertToYouTubeVideo, convertDbVideoToSimple, type SimpleVideo, type SimplePlaylist, type SimpleChannel, type WatchedVideo, type FavoriteVideo, type FavoriteChannel, type VideoNote, type ChannelSearchResult, type PaginationInfo, type FollowedChannelsContent } from '@/lib/type-compatibility'
 import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleton'
 import { SplashScreen } from '@/components/splash-screen'
 import { VideoNote as VideoNoteComponent } from '@/components/video-note'
 import { NotesContainer } from '@/components/notes/NotesContainer'
 import { FavoritesContainer } from '@/components/favorites/FavoritesContainer'
-import { BottomNavigation, NavigationSpacer } from '@/components/navigation/BottomNavigation'
+import { BottomNavigation } from '@/components/navigation/BottomNavigation'
+import { NavigationSpacer } from '@/components/navigation/NavigationSpacer'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
 import { ThemeSwitch } from '@/components/theme-switch'
 
@@ -1528,6 +1529,42 @@ export default function MyTubeApp() {
     }
   }
 
+  const handleFavoritesVideoPlay = (favoriteVideo: FavoriteVideo) => {
+    // Convert FavoriteVideo to Video format
+    const video = {
+      videoId: favoriteVideo.videoId,
+      id: favoriteVideo.videoId,
+      title: favoriteVideo.title,
+      channelName: favoriteVideo.channelName,
+      thumbnail: favoriteVideo.thumbnail,
+      duration: favoriteVideo.duration,
+      viewCount: favoriteVideo.viewCount,
+      publishedAt: null, // Favorite videos don't have publishedAt
+      description: ''
+    }
+    
+    // Use the same handleVideoPlay function to switch to player
+    handleVideoPlay(video)
+  }
+
+  const handleNotesVideoPlay = (note: VideoNote) => {
+    // Convert VideoNote to Video format
+    const video = {
+      videoId: note.videoId,
+      id: note.videoId,
+      title: note.title,
+      channelName: note.channelName,
+      thumbnail: note.thumbnail,
+      duration: undefined, // Notes don't have duration
+      viewCount: undefined, // Notes don't have view count
+      publishedAt: null, // Notes don't have publishedAt
+      description: note.note
+    }
+    
+    // Use the same handleVideoPlay function to switch to player
+    handleVideoPlay(video)
+  }
+
   const handleVideoSelect = (video: Video) => {
     handleVideoPlay(video)
   }
@@ -1988,10 +2025,21 @@ export default function MyTubeApp() {
     const channelName = getChannelName(video)
     const channelLogo = getChannelLogo(video)
     
+    const handleCardClick = (e: React.MouseEvent) => {
+      // Prevent playing video if clicking on buttons
+      if ((e.target as HTMLElement).closest('button')) {
+        return
+      }
+      handleVideoSelect(video)
+    }
+    
     return (
-      <Card className={`group relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-border/50 hover:border-primary/30 ${
-        isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
-      }`}>
+      <Card 
+        className={`group relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-border/50 hover:border-primary/30 cursor-pointer ${
+          isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
+        }`}
+        onClick={handleCardClick}
+      >
         <CardContent className="p-2 sm:p-3 md:p-4">
           <div className="space-y-2 sm:space-y-3">
             {/* Thumbnail Section */}
@@ -2011,15 +2059,11 @@ export default function MyTubeApp() {
                 </Badge>
               )}
               {/* Overlay Actions on Hover */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100">
-                <Button
-                  size="sm"
-                  onClick={() => handleVideoSelect(video)}
-                  className="bg-white/90 hover:bg-white text-black hover:scale-110 transition-transform text-xs sm:text-sm px-2 sm:px-3"
-                >
-                  <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                  <span className="hidden sm:inline">Play</span>
-                </Button>
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 pointer-events-none">
+                <div className="bg-white/90 rounded-lg px-3 py-2 flex items-center gap-2">
+                  <Play className="w-4 h-4 sm:w-5 sm:h-5 text-black" />
+                  <span className="text-black text-xs sm:text-sm font-medium">Click to play</span>
+                </div>
               </div>
             </div>
             
@@ -2088,7 +2132,10 @@ export default function MyTubeApp() {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => handleVideoSelect(video)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleVideoSelect(video)
+                    }}
                     className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary"
                   >
                     <Play className="w-4 h-4" />
@@ -2097,7 +2144,10 @@ export default function MyTubeApp() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => toggleFavorite(video)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        toggleFavorite(video)
+                      }}
                       className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-500"
                       disabled={favoritesPaused}
                     >
@@ -3887,15 +3937,18 @@ export default function MyTubeApp() {
         )
 
       case 'favorites':
-        return <FavoritesContainer />
+        return <FavoritesContainer onVideoPlay={handleFavoritesVideoPlay} />
 
       case 'notes':
-        return <NotesContainer videoData={selectedVideo ? {
-          videoId: selectedVideo.videoId,
-          title: selectedVideo.title,
-          channelName: selectedVideo.channelName,
-          thumbnail: selectedVideo.thumbnail
-        } : undefined} />
+        return <NotesContainer 
+          videoData={selectedVideo ? {
+            videoId: selectedVideo.videoId,
+            title: selectedVideo.title,
+            channelName: selectedVideo.channelName,
+            thumbnail: selectedVideo.thumbnail
+          } : undefined}
+          onVideoPlay={handleNotesVideoPlay}
+        />
 
       {/* Edit Note Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>

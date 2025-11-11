@@ -5,7 +5,6 @@ import { NoteList } from './NoteList'
 import { NoteEditor } from './NoteEditor'
 import { VideoNote, CreateNoteRequest, UpdateNoteRequest } from '@/types/notes'
 import { useNotes } from '@/hooks/useNotes'
-import { useBackgroundPlayer } from '@/contexts/background-player-context'
 
 interface NotesContainerProps {
   videoData?: {
@@ -14,10 +13,11 @@ interface NotesContainerProps {
     channelName: string
     thumbnail?: string
   }
+  onVideoPlay?: (note: VideoNote) => void
   className?: string
 }
 
-export function NotesContainer({ videoData, className = '' }: NotesContainerProps) {
+export function NotesContainer({ videoData, onVideoPlay, className = '' }: NotesContainerProps) {
   const {
     notes,
     loading,
@@ -27,12 +27,6 @@ export function NotesContainer({ videoData, className = '' }: NotesContainerProp
     deleteNote,
     fetchNotes
   } = useNotes()
-
-  const {
-    backgroundVideo,
-    playBackgroundVideo,
-    seekTo
-  } = useBackgroundPlayer()
 
   const [isEditorOpen, setIsEditorOpen] = useState(false)
   const [editingNote, setEditingNote] = useState<VideoNote | undefined>()
@@ -59,17 +53,24 @@ export function NotesContainer({ videoData, className = '' }: NotesContainerProp
   }, [deleteNote])
 
   const handlePlay = useCallback((note: VideoNote) => {
-    if (note.videoId === backgroundVideo?.videoId) {
-      // If it's the same video, just seek to the start time
-      if (note.startTime !== undefined) {
-        seekTo(note.startTime)
-      }
-    } else {
-      // If it's a different video, we'd need to load it first
-      // For now, just show a message or handle accordingly
-      console.log('Playing different video:', note.videoId)
+    // Convert VideoNote to Video format for the main app
+    const video = {
+      videoId: note.videoId,
+      id: note.videoId, // Also set id for compatibility
+      title: note.title,
+      channelName: note.channelName,
+      thumbnail: note.thumbnail,
+      duration: undefined, // Notes don't have duration
+      viewCount: undefined, // Notes don't have view count
+      publishedAt: null, // Notes don't have publishedAt
+      description: note.note
     }
-  }, [backgroundVideo, seekTo])
+    
+    // Call the parent's onVideoPlay function if provided
+    if (onVideoPlay) {
+      onVideoPlay(note)
+    }
+  }, [onVideoPlay])
 
   const handleSave = useCallback(async (data: CreateNoteRequest | { id: string; data: UpdateNoteRequest }) => {
     try {

@@ -79,6 +79,57 @@ export function generateEmbedUrl(videoId: string, startTime?: number): string {
 }
 
 /**
+ * Extracts video ID from YouTube URL
+ */
+export function extractVideoIdFromUrl(url: string): string | null {
+  if (!url || typeof url !== 'string') {
+    return null
+  }
+  
+  try {
+    const urlObj = new URL(url)
+    const hostname = urlObj.hostname.toLowerCase()
+    
+    // Handle different YouTube URL formats
+    if (hostname.includes('youtube.com')) {
+      // Standard watch URL: https://www.youtube.com/watch?v=VIDEO_ID
+      if (urlObj.pathname === '/watch') {
+        return urlObj.searchParams.get('v')
+      }
+      // Shortened URL: https://www.youtube.com/v/VIDEO_ID
+      else if (urlObj.pathname.startsWith('/v/')) {
+        return urlObj.pathname.slice(3)
+      }
+      // Embedded URL: https://www.youtube.com/embed/VIDEO_ID
+      else if (urlObj.pathname.startsWith('/embed/')) {
+        return urlObj.pathname.slice(7)
+      }
+    }
+    // Handle shortened youtu.be URLs
+    else if (hostname.includes('youtu.be')) {
+      return urlObj.pathname.slice(1)
+    }
+    
+    return null
+  } catch (error) {
+    // If URL parsing fails, try regex as fallback
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]+)/,
+      /v=([a-zA-Z0-9_-]+)/
+    ]
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern)
+      if (match && match[1]) {
+        return match[1]
+      }
+    }
+    
+    return null
+  }
+}
+
+/**
  * Generates YouTube watch URL from video ID
  */
 export function generateWatchUrl(videoId: string, startTime?: number): string {
