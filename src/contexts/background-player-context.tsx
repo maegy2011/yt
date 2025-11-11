@@ -53,17 +53,6 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
   const playerRef = useRef<any>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   
-  // Watched tracking state
-  const [watchedTracking, setWatchedTracking] = useState<{
-    videoId: string | null
-    startTime: number | null
-    hasBeenLogged: boolean
-  }>({
-    videoId: null,
-    startTime: null,
-    hasBeenLogged: false
-  })
-
   // Notification and Keep-Alive services
   const {
     requestPermission,
@@ -80,28 +69,6 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
     releaseWakeLock
   } = useKeepAliveService()
 
-  // Function to add video to watched history
-  const addToWatchedHistory = useCallback(async (video: SimpleVideo) => {
-    try {
-      const videoId = video.videoId || video.id
-      await fetch('/api/watched', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          videoId: videoId,
-          title: video.title,
-          channelName: video.channelName,
-          thumbnail: video.thumbnail,
-          duration: video.duration,
-          viewCount: video.viewCount
-        })
-      })
-      console.log('Video added to watched history:', video.title)
-    } catch (error) {
-      console.error('Failed to add to watched history:', error)
-    }
-  }, [])
-
   // Monitor current time when playing
   const startMonitoring = useCallback(() => {
     if (intervalRef.current) {
@@ -113,18 +80,12 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
         try {
           const time = playerRef.current.getCurrentTime()
           setCurrentTime(time)
-          
-          // Check if 5 seconds have passed and video hasn't been logged yet
-          if (backgroundVideo && !watchedTracking.hasBeenLogged && time >= 5) {
-            addToWatchedHistory(backgroundVideo)
-            setWatchedTracking(prev => ({ ...prev, hasBeenLogged: true }))
-          }
         } catch (error) {
           console.error('Error getting current time:', error)
         }
       }
     }, 1000) // Update every second for background mode
-  }, [backgroundVideo, watchedTracking.hasBeenLogged, addToWatchedHistory])
+  }, [])
 
   const stopMonitoring = useCallback(() => {
     if (intervalRef.current) {
@@ -138,14 +99,6 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
     setIsBackgroundMode(true)
     setShowMiniPlayer(true)
     setIsPlaying(true)
-    
-    // Reset watched tracking for new video
-    const videoId = video.videoId || video.id
-    setWatchedTracking({
-      videoId,
-      startTime: Date.now(),
-      hasBeenLogged: false
-    })
     
     startMonitoring()
     
@@ -183,13 +136,6 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
     setShowMiniPlayer(false)
     setCurrentTime(0)
     setDuration(0)
-    
-    // Reset watched tracking
-    setWatchedTracking({
-      videoId: null,
-      startTime: null,
-      hasBeenLogged: false
-    })
     
     if (playerRef.current) {
       playerRef.current.stopVideo()

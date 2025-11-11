@@ -54,10 +54,6 @@ export interface BaseVideoData {
   viewCount?: number
 }
 
-export interface WatchedVideo extends BaseVideoData {
-  watchedAt: string
-}
-
 export type FavoriteVideo = BaseVideoData
 
 export interface FavoriteChannel {
@@ -207,7 +203,7 @@ export function convertYouTubeChannel(channel: any): SimpleChannel {
 }
 
 // Convert database video to SimpleVideo
-export function convertDbVideoToSimple(dbVideo: WatchedVideo | FavoriteVideo | any): SimpleVideo {
+export function convertDbVideoToSimple(dbVideo: FavoriteVideo | any): SimpleVideo {
   return {
     id: dbVideo.id,
     videoId: dbVideo.videoId,
@@ -216,7 +212,7 @@ export function convertDbVideoToSimple(dbVideo: WatchedVideo | FavoriteVideo | a
     thumbnail: dbVideo.thumbnail || '',
     duration: dbVideo.duration,
     viewCount: dbVideo.viewCount,
-    publishedAt: 'watchedAt' in dbVideo ? dbVideo.watchedAt : ('addedAt' in dbVideo ? dbVideo.addedAt : new Date().toISOString()),
+    publishedAt: 'addedAt' in dbVideo ? dbVideo.addedAt : new Date().toISOString(),
     isLive: false,
     type: 'video'
   }

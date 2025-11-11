@@ -17,7 +17,7 @@ import {
   X
 } from 'lucide-react'
 
-type Tab = 'home' | 'search' | 'player' | 'watched' | 'channels' | 'favorites' | 'notes'
+type Tab = 'home' | 'search' | 'player' | 'channels' | 'favorites' | 'notes'
 
 interface BottomNavigationProps {
   activeTab: Tab
@@ -83,7 +83,7 @@ export function BottomNavigation({
     { id: 'home', icon: Home, label: 'Home', showAlways: true },
     { id: 'search', icon: Search, label: 'Search', showAlways: true },
     { id: 'player', icon: Play, label: 'Player', showAlways: true },
-    { id: 'watched', icon: Clock, label: 'Watched', showAlways: true },
+    
     { id: 'channels', icon: Users, label: 'Channels', showAlways: true },
     { id: 'favorites', icon: Heart, label: 'Favorites', showAlways: false },
     { id: 'notes', icon: FileText, label: 'Notes', showAlways: true },

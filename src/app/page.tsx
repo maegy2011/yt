@@ -15,7 +15,6 @@ import {
   Search, 
   Play, 
   Pause,
-  Clock, 
   Heart, 
   User, 
   Check,
@@ -49,7 +48,7 @@ import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from
 import { validateSearchQuery } from '@/lib/validation'
 import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from '@/lib/loading-messages'
 import type { Video as YouTubeVideo } from '@/lib/youtube'
-import { convertYouTubeVideo, convertYouTubePlaylist, convertYouTubeChannel, convertToYouTubeVideo, convertDbVideoToSimple, type SimpleVideo, type SimplePlaylist, type SimpleChannel, type WatchedVideo, type FavoriteVideo, type FavoriteChannel, type VideoNote, type ChannelSearchResult, type PaginationInfo, type FollowedChannelsContent } from '@/lib/type-compatibility'
+import { convertYouTubeVideo, convertYouTubePlaylist, convertYouTubeChannel, convertToYouTubeVideo, convertDbVideoToSimple, type SimpleVideo, type SimplePlaylist, type SimpleChannel, type FavoriteVideo, type FavoriteChannel, type VideoNote, type ChannelSearchResult, type PaginationInfo, type FollowedChannelsContent } from '@/lib/type-compatibility'
 import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleton'
 import { SplashScreen } from '@/components/splash-screen'
 import { VideoNote as VideoNoteComponent } from '@/components/video-note'
@@ -62,7 +61,7 @@ import { ThemeSwitch } from '@/components/theme-switch'
 import { useRealTimeUpdates } from '@/hooks/use-real-time-updates'
 
 // Enhanced types with better safety
-type Tab = 'home' | 'search' | 'player' | 'watched' | 'channels' | 'favorites' | 'notes'
+type Tab = 'home' | 'search' | 'player' | 'channels' | 'favorites' | 'notes'
 
 // Use SimpleVideo for internal state
 type Video = SimpleVideo
@@ -107,7 +106,7 @@ export default function MyTubeApp() {
   const [autoLoadMore, setAutoLoadMore] = useState(true) // Default to enabled
   
   // Data states
-  const [watchedVideos, setWatchedVideos] = useState<WatchedVideo[]>([])
+
   const [favoriteChannels, setFavoriteChannels] = useState<FavoriteChannel[]>([])
   const [favoriteVideos, setFavoriteVideos] = useState<FavoriteVideo[]>([])
   const [allNotes, setAllNotes] = useState<VideoNote[]>([])
@@ -189,20 +188,9 @@ export default function MyTubeApp() {
   // Real-time updates
   const {
     isConnected: isRealTimeConnected,
-    emitWatchedUpdate,
     emitFavoritesUpdate,
     emitNotesUpdate
   } = useRealTimeUpdates({
-    onWatchedChanged: (data) => {
-      console.log('Real-time watched update received:', data)
-      // Refresh watched videos when changes are detected
-      loadWatchedVideos()
-      
-      // Show notification for real-time updates
-      if (data.type === 'added') {
-        addNotification('New Video Watched', `"${data.video?.title}" was added to watch history`, 'info')
-      }
-    },
     onFavoritesChanged: (data) => {
       console.log('Real-time favorites update received:', data)
       // Refresh favorites when changes are detected
@@ -524,7 +512,7 @@ export default function MyTubeApp() {
       { id: 'home' as Tab, icon: Home, label: 'Home' },
       { id: 'search' as Tab, icon: Search, label: 'Search' },
       { id: 'player' as Tab, icon: Play, label: 'Player' },
-      { id: 'watched' as Tab, icon: Clock, label: 'Watched' },
+
       { id: 'channels' as Tab, icon: User, label: 'Channels' },
       { id: 'notes' as Tab, icon: FileText, label: 'Notes' },
     ]
@@ -628,8 +616,8 @@ export default function MyTubeApp() {
       
       if (Math.abs(swipeDistance) > minSwipeDistance && verticalDistance < maxVerticalDistance) {
         const tabs: Tab[] = favoritesEnabled 
-          ? ['home', 'search', 'player', 'watched', 'channels', 'favorites', 'notes']
-          : ['home', 'search', 'player', 'watched', 'channels', 'notes']
+          ? ['home', 'search', 'player', 'channels', 'favorites', 'notes']
+          : ['home', 'search', 'player', 'channels', 'notes']
         const currentIndex = tabs.indexOf(activeTab)
         
         if (swipeDistance > 0) {
@@ -775,23 +763,7 @@ export default function MyTubeApp() {
   }, [])
 
   // Data loading functions
-  const loadWatchedVideos = useCallback(async (): Promise<void> => {
-    try {
-      const response = await fetchWithRetry('/api/watched')
-      if (!response.ok) {
-        console.error('Response status:', response.status, response.statusText)
-        throw new Error(`Failed to fetch watched videos: ${response.status} ${response.statusText}`)
-      }
-      const data = await response.json()
-      // Convert database videos to SimpleVideo format
-      const convertedVideos = (data || []).map((video: WatchedVideo) => convertDbVideoToSimple(video))
-      setWatchedVideos(convertedVideos)
-    } catch (error) {
-      console.error('Failed to load watched videos:', error)
-      setWatchedVideos([])
-      addNotification('Failed to load watched videos', 'Please check your connection and try again', 'destructive')
-    }
-  }, [addNotification])
+  
 
   const loadFavoriteChannels = useCallback(async (): Promise<FavoriteChannel[]> => {
     try {
@@ -853,7 +825,6 @@ export default function MyTubeApp() {
     setRetryCount(prev => prev + 1)
     try {
       await Promise.all([
-        loadWatchedVideos(),
         loadFavoriteChannels(),
         loadFavoriteVideos(),
         loadNotes()
@@ -868,7 +839,7 @@ export default function MyTubeApp() {
         addNotification('Connection issues persist', 'Please refresh the page', 'destructive')
       }
     }
-  }, [loadWatchedVideos, loadFavoriteChannels, loadFavoriteVideos, loadNotes, retryCount, addNotification])
+  }, [loadFavoriteChannels, loadFavoriteVideos, loadNotes, retryCount, addNotification])
 
   const deleteNote = async (noteId: string): Promise<void> => {
     try {
@@ -1049,9 +1020,7 @@ export default function MyTubeApp() {
     return allNotes.some(note => note.videoId === videoId)
   }
 
-  const isWatched = (videoId: string): boolean => {
-    return watchedVideos.some(video => video.videoId === videoId)
-  }
+  
 
   const toggleMobileMenu = useCallback(() => {
     setMobileMenuOpen(prev => !prev)
@@ -1118,7 +1087,6 @@ export default function MyTubeApp() {
       
       // Reload fresh data
       await Promise.all([
-        loadWatchedVideos(),
         loadFavoriteChannels(),
         loadFavoriteVideos()
       ])
@@ -1625,22 +1593,6 @@ export default function MyTubeApp() {
         description: ''
       })))
     }
-    
-    // Add watched videos if available
-    if (watchedVideos.length > 0) {
-      allVideos.push(...watchedVideos.map(v => ({
-        id: v.id,
-        videoId: v.videoId,
-        title: v.title,
-        channelName: v.channelName,
-        thumbnail: v.thumbnail,
-        duration: v.duration,
-        viewCount: v.viewCount,
-        publishedAt: v.watchedAt,
-        isLive: false,
-        description: ''
-      })))
-    }
 
     // Remove duplicates and current video
     const uniqueVideos = allVideos.filter((video, index, self) => 
@@ -1670,7 +1622,7 @@ export default function MyTubeApp() {
     } else {
       addNotification('No more videos', 'No next video available', 'info')
     }
-  }, [selectedVideo, searchResults, channelVideos, favoriteVideos, watchedVideos, handleVideoPlay, addNotification])
+  }, [selectedVideo, searchResults, channelVideos, favoriteVideos, handleVideoPlay, addNotification])
 
   const handlePreviousVideo = useCallback(() => {
     if (!selectedVideo) return
@@ -1699,22 +1651,6 @@ export default function MyTubeApp() {
         duration: v.duration,
         viewCount: v.viewCount,
         publishedAt: '', // Add default if needed
-        isLive: false,
-        description: ''
-      })))
-    }
-    
-    // Add watched videos if available
-    if (watchedVideos.length > 0) {
-      allVideos.push(...watchedVideos.map(v => ({
-        id: v.id,
-        videoId: v.videoId,
-        title: v.title,
-        channelName: v.channelName,
-        thumbnail: v.thumbnail,
-        duration: v.duration,
-        viewCount: v.viewCount,
-        publishedAt: v.watchedAt,
         isLive: false,
         description: ''
       })))
@@ -1748,7 +1684,7 @@ export default function MyTubeApp() {
     } else {
       addNotification('No more videos', 'No previous video available', 'info')
     }
-  }, [selectedVideo, searchResults, channelVideos, favoriteVideos, watchedVideos, handleVideoPlay, addNotification])
+  }, [selectedVideo, searchResults, channelVideos, favoriteVideos, handleVideoPlay, addNotification])
 
   const toggleFavorite = async (video: Video) => {
     // Check if favorites are enabled
@@ -1897,7 +1833,6 @@ export default function MyTubeApp() {
     const loadInitialData = async () => {
       try {
         const results = await Promise.all([
-          loadWatchedVideos(),
           loadFavoriteChannels(),
           loadFavoriteVideos(),
           loadNotes()
@@ -1916,7 +1851,7 @@ export default function MyTubeApp() {
     if (!showSplashScreen) {
       loadInitialData()
     }
-  }, [showSplashScreen, loadWatchedVideos, loadFavoriteChannels, loadFavoriteVideos, loadNotes, addNotification])
+  }, [showSplashScreen, loadFavoriteChannels, loadFavoriteVideos, loadNotes, addNotification])
 
   // Load followed channels content when favorite channels change
   useEffect(() => {
@@ -1999,11 +1934,10 @@ export default function MyTubeApp() {
 
   // Refresh data when switching to certain tabs to ensure data is up to date
   useEffect(() => {
-    if (!showSplashScreen && (activeTab === 'watched' || activeTab === 'notes')) {
+    if (!showSplashScreen && activeTab === 'notes') {
       const refreshData = async () => {
         try {
           await Promise.all([
-            loadWatchedVideos(),
             loadNotes()
           ])
         } catch (error) {
@@ -2012,7 +1946,7 @@ export default function MyTubeApp() {
       }
       refreshData()
     }
-  }, [activeTab, showSplashScreen, loadWatchedVideos, loadNotes])
+  }, [activeTab, showSplashScreen, loadNotes])
 
   const toggleItemSelection = useCallback((itemId: string) => {
     setSelectedItems(prev => {
@@ -3236,72 +3170,6 @@ export default function MyTubeApp() {
                 </div>
               </div>
             )}
-            
-            {watchedVideos.length > 0 && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Recently Watched</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {watchedVideos.slice(0, 6).map((video) => {
-                    const videoId = video.videoId || video.id
-                    const isFavorite = favoriteVideoIds.has(videoId)
-                    return (
-                      <Card key={videoId} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
-                        <div className="relative">
-                          <img
-                            src={getSafeThumbnailUrl(video)}
-                            alt={video.title}
-                            className="w-full h-32 object-cover rounded-t-lg"
-                            onClick={() => handleVideoPlay(video)}
-                          />
-                          {video.duration && (
-                            <Badge className="absolute bottom-2 right-2 bg-black/80 text-white text-xs">
-                              {video.duration}
-                            </Badge>
-                          )}
-                          {/* Play button overlay */}
-                          <div 
-                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-t-lg cursor-pointer"
-                            onClick={() => handleVideoPlay(video)}
-                          >
-                            <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform">
-                              <Play className="w-6 h-6 text-black ml-1" />
-                            </div>
-                          </div>
-                          {/* Favorite button */}
-                          {favoritesEnabled && (
-                            <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              toggleFavorite(video)
-                            }}
-                            className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
-                              isFavorite 
-                                ? 'bg-red-600 text-white shadow-lg' 
-                                : 'bg-black/60 text-white hover:bg-black/80'
-                            }`}
-                          >
-                            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-                            </button>
-                          )}
-                        </div>
-                        <CardContent className="p-3">
-                          <h3 
-                            className="font-medium line-clamp-2 text-sm mb-1 cursor-pointer hover:text-primary transition-colors"
-                            onClick={() => handleVideoPlay(video)}
-                          >
-                            {video.title}
-                          </h3>
-                          <p className="text-xs text-muted-foreground">{video.channelName}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Watched {new Date(video.watchedAt).toLocaleDateString()}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
 
             {favoriteVideos.length > 0 && (
               <div className="space-y-4">
@@ -3366,7 +3234,7 @@ export default function MyTubeApp() {
               </div>
             )}
 
-            {followedChannelsContent === null && channelVideos.length === 0 && watchedVideos.length === 0 && favoriteVideos.length === 0 && (
+            {followedChannelsContent === null && channelVideos.length === 0 && favoriteVideos.length === 0 && (
               <Card className="p-12 text-center">
                 <div className="max-w-md mx-auto space-y-4">
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
@@ -3789,53 +3657,6 @@ export default function MyTubeApp() {
                 <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
                 <p className="text-lg font-medium mb-2">No Video Selected</p>
                 <p>Search for videos from the Search tab, then select any video to start watching and creating notes</p>
-              </div>
-            )}
-          </div>
-        )
-
-      case 'watched':
-        return (
-          <div className="space-y-6">
-            <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-6 border border-border">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent mb-2">
-                    Watch History
-                  </h2>
-                  <p className="text-muted-foreground">Videos you've recently watched</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={loadWatchedVideos}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-4 h-4" />
-                    )}
-                  </Button>
-                  <div className="text-2xl font-bold text-primary">
-                    {watchedVideos.length}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {watchedVideos.length > 0 ? (
-              <div className="space-y-3">
-                {watchedVideos.map((video) => (
-                  <VideoCard key={video.videoId || video.id} video={video} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <Clock className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">No Watch History</p>
-                <p>Start watching videos to see them here</p>
               </div>
             )}
           </div>
@@ -4877,10 +4698,6 @@ export default function MyTubeApp() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <div className="flex justify-between text-xs">
-                    <span>Watched Videos</span>
-                    <span className="font-mono">{watchedVideos.length}</span>
-                  </div>
-                  <div className="flex justify-between text-xs">
                     <span>Favorite Channels</span>
                     <span className="font-mono">{favoriteChannels.length}</span>
                   </div>
@@ -4893,7 +4710,7 @@ export default function MyTubeApp() {
                   <div className="flex justify-between text-xs font-medium pt-2 border-t">
                     <span>Total Items</span>
                     <span className="font-mono">
-                      {watchedVideos.length + favoriteChannels.length + (favoritesEnabled ? favoriteVideos.length : 0)}
+                      {favoriteChannels.length + (favoritesEnabled ? favoriteVideos.length : 0)}
                     </span>
                   </div>
                 </CardContent>
@@ -4905,7 +4722,7 @@ export default function MyTubeApp() {
                 
                 <Alert>
                   <AlertDescription className="text-xs">
-                    This will permanently delete all your data including watched videos, 
+                    This will permanently delete all your data including 
                     favorite channels, favorite videos, and all local settings.
                   </AlertDescription>
                 </Alert>
@@ -4914,7 +4731,6 @@ export default function MyTubeApp() {
                   variant="destructive"
                   onClick={clearAllData}
                   disabled={loading || (
-                    watchedVideos.length === 0 && 
                     favoriteChannels.length === 0 && 
                     (favoritesEnabled ? favoriteVideos.length : 0) === 0
                   )}
@@ -4976,10 +4792,6 @@ export default function MyTubeApp() {
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-destructive rounded-full"></div>
-                  <span>{watchedVideos.length} watched videos</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-destructive rounded-full"></div>
                   <span>{favoriteChannels.length} favorite channels</span>
                 </li>
                 <li className="flex items-center gap-2">
@@ -4998,7 +4810,7 @@ export default function MyTubeApp() {
               
               <div className="pt-2 border-t">
                 <p className="text-xs text-muted-foreground">
-                  <strong>Total items to be deleted:</strong> {watchedVideos.length + favoriteChannels.length + (favoritesEnabled ? favoriteVideos.length : 0)} database records + all local data
+                  <strong>Total items to be deleted:</strong> {favoriteChannels.length + (favoritesEnabled ? favoriteVideos.length : 0)} database records + all local data
                 </p>
               </div>
             </div>

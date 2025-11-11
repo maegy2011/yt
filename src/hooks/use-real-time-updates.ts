@@ -11,14 +11,12 @@ interface RealTimeUpdateData {
 }
 
 interface UseRealTimeUpdatesProps {
-  onWatchedChanged?: (data: RealTimeUpdateData) => void
   onFavoritesChanged?: (data: RealTimeUpdateData) => void
   onNotesChanged?: (data: RealTimeUpdateData) => void
   onMessage?: (data: { text: string; senderId: string; timestamp: string }) => void
 }
 
 export function useRealTimeUpdates({
-  onWatchedChanged,
   onFavoritesChanged,
   onNotesChanged,
   onMessage
@@ -46,7 +44,6 @@ export function useRealTimeUpdates({
         reconnectAttempts.current = 0
         
         // Join default rooms for different data types
-        socket.emit('join-room', 'watched')
         socket.emit('join-room', 'favorites')
         socket.emit('join-room', 'notes')
       })
@@ -64,12 +61,6 @@ export function useRealTimeUpdates({
 
       socket.on('connect_error', (error) => {
         console.error('Connection error:', error.message)
-      })
-
-      // Handle real-time data updates
-      socket.on('watched-changed', (data: RealTimeUpdateData) => {
-        console.log('Watched videos updated:', data)
-        onWatchedChanged?.(data)
       })
 
       socket.on('favorites-changed', (data: RealTimeUpdateData) => {
@@ -91,18 +82,12 @@ export function useRealTimeUpdates({
     } catch (error) {
       console.error('Failed to connect to real-time updates server:', error)
     }
-  }, [onWatchedChanged, onFavoritesChanged, onNotesChanged, onMessage])
+  }, [onFavoritesChanged, onNotesChanged, onMessage])
 
   const disconnect = useCallback(() => {
     if (socketRef.current) {
       socketRef.current.disconnect()
       socketRef.current = null
-    }
-  }, [])
-
-  const emitWatchedUpdate = useCallback((data: RealTimeUpdateData) => {
-    if (socketRef.current?.connected) {
-      socketRef.current.emit('watched-updated', data)
     }
   }, [])
 
@@ -137,7 +122,6 @@ export function useRealTimeUpdates({
     isConnected: socketRef.current?.connected || false,
     connect,
     disconnect,
-    emitWatchedUpdate,
     emitFavoritesUpdate,
     emitNotesUpdate,
     sendMessage

@@ -158,12 +158,7 @@ export function useAdvancedFavorites(): FavoritesState & FavoriteOperations & {
         )
       }
       
-      if (customFilters?.watched !== undefined || filters.watched !== undefined) {
-        const watched = customFilters?.watched || filters.watched
-        filteredFavorites = filteredFavorites.filter((favorite: FavoriteVideo) => 
-          favorite.watched === watched
-        )
-      }
+      
       
       if (customFilters?.dateRange || filters.dateRange) {
         const dateRange = customFilters?.dateRange || filters.dateRange
@@ -562,8 +557,6 @@ export function useAdvancedFavorites(): FavoritesState & FavoriteOperations & {
     total: favorites.length,
     privateFavorites: favorites.filter(fav => fav.isPrivate).length,
     publicFavorites: favorites.filter(fav => !fav.isPrivate).length,
-    watchedFavorites: favorites.filter(fav => fav.watched).length,
-    unwatchedFavorites: favorites.filter(fav => !fav.watched).length,
     averageRating: favorites.length > 0 
       ? favorites.reduce((sum, fav) => sum + (fav.rating || 0), 0) / favorites.length
       : 0,

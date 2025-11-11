@@ -15,7 +15,6 @@ export interface FavoriteVideo {
   category?: string
   rating?: number
   notes?: string
-  watched?: boolean
   watchProgress?: number
 }
 
@@ -39,7 +38,6 @@ export interface UpdateFavoriteRequest {
   category?: string
   rating?: number
   notes?: string
-  watched?: boolean
   watchProgress?: number
 }
 
@@ -50,7 +48,6 @@ export interface FavoriteFilters {
   tags?: string[]
   category?: string
   rating?: number
-  watched?: boolean
   dateRange?: {
     start: string
     end: string
@@ -104,8 +101,6 @@ export interface FavoriteStats {
   total: number
   privateFavorites: number
   publicFavorites: number
-  watchedFavorites: number
-  unwatchedFavorites: number
   averageRating: number
   totalWatchTime: number
   categoryStats: Record<string, number>

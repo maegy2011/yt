@@ -15,19 +15,6 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
-model WatchedVideo {
-  id        String   @id @default(cuid())
-  videoId   String
-  title      String
-  channelName String
-  thumbnail  String
-  duration   String?
-  viewCount  Int?
-  watchedAt  DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model FavoriteVideo {
   id        String   @id @default(cuid())
   videoId   String   @unique

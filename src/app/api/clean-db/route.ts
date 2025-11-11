@@ -6,13 +6,11 @@ export async function POST() {
     console.log('Starting database cleanup...')
     
     // Delete all data from all tables
-    const watchedVideosCount = await db.watchedVideo.deleteMany()
     const favoriteChannelsCount = await db.favoriteChannel.deleteMany()
     const favoriteVideosCount = await db.favoriteVideo.deleteMany()
     const videoNotesCount = await db.videoNote.deleteMany()
     
     console.log('Database cleanup completed:', {
-      watchedVideos: watchedVideosCount.count,
       favoriteChannels: favoriteChannelsCount.count,
       favoriteVideos: favoriteVideosCount.count,
       videoNotes: videoNotesCount.count
@@ -22,7 +20,6 @@ export async function POST() {
       success: true,
       message: 'Database cleaned successfully',
       deleted: {
-        watchedVideos: watchedVideosCount.count,
         favoriteChannels: favoriteChannelsCount.count,
         favoriteVideos: favoriteVideosCount.count,
         videoNotes: videoNotesCount.count
@@ -41,18 +38,16 @@ export async function POST() {
 export async function GET() {
   try {
     // Get current database statistics
-    const watchedVideosCount = await db.watchedVideo.count()
     const favoriteChannelsCount = await db.favoriteChannel.count()
     const favoriteVideosCount = await db.favoriteVideo.count()
     const videoNotesCount = await db.videoNote.count()
     
     return NextResponse.json({
       statistics: {
-        watchedVideos: watchedVideosCount,
         favoriteChannels: favoriteChannelsCount,
         favoriteVideos: favoriteVideosCount,
         videoNotes: videoNotesCount,
-        total: watchedVideosCount + favoriteChannelsCount + favoriteVideosCount + videoNotesCount
+        total: favoriteChannelsCount + favoriteVideosCount + videoNotesCount
       }
     })
   } catch (error) {

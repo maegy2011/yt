@@ -133,17 +133,7 @@ export function VideoNote({
   const playerRef = useRef<any>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   
-  // Watched tracking state
-  const [watchedTracking, setWatchedTracking] = useState<{
-    videoId: string | null
-    startTime: number | null
-    hasBeenLogged: boolean
-  }>({
-    videoId: null,
-    startTime: null,
-    hasBeenLogged: false
-  })
-
+  
   // Local notification system
   const [notification, setNotification] = useState<{
     message: string
@@ -155,29 +145,7 @@ export function VideoNote({
     setTimeout(() => setNotification(null), 3000)
   }, [])
 
-  // Function to add video to watched history
-  const addToWatchedHistory = useCallback(async () => {
-    if (watchedTracking.hasBeenLogged) return
-    
-    try {
-      await fetch('/api/watched', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          videoId: videoId,
-          title: videoTitle,
-          channelName: channelName || '',
-          thumbnail: thumbnail || '',
-          duration: duration,
-          viewCount: viewCount
-        })
-      })
-      console.log('Video added to watched history:', videoTitle)
-      setWatchedTracking(prev => ({ ...prev, hasBeenLogged: true }))
-    } catch (error) {
-      console.error('Failed to add to watched history:', error)
-    }
-  }, [videoId, videoTitle, channelName, thumbnail, duration, viewCount, watchedTracking.hasBeenLogged])
+  
 
   // Function to refresh notes
   const refreshNotes = useCallback(async () => {
@@ -348,11 +316,6 @@ export function VideoNote({
         try {
           const currentTime = playerRef.current.getCurrentTime()
           setCurrentTime(currentTime)
-          
-          // Check if 5 seconds have passed and video hasn't been logged yet
-          if (!watchedTracking.hasBeenLogged && currentTime >= 5) {
-            addToWatchedHistory()
-          }
         } catch (error) {
           console.error('Error getting current time:', error)
         }
@@ -360,7 +323,7 @@ export function VideoNote({
     }, 100) // Update every 100ms for more accuracy
 
     return () => clearInterval(interval)
-  }, [watchedTracking.hasBeenLogged, addToWatchedHistory]) // Include dependencies
+  }, [])
 
   // Monitor video progress and enforce timestamp limits
   useEffect(() => {
@@ -711,13 +674,6 @@ export function VideoNote({
     playerRef.current = event.target
     setDuration(event.target.getDuration())
     setPlayerReady(true)
-    
-    // Initialize watched tracking for this video
-    setWatchedTracking({
-      videoId: videoId,
-      startTime: Date.now(),
-      hasBeenLogged: false
-    })
     
     // Initialize current time from player
     try {

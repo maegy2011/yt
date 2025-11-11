@@ -16,12 +16,6 @@ export const setupSocket = (io: Server) => {
       console.log(`Client ${socket.id} left room: ${room}`);
     });
 
-    // Broadcast watched video updates
-    socket.on('watched-updated', (data: { type: 'added' | 'removed', video: any }) => {
-      socket.broadcast.emit('watched-changed', data);
-      console.log('Watched video update broadcasted:', data);
-    });
-
     // Broadcast favorite updates
     socket.on('favorites-updated', (data: { type: 'added' | 'removed', item: any }) => {
       socket.broadcast.emit('favorites-changed', data);
