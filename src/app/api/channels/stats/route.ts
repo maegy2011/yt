@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// Use require for youtubei to avoid module resolution issues
-const youtubei = require('youtubei')
-const Client = youtubei.Client
+// Use dynamic import for youtubei to avoid module resolution issues
+let Client: any
+let youtubei: any
+
+const initializeYoutubei = async () => {
+  try {
+    const youtubeiModule = await import('youtubei')
+    youtubei = youtubeiModule.default || youtubeiModule
+    Client = youtubei.Client || youtubeiModule.Client
+    console.log('YouTubei initialized successfully for stats')
+  } catch (error) {
+    console.error('Failed to initialize YouTubei for stats:', error)
+  }
+}
+
+// Initialize immediately
+initializeYoutubei().catch(console.error)
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,6 +56,9 @@ async function getSingleChannelStats(channelId: string, includeComparison: boole
     }
 
     // Get channel data from YouTube API
+    if (!Client) {
+      return NextResponse.json({ error: 'YouTube client not initialized' }, { status: 500 })
+    }
     const youtube = new Client()
     const channelData = await youtube.getChannel(channelId)
 
@@ -129,6 +146,9 @@ async function getAllChannelsStats(includeComparison: boolean, timeframe: string
     }
 
     // Get detailed data for each channel
+    if (!Client) {
+      return NextResponse.json({ error: 'YouTube client not initialized' }, { status: 500 })
+    }
     const youtube = new Client()
     
     const channelDetails: any[] = []

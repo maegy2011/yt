@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// Use require for youtubei to avoid module resolution issues
-const youtubei = require('youtubei')
-const Client = youtubei.Client
+// Use dynamic import for youtubei to avoid module resolution issues
+let Client: any
+let youtubei: any
+
+const initializeYoutubei = async () => {
+  try {
+    const youtubeiModule = await import('youtubei')
+    youtubei = youtubeiModule.default || youtubeiModule
+    Client = youtubei.Client || youtubeiModule.Client
+    console.log('YouTubei initialized successfully for channels')
+  } catch (error) {
+    console.error('Failed to initialize YouTubei for channels:', error)
+  }
+}
+
+// Initialize immediately
+initializeYoutubei().catch(console.error)
 
 // Helper function to extract thumbnail URL from YouTubei v1.7.0 Thumbnails API
 function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
@@ -153,6 +167,19 @@ export async function GET(request: NextRequest) {
     })
 
     // Use youtubei for real YouTube data
+    if (!Client) {
+      console.error('YouTube client not initialized for channels, waiting...')
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      if (!Client) {
+        return NextResponse.json({ 
+          error: 'YouTube service temporarily unavailable. Please try again.',
+          items: [],
+          query: query,
+          total: 0,
+          message: 'Service temporarily unavailable'
+        }, { status: 503 })
+      }
+    }
     const youtube = new Client()
     
     // Search for channels specifically

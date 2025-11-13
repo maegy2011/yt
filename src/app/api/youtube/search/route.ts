@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Use require for youtubei to avoid module resolution issues
-const youtubei = require('youtubei')
-const Client = youtubei.Client
+// Use dynamic import for youtubei to avoid module resolution issues
+let Client: any
+let youtubei: any
+
+const initializeYoutubei = async () => {
+  try {
+    const youtubeiModule = await import('youtubei')
+    youtubei = youtubeiModule.default || youtubeiModule
+    Client = youtubei.Client || youtubeiModule.Client
+    console.log('YouTubei initialized successfully')
+  } catch (error) {
+    console.error('Failed to initialize YouTubei:', error)
+  }
+}
+
+// Initialize immediately
+initializeYoutubei().catch(console.error)
 
 // Helper function to extract thumbnail URL from YouTubei v1.7.0 Thumbnails API
 function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
@@ -116,6 +130,21 @@ export async function GET(request: NextRequest) {
     })
 
     // Use youtubei for real YouTube data only
+    if (!Client) {
+      console.error('YouTube client not initialized, waiting...')
+      // Wait a bit and retry once
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      if (!Client) {
+        return NextResponse.json({ 
+          error: 'YouTube service temporarily unavailable. Please try again.',
+          items: [],
+          continuation: null,
+          query: query,
+          page: parseInt(page),
+          hasMore: false
+        }, { status: 503 })
+      }
+    }
     const youtube = new Client()
     
     let results
@@ -125,6 +154,9 @@ export async function GET(request: NextRequest) {
         console.log('Attempting continuation search with token:', continuation.substring(0, 50) + '...')
         
         // Create a new client for continuation
+        if (!Client) {
+          return NextResponse.json({ error: 'YouTube client not initialized' }, { status: 500 })
+        }
         const continuationClient = new Client()
         const continuationResults = await continuationClient.search(query, { 
           type: type as any,

@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-// Use require for youtubei to avoid module resolution issues
-const youtubei = require('youtubei')
-const Client = youtubei.Client
+// Use dynamic import for youtubei to avoid module resolution issues
+let Client: any
+let youtubei: any
+
+const initializeYoutubei = async () => {
+  try {
+    const youtubeiModule = await import('youtubei')
+    youtubei = youtubeiModule.default || youtubeiModule
+    Client = youtubei.Client || youtubeiModule.Client
+    console.log('YouTubei initialized successfully for followed channels')
+  } catch (error) {
+    console.error('Failed to initialize YouTubei for followed channels:', error)
+  }
+}
+
+// Initialize immediately
+initializeYoutubei().catch(console.error)
 
 // Helper function to extract thumbnail URL from YouTubei v1.7.0 Thumbnails API
 function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
@@ -135,6 +149,9 @@ export async function GET(request: NextRequest) {
       })
     }
 
+  if (!Client) {
+    return NextResponse.json({ error: 'YouTube client not initialized' }, { status: 500 })
+  }
   const youtube = new Client()
 
     const allVideos: any[] = []
