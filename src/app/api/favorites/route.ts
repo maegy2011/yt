@@ -71,10 +71,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Thumbnail must be a string' }, { status: 400 })
     }
 
-    // Validate numeric fields
-    if (viewCount !== undefined && (typeof viewCount !== 'number' || viewCount < 0)) {
-      return NextResponse.json({ error: 'View count must be a non-negative number' }, { status: 400 })
+    // Validate viewCount (allow string formats like "1.4B", "1.5M", etc.)
+    if (viewCount !== undefined && typeof viewCount !== 'string' && typeof viewCount !== 'number') {
+      console.error('Invalid viewCount type:', typeof viewCount, viewCount)
+      return NextResponse.json({ error: 'View count must be a string or number' }, { status: 400 })
     }
+
+    // Convert duration and viewCount to strings for database
+    const durationStr = duration ? duration.toString() : undefined
+    const viewCountStr = viewCount ? viewCount.toString() : undefined
 
     try {
       console.log('Adding favorite with videoId:', sanitizedVideoId)
@@ -94,8 +99,8 @@ export async function POST(request: NextRequest) {
           title: title && title.trim() ? title.trim() : 'Unknown Video',
           channelName: channelName && channelName.trim() ? channelName.trim() : 'Unknown Channel',
           thumbnail: thumbnail && thumbnail.trim() ? thumbnail.trim() : '',
-          duration,
-          viewCount
+          duration: durationStr,
+          viewCount: viewCountStr
         }
       })
 

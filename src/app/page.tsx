@@ -1608,8 +1608,10 @@ export default function MyTubeApp() {
             title: video.title,
             channelName: getChannelName(video),
             thumbnail: thumbnailUrl,
-            duration: video.duration,
-            viewCount: video.viewCount
+            duration: typeof video.duration === 'string' ? video.duration : 
+                       (typeof video.duration === 'number' ? video.duration.toString() : undefined),
+            viewCount: typeof video.viewCount === 'number' ? video.viewCount : 
+                       (typeof video.viewCount === 'string' && /^\d+$/.test(video.viewCount) ? parseInt(video.viewCount, 10) : undefined)
           })
         })
         
