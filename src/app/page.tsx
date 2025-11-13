@@ -1409,14 +1409,22 @@ export default function MyTubeApp() {
     setNavigationHistory(prev => [...prev, 'player'])
     
     // Add to watch history immediately when video is played
-    await addToWatchedHistory({
-      videoId: video.videoId || video.id,
-      title: video.title,
-      channelName: video.channelName,
-      thumbnail: video.thumbnail,
-      duration: video.duration,
-      viewCount: video.viewCount
-    })
+    // Check if video is already watched to avoid duplicates
+    const isAlreadyWatched = isVideoWatched(video.videoId || video.id)
+    
+    if (!isAlreadyWatched) {
+      await addToWatchedHistory({
+        videoId: video.videoId || video.id,
+        title: video.title,
+        channelName: video.channelName,
+        thumbnail: video.thumbnail,
+        duration: video.duration,
+        viewCount: video.viewCount
+      })
+      console.log('Added to watch history:', video.title)
+    } else {
+      console.log('Video already in watch history:', video.title)
+    }
   }
 
   const handleFavoritesVideoPlay = (favoriteVideo: FavoriteVideo) => {

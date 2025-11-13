@@ -26,11 +26,14 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
     try {
       const response = await fetch('/api/watched')
       if (!response.ok) {
-        throw new Error('Failed to fetch watched videos')
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.error || 'Failed to fetch watched videos')
       }
       const videos = await response.json()
       setWatchedVideos(videos)
+      console.log('Fetched', videos.length, 'watched videos')
     } catch (err) {
+      console.error('Failed to fetch watched videos:', err)
       setError(err as Error)
     } finally {
       setIsLoading(false)
@@ -39,6 +42,9 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
 
   const addToWatchedHistory = useCallback(async (video: WatchedVideoInput) => {
     try {
+      setIsLoading(true)
+      setError(null)
+      
       const response = await fetch('/api/watched', {
         method: 'POST',
         headers: {
@@ -48,14 +54,33 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
       })
       
       if (!response.ok) {
-        throw new Error('Failed to add to watched history')
+        const errorData = await response.json().catch(() => null)
+        throw new Error(errorData?.error || 'Failed to add to watched history')
       }
       
-      // Refresh the list
-      await fetchWatchedVideos()
+      // Don't immediately refresh - let the server respond first
+      console.log('Successfully added to watched history:', video.title)
+      
+      // Optimistically update local state for better UX
+      setWatchedVideos(prev => {
+        const exists = prev.find(v => v.videoId === video.videoId)
+        if (exists) {
+          // Update existing video with latest data
+          return prev.map(v => 
+            v.videoId === video.videoId 
+              ? { ...v, ...video, watchedAt: new Date(), updatedAt: new Date() }
+              : v
+          )
+        } else {
+          // Add new video
+          return [...prev, { ...video, watchedAt: new Date(), updatedAt: new Date() }]
+        }
+      })
     } catch (err) {
       console.error('Failed to add to watched history:', err)
       setError(err as Error)
+    } finally {
+      setIsLoading(false)
     }
   }, [])
 
