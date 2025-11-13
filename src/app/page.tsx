@@ -41,18 +41,23 @@ import {
   Music,
   SkipBack,
   SkipForward,
-  ExternalLink
+  ExternalLink,
+  Clock,
+  History
 } from 'lucide-react'
 import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
 import { validateSearchQuery } from '@/lib/validation'
 import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from '@/lib/loading-messages'
 import type { Video as YouTubeVideo } from '@/lib/youtube'
 import { convertYouTubeVideo, convertYouTubePlaylist, convertYouTubeChannel, convertToYouTubeVideo, convertDbVideoToSimple, type SimpleVideo, type SimplePlaylist, type SimpleChannel, type FavoriteVideo, type FavoriteChannel, type VideoNote, type ChannelSearchResult, type PaginationInfo, type FollowedChannelsContent } from '@/lib/type-compatibility'
+import type { WatchedVideo } from '@/types/watched'
 import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleton'
 import { SplashScreen } from '@/components/splash-screen'
 import { VideoNote as VideoNoteComponent } from '@/components/video-note'
 import { NotesContainer } from '@/components/notes/NotesContainer'
 import { FavoritesContainer } from '@/components/favorites/FavoritesContainer'
+import { WatchedHistoryContainer } from '@/components/watched/WatchedHistoryContainer'
+import { useWatchedHistory } from '@/hooks/useWatchedHistory'
 import { BottomNavigation } from '@/components/navigation/BottomNavigation'
 import { NavigationSpacer } from '@/components/navigation/NavigationSpacer'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
@@ -60,7 +65,7 @@ import { ThemeSwitch } from '@/components/theme-switch'
 
 
 // Enhanced types with better safety
-type Tab = 'home' | 'search' | 'player' | 'channels' | 'favorites' | 'notes'
+type Tab = 'home' | 'search' | 'player' | 'channels' | 'favorites' | 'notes' | 'watched'
 
 // Use SimpleVideo for internal state
 type Video = SimpleVideo
@@ -84,6 +89,9 @@ export default function MyTubeApp() {
     pauseBackgroundVideo,
     stopBackgroundVideo,
   } = useBackgroundPlayer()
+
+  // Watch history hook
+  const { addToWatchedHistory, isVideoWatched } = useWatchedHistory()
 
   // Core state
   const [activeTab, setActiveTab] = useState<Tab>('home')
@@ -398,6 +406,7 @@ export default function MyTubeApp() {
       { id: 'player' as Tab, icon: Play, label: 'Player' },
 
       { id: 'channels' as Tab, icon: User, label: 'Channels' },
+      { id: 'watched' as Tab, icon: History, label: 'Watch History' },
       { id: 'notes' as Tab, icon: FileText, label: 'Notes' },
     ]
     
@@ -1399,8 +1408,15 @@ export default function MyTubeApp() {
     // Update navigation history for player
     setNavigationHistory(prev => [...prev, 'player'])
     
-    // Note: Watched tracking is now handled by the background player after 5 seconds of playback
-    // No immediate tracking needed here anymore
+    // Add to watch history immediately when video is played
+    await addToWatchedHistory({
+      videoId: video.videoId || video.id,
+      title: video.title,
+      channelName: video.channelName,
+      thumbnail: video.thumbnail,
+      duration: video.duration,
+      viewCount: video.viewCount
+    })
   }
 
   const handleFavoritesVideoPlay = (favoriteVideo: FavoriteVideo) => {
@@ -1414,6 +1430,24 @@ export default function MyTubeApp() {
       duration: favoriteVideo.duration,
       viewCount: favoriteVideo.viewCount,
       publishedAt: null, // Favorite videos don't have publishedAt
+      description: ''
+    }
+    
+    // Use the same handleVideoPlay function to switch to player
+    handleVideoPlay(video)
+  }
+
+  const handleWatchedVideoPlay = (watchedVideo: WatchedVideo) => {
+    // Convert WatchedVideo to Video format
+    const video = {
+      videoId: watchedVideo.videoId,
+      id: watchedVideo.videoId,
+      title: watchedVideo.title,
+      channelName: watchedVideo.channelName,
+      thumbnail: watchedVideo.thumbnail,
+      duration: watchedVideo.duration,
+      viewCount: watchedVideo.viewCount,
+      publishedAt: null, // Watched videos don't have publishedAt
       description: ''
     }
     
@@ -3703,6 +3737,9 @@ export default function MyTubeApp() {
 
       case 'favorites':
         return <FavoritesContainer onVideoPlay={handleFavoritesVideoPlay} />
+
+      case 'watched':
+        return <WatchedHistoryContainer onVideoPlay={handleWatchedVideoPlay} />
 
       case 'notes':
         return <NotesContainer 
