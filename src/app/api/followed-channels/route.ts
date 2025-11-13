@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
+// Use require for youtubei to avoid module resolution issues
+const youtubei = require('youtubei')
+const Client = youtubei.Client
+
 // Helper function to extract thumbnail URL from YouTubei v1.7.0 Thumbnails API
 function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
   try {
@@ -90,7 +94,7 @@ export async function GET(request: NextRequest) {
 
     // Get all favorite channels from database
     const favoriteChannels = await db.favoriteChannel.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { addedAt: 'desc' }
     })
 
     if (favoriteChannels.length === 0) {
@@ -131,8 +135,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const { Client } = await import('youtubei')
-    const youtube = new Client()
+  const youtube = new Client()
 
     const allVideos: any[] = []
     const allPlaylists: any[] = []
@@ -157,7 +160,7 @@ export async function GET(request: NextRequest) {
             videoCount: channelData.videoCount || 0,
             url: `https://youtube.com/channel/${channelData.id}`,
             handle: channelData.handle || `@${channelData.name.toLowerCase().replace(/\s+/g, '')}`,
-            createdAt: channel.createdAt
+            addedAt: channel.addedAt
           })
 
           // Search for videos from this channel

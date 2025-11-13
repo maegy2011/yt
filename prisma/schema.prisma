@@ -62,6 +62,7 @@ model FavoriteChannel {
   thumbnail   String
   subscriberCount String?
   videoCount  String?
+  viewCount   String?
   addedAt     DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// Use require for youtubei to avoid module resolution issues
+const youtubei = require('youtubei')
+const Client = youtubei.Client
+
 // Helper function to extract thumbnail URL from YouTubei v1.7.0 Thumbnails API
 function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
   try {
@@ -112,7 +116,6 @@ export async function GET(request: NextRequest) {
     })
 
     // Use youtubei for real YouTube data only
-    const { Client } = await import('youtubei')
     const youtube = new Client()
     
     let results

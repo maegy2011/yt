@@ -6,7 +6,7 @@ export async function GET() {
     console.log('Fetching favorite channels...')
     
     const channels = await db.favoriteChannel.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { addedAt: 'desc' }
     })
     
     console.log(`Found ${channels.length} favorite channels`)
