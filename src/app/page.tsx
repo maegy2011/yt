@@ -404,15 +404,18 @@ export default function MyTubeApp() {
       { id: 'home' as Tab, icon: Home, label: 'Home' },
       { id: 'search' as Tab, icon: Search, label: 'Search' },
       { id: 'player' as Tab, icon: Play, label: 'Player' },
-
+      { id: 'notes' as Tab, icon: FileText, label: 'Notes' },
+      { id: 'favorites' as Tab, icon: Heart, label: 'Favorites' },
       { id: 'channels' as Tab, icon: User, label: 'Channels' },
       { id: 'watched' as Tab, icon: History, label: 'Watch History' },
-      { id: 'notes' as Tab, icon: FileText, label: 'Notes' },
     ]
     
-    // Add favorites tab only if enabled
-    if (favoritesEnabled) {
-      baseTabs.splice(5, 0, { id: 'favorites' as Tab, icon: Heart, label: 'Favorites' })
+    // Remove favorites tab if disabled
+    if (!favoritesEnabled) {
+      const favoritesIndex = baseTabs.findIndex(tab => tab.id === 'favorites')
+      if (favoritesIndex !== -1) {
+        baseTabs.splice(favoritesIndex, 1)
+      }
     }
     
     return baseTabs
@@ -508,8 +511,8 @@ export default function MyTubeApp() {
       
       if (Math.abs(swipeDistance) > minSwipeDistance && verticalDistance < maxVerticalDistance) {
         const tabs: Tab[] = favoritesEnabled 
-          ? ['home', 'search', 'player', 'channels', 'favorites', 'notes']
-          : ['home', 'search', 'player', 'channels', 'notes']
+          ? ['home', 'search', 'player', 'notes', 'favorites', 'channels', 'watched']
+          : ['home', 'search', 'player', 'notes', 'channels', 'watched']
         const currentIndex = tabs.indexOf(activeTab)
         
         if (swipeDistance > 0) {
@@ -543,8 +546,8 @@ export default function MyTubeApp() {
       }
 
       const tabs: Tab[] = favoritesEnabled 
-        ? ['home', 'search', 'player', 'watched', 'channels', 'favorites', 'notes']
-        : ['home', 'search', 'player', 'watched', 'channels', 'notes']
+        ? ['home', 'search', 'player', 'notes', 'favorites', 'channels', 'watched']
+        : ['home', 'search', 'player', 'notes', 'channels', 'watched']
       const currentIndex = tabs.indexOf(activeTab)
 
       switch (e.key) {
@@ -2716,6 +2719,39 @@ export default function MyTubeApp() {
       case 'home':
         return (
           <div className="space-y-6">
+            {followedChannelsContent === null && channelVideos.length === 0 && favoriteVideos.length === 0 && (
+              <Card className="p-12 text-center">
+                <div className="max-w-md mx-auto space-y-4">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
+                    <Play className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2">Welcome to MyTube</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Discover the latest content from your followed channels, or explore YouTube by searching for videos and adding channels to your favorites.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <Button
+                        onClick={() => setActiveTab('search')}
+                        className="w-full sm:w-auto"
+                      >
+                        <Search className="w-4 h-4 mr-2" />
+                        Search Videos
+                      </Button>
+                      <Button
+                        onClick={() => setActiveTab('channels')}
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                      >
+                        <User className="w-4 h-4 mr-2" />
+                        Browse Channels
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            )}
+
             {/* Followed Channels Section */}
             <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-2xl p-6 border border-border">
               <div className="flex items-center justify-between mb-4">
@@ -3159,38 +3195,6 @@ export default function MyTubeApp() {
               </div>
             )}
 
-            {followedChannelsContent === null && channelVideos.length === 0 && favoriteVideos.length === 0 && (
-              <Card className="p-12 text-center">
-                <div className="max-w-md mx-auto space-y-4">
-                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
-                    <Play className="w-8 h-8 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Welcome to MyTube</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Discover the latest content from your followed channels, or explore YouTube by searching for videos and adding channels to your favorites.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                      <Button
-                        onClick={() => setActiveTab('search')}
-                        className="w-full sm:w-auto"
-                      >
-                        <Search className="w-4 h-4 mr-2" />
-                        Search Videos
-                      </Button>
-                      <Button
-                        onClick={() => setActiveTab('channels')}
-                        variant="outline"
-                        className="w-full sm:w-auto"
-                      >
-                        <User className="w-4 h-4 mr-2" />
-                        Browse Channels
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            )}
           </div>
         )
 
