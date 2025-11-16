@@ -112,6 +112,8 @@ export default function MyTubeApp() {
   const [isIntersectionLoading, setIsIntersectionLoading] = useState(false)
   const [hasTriggeredLoad, setHasTriggeredLoad] = useState(false)
   const [autoLoadMore, setAutoLoadMore] = useState(true) // Default to enabled
+  const [searchCountdown, setSearchCountdown] = useState<number | null>(null)
+  const [isUpdatingFollow, setIsUpdatingFollow] = useState(false) // Track follow operations
   
   // Data states
 
@@ -1383,25 +1385,71 @@ export default function MyTubeApp() {
     }
   }
 
-  // Debounced search for input changes
+  // Debounced search for input changes - waits for user to finish typing
   const debouncedSearch = useCallback((query: string) => {
+    // Clear any existing timeout
     if (searchInputTimeout) {
       clearTimeout(searchInputTimeout)
+      setSearchInputTimeout(null)
     }
     
-    if (query.trim()) {
+    // Clear any existing countdown
+    if (searchCountdown !== null) {
+      setSearchCountdown(null)
+    }
+    
+    // Only search if query has meaningful content
+    const trimmedQuery = query.trim()
+    if (trimmedQuery && trimmedQuery.length >= 2) {
+      let countdown = 2 // Start countdown from 2 seconds
+      setSearchCountdown(countdown)
+      
+      // Update countdown every second
+      const countdownInterval = setInterval(() => {
+        countdown -= 1
+        setSearchCountdown(countdown)
+        
+        if (countdown <= 0) {
+          clearInterval(countdownInterval)
+          setSearchCountdown(null)
+        }
+      }, 1000)
+      
       const timeout = setTimeout(() => {
-        handleSearch(false)
-      }, 1200) // 1.2s delay for better keyword completion
+        clearInterval(countdownInterval)
+        setSearchCountdown(null)
+        // Double-check that the query is still valid and hasn't changed
+        if (searchQuery.trim() === trimmedQuery) {
+          handleSearch(false)
+        }
+      }, 2000) // 2s delay to give users more time to finish typing
       
       setSearchInputTimeout(timeout)
+    } else if (!trimmedQuery) {
+      // Clear results immediately if query is empty
+      setSearchResults(null)
+      setHasMoreVideos(false)
+      setCurrentSearchQuery('')
+      setContinuationToken(null)
+      setSearchCountdown(null)
     }
-  }, [searchInputTimeout])
+  }, [searchInputTimeout, searchQuery, handleSearch, searchCountdown])
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setSearchQuery(value)
-    debouncedSearch(value)
+    
+    // Show typing indicator or clear results for short queries
+    if (value.trim().length < 2) {
+      setSearchResults(null)
+      setHasMoreVideos(false)
+      setCurrentSearchQuery('')
+      setContinuationToken(null)
+      setSearchCountdown(null)
+    } else {
+      // Trigger debounced search for longer queries
+      debouncedSearch(value)
+    }
   }
 
   const handleVideoPlay = async (video: Video, startTime?: number) => {
@@ -1676,6 +1724,18 @@ export default function MyTubeApp() {
     }
   }
 
+  // Update channel search results when favorite channels change (but not during follow operations)
+  useEffect(() => {
+    if (channelSearchResults.length > 0 && !isUpdatingFollow) {
+      setChannelSearchResults(prev => 
+        prev.map(channel => ({
+          ...channel,
+          isFavorite: favoriteChannels.some(c => c.channelId === channel.channelId)
+        }))
+      )
+    }
+  }, [favoriteChannels, isUpdatingFollow])
+
   const handleChannelSearch = async (): Promise<void> => {
     const trimmedQuery = channelSearchQuery.trim()
     if (!trimmedQuery) {
@@ -1690,7 +1750,14 @@ export default function MyTubeApp() {
       if (!response.ok) throw new Error('Failed to search channels')
       
       const data = await response.json()
-      setChannelSearchResults(data.items || [])
+      
+      // Add isFavorite property to each channel based on favoriteChannels
+      const channelsWithFavoriteStatus = (data.items || []).map((channel: any) => ({
+        ...channel,
+        isFavorite: favoriteChannels.some(c => c.channelId === channel.channelId)
+      }))
+      
+      setChannelSearchResults(channelsWithFavoriteStatus)
     } catch (error) {
       console.error('Error searching channels:', error)
       
@@ -1702,6 +1769,7 @@ export default function MyTubeApp() {
 
   const handleFollowChannel = async (channel: any) => {
     try {
+      setIsUpdatingFollow(true) // Prevent useEffect from overriding our updates
       const isFollowing = favoriteChannels.some(c => c.channelId === channel.channelId)
       
       if (isFollowing) {
@@ -1710,7 +1778,12 @@ export default function MyTubeApp() {
         })
         
         if (response.ok) {
+          // Optimistically update search results to reflect unfollow immediately
+          setChannelSearchResults(prev => 
+            prev.map(c => c.channelId === channel.channelId ? { ...c, isFavorite: false } : c)
+          )
           
+          // Then reload favorite channels to sync with backend
           await loadFavoriteChannels()
         } else {
           
@@ -1729,7 +1802,12 @@ export default function MyTubeApp() {
         })
         
         if (response.ok) {
+          // Optimistically update search results to reflect follow immediately
+          setChannelSearchResults(prev => 
+            prev.map(c => c.channelId === channel.channelId ? { ...c, isFavorite: true } : c)
+          )
           
+          // Then reload favorite channels to sync with backend
           await loadFavoriteChannels()
         } else {
           
@@ -1738,6 +1816,8 @@ export default function MyTubeApp() {
     } catch (error) {
       console.error('Error following channel:', error)
       
+    } finally {
+      setIsUpdatingFollow(false) // Re-enable useEffect updates
     }
   }
 
@@ -2059,51 +2139,6 @@ export default function MyTubeApp() {
   }, [favoriteVideoIds, selectedItems, multiSelectMode, toggleItemSelection, handleVideoSelect, toggleFavorite])
 
   const ChannelCard = useCallback(({ channel }: { channel: Channel }) => {
-    const handleFollowChannel = async () => {
-      try {
-        const response = await fetch('/api/followed-channels', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            channelId: channel.channelId,
-            name: channel.name,
-            thumbnail: channel.thumbnail,
-            subscriberCount: channel.subscriberCount
-          })
-        })
-        
-        if (response.ok) {
-          
-          // Update the channel's favorite status
-          setChannelSearchResults(prev => 
-            prev.map(c => c.channelId === channel.channelId ? { ...c, isFavorite: true } : c)
-          )
-        }
-      } catch (error) {
-        console.error('Error following channel:', error)
-        
-      }
-    }
-
-    const handleUnfollowChannel = async () => {
-      try {
-        const response = await fetch(`/api/followed-channels/${channel.channelId}`, {
-          method: 'DELETE'
-        })
-        
-        if (response.ok) {
-          
-          // Update the channel's favorite status
-          setChannelSearchResults(prev => 
-            prev.map(c => c.channelId === channel.channelId ? { ...c, isFavorite: false } : c)
-          )
-        }
-      } catch (error) {
-        console.error('Error unfollowing channel:', error)
-        
-      }
-    }
-
     return (
       <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-border/50 hover:border-primary/30">
         <CardContent className="p-3 sm:p-4">
@@ -2156,7 +2191,7 @@ export default function MyTubeApp() {
               <Button
                 size="sm"
                 variant={channel.isFavorite ? "secondary" : "default"}
-                onClick={channel.isFavorite ? handleUnfollowChannel : handleFollowChannel}
+                onClick={() => handleFollowChannel(channel)}
                 className="text-xs"
               >
                 {channel.isFavorite ? (
@@ -2176,7 +2211,7 @@ export default function MyTubeApp() {
         </CardContent>
       </Card>
     )
-  }, [])
+  }, [handleFollowChannel])
 
   const PlaylistCard = useCallback(({ playlist }: { playlist: Playlist }) => {
     const isSelected = selectedItems.has(playlist.id)
@@ -3214,21 +3249,41 @@ export default function MyTubeApp() {
                 Search Content
               </h2>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                <Input
-                  placeholder="Search for videos, playlists, channels..."
-                  value={searchQuery}
-                  onChange={handleSearchInputChange}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      if (searchInputTimeout) {
-                        clearTimeout(searchInputTimeout)
-                        setSearchInputTimeout(null)
-                      }
-                      handleSearch(false)
+                <div className="flex-1 relative">
+                  <Input
+                    placeholder={
+                      searchQuery.trim().length < 2 
+                        ? "Type at least 2 characters to search..." 
+                        : searchCountdown !== null
+                        ? `Searching in ${searchCountdown}...`
+                        : "Searching will start automatically when you stop typing..."
                     }
-                  }}
-                  className="flex-1 text-sm sm:text-base"
-                />
+                    value={searchQuery}
+                    onChange={handleSearchInputChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        if (searchInputTimeout) {
+                          clearTimeout(searchInputTimeout)
+                          setSearchInputTimeout(null)
+                        }
+                        setSearchCountdown(null)
+                        handleSearch(false)
+                      }
+                    }}
+                    className="flex-1 text-sm sm:text-base pr-10"
+                  />
+                  {searchQuery.trim().length >= 2 && (searchInputTimeout || searchCountdown !== null) && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-pulse text-xs text-muted-foreground">
+                        {searchCountdown !== null ? (
+                          <span className="text-xs font-mono">{searchCountdown}</span>
+                        ) : (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <select
                   value={searchType}
                   onChange={(e) => setSearchType(e.target.value as any)}
