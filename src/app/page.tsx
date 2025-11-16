@@ -62,6 +62,7 @@ import { BottomNavigation } from '@/components/navigation/BottomNavigation'
 import { NavigationSpacer } from '@/components/navigation/NavigationSpacer'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { ScrollingChannelBar } from '@/components/channels/ScrollingChannelBar'
 
 
 // Enhanced types with better safety
@@ -2784,6 +2785,12 @@ export default function MyTubeApp() {
                 </Button>
               </div>
 
+              {/* Scrolling Channel Bar */}
+              <ScrollingChannelBar 
+                channels={followedChannels} 
+                className="mb-6"
+              />
+
               {/* Followed Channels Info */}
               {followedChannels.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
@@ -3968,7 +3975,7 @@ export default function MyTubeApp() {
   return (
     <div className="h-full-screen bg-background flex flex-col overflow-hidden scale-container touch-manipulation">
       {/* Header - Always Visible */}
-      <header className="bg-card/95 backdrop-blur-lg border-b border-border sticky top-0 z-50 shadow-sm flex-shrink-0">
+      <header className="bg-card/95 backdrop-blur-lg border-b border-border sticky top-0 z-50 shadow-sm flex-shrink-0 sticky-support">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
           <div className="flex items-center justify-between h-12 sm:h-14 md:h-16">
             <div className="flex items-center gap-1.5 sm:gap-2">
@@ -4125,7 +4132,7 @@ export default function MyTubeApp() {
 
 
       {/* Desktop Tabs Bar - Visible on desktop only */}
-      <div className="hidden md:block bg-background/95 backdrop-blur-xl border-b border-border/50 sticky top-16 z-30 shadow-lg shadow-black/5 dark:shadow-black/20">
+      <div className="hidden md:block bg-background/95 backdrop-blur-xl border-b border-border/50 sticky top-16 z-30 shadow-lg shadow-black/5 dark:shadow-black/20 sticky-support">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex items-center gap-1 md:gap-2 py-4" role="navigation" aria-label="Main navigation">
             {tabs.map((tab, index) => {
@@ -4203,7 +4210,7 @@ export default function MyTubeApp() {
       </div>
 
       {/* Tablet Navigation - Medium screens */}
-      <div className="hidden sm:block md:hidden bg-background/95 backdrop-blur-xl border-b border-border/50 sticky top-16 z-30 shadow-md shadow-black/3 dark:shadow-black/15">
+      <div className="hidden sm:block md:hidden bg-background/95 backdrop-blur-xl border-b border-border/50 sticky top-16 z-30 shadow-md shadow-black/3 dark:shadow-black/15 sticky-support">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <nav className="flex items-center justify-between py-3" role="navigation" aria-label="Main navigation">
             {tabs.map((tab, index) => {
@@ -4320,7 +4327,7 @@ export default function MyTubeApp() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto scroll-smooth touch-pan-y max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pb-20 sm:pb-24 md:pb-6 lg:pb-8">
+      <main className="flex-1 overflow-y-auto scroll-smooth touch-pan-y max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-20 sm:pb-24 md:pt-20 md:pb-8 lg:pb-8">
         {dynamicLoadingMessage && (
           <div className="mb-6 p-3 sm:p-4 bg-muted border border-border rounded-lg">
             <div className="flex items-center gap-2">

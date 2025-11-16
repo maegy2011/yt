@@ -146,6 +146,30 @@
     overflow-x: hidden;
   }
   
+  /* Hide scrollbar for scrolling components */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Safari and Chrome */
+  }
+  
+  /* Ensure sticky elements work properly */
+  .sticky-support {
+    position: -webkit-sticky;
+    position: sticky;
+  }
+  
+  /* Fix for iOS Safari sticky positioning */
+  @supports (-webkit-touch-callout: none) {
+    .sticky-support {
+      position: -webkit-sticky;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+  
   /* Ensure full height for all containers */
   .h-full-screen {
     height: 100vh;
