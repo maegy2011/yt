@@ -52,6 +52,8 @@ import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from 
 import type { Video as YouTubeVideo } from '@/lib/youtube'
 import { convertYouTubeVideo, convertYouTubePlaylist, convertYouTubeChannel, convertToYouTubeVideo, convertDbVideoToSimple, type SimpleVideo, type SimplePlaylist, type SimpleChannel, type FavoriteVideo, type FavoriteChannel, type VideoNote, type ChannelSearchResult, type PaginationInfo, type FollowedChannelsContent } from '@/lib/type-compatibility'
 import type { WatchedVideo } from '@/types/watched'
+// Unified VideoCard component with enhanced design
+import { VideoCard as UnifiedVideoCard, toVideoCardData } from '@/components/video'
 import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleton'
 import { SplashScreen } from '@/components/splash-screen'
 import { VideoNote as VideoNoteComponent } from '@/components/video-note'
@@ -1454,6 +1456,7 @@ export default function MyTubeApp() {
   }
 
   const handleVideoPlay = async (video: Video, startTime?: number) => {
+    console.log('handleVideoPlay called:', video.title, 'startTime:', startTime) // Debug log
     setPreviousTab(activeTab) // Track the previous tab
     setSelectedVideo(video)
     setActiveTab('player')
@@ -1535,6 +1538,7 @@ export default function MyTubeApp() {
   }
 
   const handleVideoSelect = (video: Video) => {
+    console.log('handleVideoSelect called:', video.title) // Debug log
     handleVideoPlay(video)
   }
 
@@ -1986,255 +1990,22 @@ export default function MyTubeApp() {
   }, [activeTab, multiSelectMode, clearSelection])
 
   const VideoCard = useCallback(({ video, showActions = true }: { video: Video | any, showActions?: boolean }) => {
-    // Use video.videoId if available (for database videos), otherwise use video.id (for YouTube videos)
     const videoId = video.videoId || video.id
     const isFavorite = favoriteVideoIds.has(videoId)
     const isSelected = selectedItems.has(videoId)
-    const thumbnailUrl = getThumbnailUrl(video)
-    const channelName = getChannelName(video)
-    const channelLogo = getChannelLogo(video)
-    
-    const handleCardClick = (e: React.MouseEvent) => {
-      // Prevent playing video if clicking on buttons
-      if ((e.target as HTMLElement).closest('button')) {
-        return
-      }
-      handleVideoSelect(video)
-    }
     
     return (
-      <Card 
-        className={`group relative overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-[1.03] border-border/50 hover:border-primary/40 cursor-pointer bg-card ${
-          isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
-        }`}
-        onClick={handleCardClick}
-      >
-        <CardContent className="p-2 sm:p-2.5 sm:p-3 md:p-3 lg:p-3">
-          <div className="space-y-2 sm:space-y-2.5 sm:space-y-3">
-            {/* Thumbnail Section - Optimized for Mobile */}
-            <div className="relative aspect-video w-full overflow-hidden rounded-md shadow-md ring-1 ring-border/10 max-h-32 sm:max-h-36 sm:max-h-40 md:max-h-44 lg:max-h-48">
-              <img
-                src={thumbnailUrl}
-                alt={video.title}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement
-                  target.src = `https://via.placeholder.com/320x180/1f2937/ffffff?text=No+Thumbnail`
-                }}
-              />
-              
-              {/* Enhanced Dark Overlay for Better Mobile Button Visibility */}
-              <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 via-transparent to-transparent pointer-events-none"></div>
-              
-              {/* Duration Badge - Smaller on Mobile */}
-              {video.duration && (
-                <div className="absolute bottom-1.5 sm:bottom-2 sm:bottom-2.5 right-1.5 sm:right-2 sm:right-2.5 bg-foreground/95 backdrop-blur-md text-background mobile-caption font-semibold px-1.5 sm:px-2 sm:px-2 py-0.5 sm:py-1 sm:py-1 rounded shadow-lg border border-background/10">
-                  {formatDuration(video.duration)}
-                </div>
-              )}
-              
-              {/* Video Quality Badge - Smaller on Mobile */}
-              {video.quality && (
-                <div className="absolute top-1.5 sm:top-2 sm:top-2.5 left-1.5 sm:left-2 sm:left-2.5 bg-destructive text-destructive-foreground mobile-caption font-bold px-1.5 sm:px-2 py-0.5 rounded shadow-lg border border-destructive/30">
-                  {video.quality}
-                </div>
-              )}
-              
-              {/* Mobile-First Persistent Action Bar - Always Visible on Mobile */}
-              <div className="sm:hidden absolute bottom-1.5 left-1.5 right-1.5 flex justify-between items-end pointer-events-none">
-                <div className="flex gap-1.5 pointer-events-auto">
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleVideoSelect(video)
-                    }}
-                    className="h-10 w-10 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-lg border-2 border-primary/20 backdrop-blur-sm"
-                    title="Play video"
-                  >
-                    <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
-                  </Button>
-                  
-                  {favoritesEnabled && (
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toggleFavorite(video)
-                      }}
-                      className={`h-10 w-10 rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-lg border-2 backdrop-blur-sm ${
-                        isFavorite 
-                          ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground border-destructive/30' 
-                          : 'bg-background/95 hover:bg-background text-foreground border-background/30'
-                      }`}
-                      disabled={favoritesPaused}
-                      title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                    >
-                      <Heart className={`w-4 h-4 ${isFavorite ? 'fill-white' : ''} ${favoritesPaused ? 'opacity-50' : ''}`} />
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Desktop Play Button Overlay - Hover Only */}
-              <div className="hidden sm:block absolute inset-0 bg-gradient-to-t from-foreground/60 via-foreground/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-md flex items-center justify-center">
-                <Button
-                  size="lg"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleVideoSelect(video)
-                  }}
-                  className="bg-background/95 hover:bg-background text-foreground hover:scale-110 transition-all duration-300 shadow-2xl h-10 w-10 sm:h-11 sm:w-11 sm:h-12 sm:w-12 rounded-full p-0 border-2 border-background/50"
-                  title="Play video"
-                >
-                  <Play className="w-4 h-4 sm:w-4.5 sm:h-4.5 sm:w-5 sm:h-5 ml-1" fill="currentColor" />
-                </Button>
-              </div>
-              
-              {/* Desktop Quick Actions - Top Right - Hover Only */}
-              <div className="hidden sm:block absolute top-1.5 sm:top-2 sm:top-2.5 right-1.5 sm:right-2 sm:right-2.5 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                {favoritesEnabled && (
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      toggleFavorite(video)
-                    }}
-                    className={`h-7 w-7 sm:h-8 sm:w-8 sm:h-9 sm:w-9 rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-lg ${
-                      isFavorite 
-                        ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
-                        : 'bg-background/90 hover:bg-background text-foreground'
-                    }`}
-                    disabled={favoritesPaused}
-                    title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                  >
-                    <Heart className={`w-3 h-3 sm:w-4 sm:h-4 sm:w-4.5 sm:h-4.5 ${isFavorite ? 'fill-white' : ''} ${favoritesPaused ? 'opacity-50' : ''}`} />
-                  </Button>
-                )}
-                
-                {multiSelectMode && (
-                  <div className="bg-white/90 rounded-full p-1 shadow-lg">
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => toggleItemSelection(videoId)}
-                      className="w-3 h-3 sm:w-4 sm:h-4 sm:w-4.5 sm:h-4.5"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Content Section - Optimized for Mobile */}
-            <div className="space-y-1.5 sm:space-y-2 sm:space-y-2.5">
-              {/* Title - Smaller on Mobile */}
-              <h3 className="mobile-card-title group-hover:text-primary transition-colors leading-tight min-h-[1.8em] sm:min-h-[2em] sm:min-h-[2.4em]">
-                {video.title}
-              </h3>
-              
-              {/* Channel Info - More Compact */}
-              <div className="flex items-start gap-1.5 sm:gap-2 sm:gap-2.5">
-                {channelLogo && (
-                  <div className="relative">
-                    <img 
-                      src={channelLogo} 
-                      alt={channelName}
-                      className="w-4 h-4 sm:w-5 sm:h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-7 lg:h-7 rounded-full object-cover flex-shrink-0 ring-1 ring-border hover:ring-primary/50 transition-all duration-200"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                      }}
-                    />
-                    <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border border-card"></div>
-                  </div>
-                )}
-                <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                  <p className="mobile-card-subtitle font-medium truncate hover:text-foreground transition-colors">
-                    {channelName}
-                  </p>
-                  {getChannelHandle(video) && (
-                    <span className="mobile-caption hidden sm:hidden sm:inline md:inline lg:inline">
-                      {getChannelHandle(video)}
-                    </span>
-                  )}
-                </div>
-              </div>
-              
-              {/* Video Stats - More Compact */}
-              <div className="flex items-center gap-1.5 sm:gap-2 sm:gap-2.5 mobile-caption flex-wrap">
-                {video.viewCount && (
-                  <span className="font-semibold text-foreground/80">{formatViewCount(video.viewCount)}</span>
-                )}
-                {video.publishedAt && (
-                  <>
-                    <span className="text-muted-foreground/40">•</span>
-                    <span>{formatPublishedAt(video.publishedAt)}</span>
-                  </>
-                )}
-                {getChannelSubscriberCount(video) && (
-                  <>
-                    <span className="text-muted-foreground/40 hidden sm:hidden sm:inline md:inline lg:inline">•</span>
-                    <span className="hidden sm:hidden sm:inline md:inline lg:inline mobile-caption">{getChannelSubscriberCount(video)}</span>
-                  </>
-                )}
-              </div>
-              
-              {/* Description - Hidden on smaller screens */}
-              {video.description && (
-                <p className="text-xs text-muted-foreground line-clamp-1 sm:line-clamp-2 sm:line-clamp-3 hidden md:block lg:block leading-relaxed">
-                  {video.description}
-                </p>
-              )}
-            </div>
-            
-            {/* Bottom Action Bar - Desktop Only */}
-            {showActions && (
-              <div className="hidden sm:block flex items-center justify-between pt-2 sm:pt-2.5 sm:pt-3 border-t border-border/60 bg-muted/20 rounded-b-lg -mx-2 sm:-mx-2.5 sm:-mx-3 md:-mx-3 lg:-mx-3 px-2 sm:px-2.5 sm:px-3 md:px-3 lg:px-3">
-                <div className="flex gap-1.5 sm:gap-2 sm:gap-2.5">
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleVideoSelect(video)
-                    }}
-                    className="h-7 w-7 sm:h-8 sm:w-8 sm:h-9 sm:w-9 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-md"
-                    title="Play video"
-                  >
-                    <Play className="w-3 h-3 sm:w-4 sm:h-4 sm:w-4.5 sm:h-4.5 ml-0.5" fill="currentColor" />
-                  </Button>
-                  
-                  {favoritesEnabled && (
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        toggleFavorite(video)
-                      }}
-                      className={`h-7 w-7 sm:h-8 sm:w-8 sm:h-9 sm:w-9 rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-md ${
-                        isFavorite 
-                          ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
-                          : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
-                      }`}
-                      disabled={favoritesPaused}
-                      title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                    >
-                      <Heart className={`w-3 h-3 sm:w-4 sm:h-4 sm:w-4.5 sm:h-4.5 ${isFavorite ? 'fill-white' : ''} ${favoritesPaused ? 'opacity-50' : ''}`} />
-                    </Button>
-                  )}
-                </div>
-                
-                {multiSelectMode && (
-                  <div className="bg-muted/50 rounded-full p-0.5">
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => toggleItemSelection(videoId)}
-                      className="w-3 h-3 sm:w-4 sm:h-4 sm:w-4.5 sm:h-4.5"
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <UnifiedVideoCard
+        video={toVideoCardData(video)}
+        variant="default"
+        showActions={showActions}
+        isSelectable={multiSelectMode}
+        isSelected={isSelected}
+        onPlay={handleVideoSelect}
+        onFavorite={toggleFavorite}
+        onSelect={(videoId, selected) => toggleItemSelection(videoId)}
+        size="md"
+      />
     )
   }, [favoriteVideoIds, selectedItems, multiSelectMode, toggleItemSelection, handleVideoSelect, toggleFavorite])
 
@@ -3093,126 +2864,12 @@ export default function MyTubeApp() {
                   <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-2 sm:gap-2.5 sm:gap-3 md:gap-3 lg:gap-3 xl:gap-4 mobile-grid mobile-content">
                     {followedChannelsVideos.slice(0, 12).map((video) => {
                       const videoId = video.videoId || video.id
-                      const isFavorite = favoriteVideoIds.has(videoId)
                       return (
-                        <Card key={videoId} className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.01] border-border/50 hover:border-primary/40 bg-card cursor-pointer">
-                          <div className="relative aspect-video w-full overflow-hidden rounded-t-lg">
-                            <img
-                              src={video.thumbnail?.url || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`}
-                              alt={video.title}
-                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                              onClick={() => handleVideoPlay(video)}
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement
-                                target.src = `https://via.placeholder.com/320x180/1f2937/ffffff?text=Video`
-                              }}
-                            />
-                            
-                            {/* Duration Badge */}
-                            {video.duration && (
-                              <div className="absolute bottom-2 sm:bottom-2.5 sm:bottom-3 right-2 sm:right-2.5 sm:right-3 bg-foreground/90 backdrop-blur-sm text-background text-xs sm:text-xs sm:text-sm font-semibold px-2 sm:px-2 sm:px-2.5 py-1 sm:py-1 sm:py-1.5 rounded-md shadow-lg">
-                                {formatDuration(video.duration)}
-                              </div>
-                            )}
-                            
-                            {/* HD Badge */}
-                            {video.quality && (
-                              <div className="absolute top-2 sm:top-2.5 sm:top-3 left-2 sm:left-2.5 sm:left-3 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-md shadow-lg">
-                                {video.quality}
-                              </div>
-                            )}
-                            
-                            {/* Mobile Play Button - Always Visible */}
-                            <Button
-                              size="sm"
-                              onClick={() => handleVideoPlay(video)}
-                              className="absolute bottom-1.5 sm:bottom-2 sm:bottom-2 left-1.5 sm:left-2 sm:left-2 bg-white/95 hover:bg-white text-black hover:scale-105 transition-all duration-200 shadow-lg h-6 w-6 sm:h-6 sm:w-6 sm:h-7 sm:w-7 rounded-full p-0 border border-white/50 z-10 sm:hidden"
-                            >
-                              <Play className="w-3 h-3 sm:w-3 sm:h-3 sm:w-3.5 sm:h-3.5 ml-0.5" fill="currentColor" />
-                            </Button>
-                            
-                            {/* Desktop Play Button Overlay */}
-                            <div 
-                              className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 sm:opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-t-lg flex items-center justify-center hidden sm:flex"
-                              onClick={() => handleVideoPlay(video)}
-                            >
-                              <Button
-                                size="lg"
-                                className="bg-white/95 hover:bg-white text-black hover:scale-110 transition-all duration-300 shadow-2xl h-10 w-10 sm:h-10 sm:w-10 sm:h-12 sm:w-12 rounded-full p-0 border-2 border-white/50"
-                              >
-                                <Play className="w-4 h-4 sm:w-4 sm:h-4 sm:w-5 sm:h-5 ml-1" fill="currentColor" />
-                              </Button>
-                            </div>
-                            
-                            {/* Quick Actions - Always Visible */}
-                            <div className="absolute top-1.5 sm:top-2 sm:top-2 right-1.5 sm:right-2 sm:right-2 flex gap-1.5 sm:gap-1.5 sm:gap-2">
-                              {favoritesEnabled && (
-                                <Button
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    toggleFavorite(video)
-                                  }}
-                                  className={`h-6 w-6 sm:h-6 sm:w-6 sm:h-7 sm:w-7 rounded-full p-0 transition-all duration-200 hover:scale-105 shadow-md z-10 ${
-                                    isFavorite 
-                                      ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
-                                      : 'bg-background/90 hover:bg-background text-foreground'
-                                  }`}
-                                  disabled={favoritesPaused}
-                                  title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                                >
-                                  <Heart className={`w-3 h-3 sm:w-3 sm:h-3 sm:w-3.5 sm:h-3.5 ${isFavorite ? 'fill-white' : ''} ${favoritesPaused ? 'opacity-50' : ''}`} />
-                                </Button>
-                              )}
-                              
-                              {/* More Options Button */}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-6 w-6 sm:h-6 sm:w-6 sm:h-7 sm:w-7 rounded-full p-0 bg-white/90 hover:bg-white text-gray-700 transition-all duration-200 hover:scale-105 shadow-md z-10"
-                                title="More options"
-                              >
-                                <MoreVertical className="w-3 h-3 sm:w-3 sm:h-3 sm:w-3.5 sm:h-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                          <CardContent className="p-2 sm:p-2.5 sm:p-3">
-                            <div className="space-y-1.5 sm:space-y-1.5 sm:space-y-2">
-                              {/* Title */}
-                              <h3 
-                                className="font-bold text-xs sm:text-xs sm:text-sm line-clamp-2 cursor-pointer hover:text-primary transition-colors leading-tight min-h-[1.6em] sm:min-h-[1.6em] sm:min-h-[2em]"
-                                onClick={() => handleVideoPlay(video)}
-                              >
-                                {video.title}
-                              </h3>
-                              
-                              {/* Channel Info */}
-                              <div className="flex items-center gap-2 sm:gap-2.5 sm:gap-3">
-                                <div className="w-5 h-5 sm:w-5 sm:h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                                  <span className="text-xs font-bold text-primary">
-                                    {video.channelName ? video.channelName.charAt(0).toUpperCase() : 'C'}
-                                  </span>
-                                </div>
-                                <p className="text-xs sm:text-xs sm:text-sm text-muted-foreground font-medium truncate hover:text-foreground transition-colors">
-                                  {video.channelName}
-                                </p>
-                              </div>
-                              
-                              {/* Video Stats */}
-                              <div className="flex items-center gap-2 sm:gap-2.5 sm:gap-3 text-xs sm:text-xs sm:text-sm text-muted-foreground">
-                                {video.viewCount && (
-                                  <span className="font-semibold text-foreground/80">{formatViewCount(video.viewCount)}</span>
-                                )}
-                                {video.publishedAt && (
-                                  <>
-                                    <span className="text-muted-foreground/40">•</span>
-                                    <span>{formatPublishedAt(video.publishedAt)}</span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
+                        <UnifiedVideoCard 
+                          key={videoId} 
+                          video={toVideoCardData(video)}
+                          onPlay={handleVideoSelect}
+                        />
                       )
                     })}
                   </div>
@@ -3460,173 +3117,12 @@ export default function MyTubeApp() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 sm:gap-2.5 sm:gap-3 md:gap-3 lg:gap-3 xl:gap-4 mobile-grid mobile-content">
                   {channelVideos.slice(0, 6).map((video) => {
                     const videoId = video.videoId || video.id
-                    const isFavorite = favoriteVideoIds.has(videoId)
                     return (
-                      <Card key={videoId} className="group relative overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-[1.03] border-border/50 hover:border-green-400 bg-card cursor-pointer">
-                        <div className="relative aspect-video w-full overflow-hidden rounded-t-lg">
-                          <img
-                            src={getSafeThumbnailUrl(video)}
-                            alt={video.title}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                            onClick={() => handleVideoPlay(video)}
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.src = `https://via.placeholder.com/320x180/1f2937/ffffff?text=Video`
-                            }}
-                          />
-                          
-                          {/* Duration Badge */}
-                          {video.duration && (
-                            <div className="absolute bottom-2 sm:bottom-2.5 sm:bottom-3 right-2 sm:right-2.5 sm:right-3 bg-black/90 backdrop-blur-sm text-white text-xs sm:text-xs sm:text-sm font-semibold px-2 sm:px-2 sm:px-2.5 py-1 sm:py-1 sm:py-1.5 rounded-md shadow-lg">
-                              {formatDuration(video.duration)}
-                            </div>
-                          )}
-                          
-                          {/* HD/Quality Badge */}
-                          {video.quality && (
-                            <div className="absolute top-2 sm:top-2.5 sm:top-3 left-2 sm:left-2.5 sm:left-3 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg">
-                              {video.quality}
-                            </div>
-                          )}
-                          
-                          {/* Live Badge */}
-                          {video.isLive && (
-                            <div className="absolute top-2 sm:top-2.5 sm:top-3 right-2 sm:right-2.5 sm:right-3 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
-                              <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                              LIVE
-                            </div>
-                          )}
-                          
-                          {/* Play Button Overlay */}
-                          <div 
-                            className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-t-lg flex items-center justify-center"
-                            onClick={() => handleVideoPlay(video)}
-                          >
-                            <Button
-                              size="lg"
-                              className="bg-white/95 hover:bg-white text-black hover:scale-110 transition-all duration-300 shadow-2xl h-10 w-10 sm:h-10 sm:w-10 sm:h-12 sm:w-12 rounded-full p-0 border-2 border-white/50"
-                            >
-                              <Play className="w-4 h-4 sm:w-4 sm:h-4 sm:w-5 sm:h-5 ml-1" fill="currentColor" />
-                            </Button>
-                          </div>
-                          
-                          {/* Quick Actions */}
-                          <div className="absolute top-2 sm:top-2.5 sm:top-3 right-2 sm:right-2.5 sm:right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                            {favoritesEnabled && (
-                              <Button
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  toggleFavorite(video)
-                                }}
-                                className={`h-7 w-7 sm:h-7 sm:w-7 sm:h-8 sm:w-8 rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-lg ${
-                                  isFavorite 
-                                    ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
-                                    : 'bg-background/90 hover:bg-background text-foreground'
-                                }`}
-                                disabled={favoritesPaused}
-                                title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                              >
-                                <Heart className={`w-3.5 h-3.5 sm:w-3.5 sm:h-3.5 sm:w-4 sm:h-4 ${isFavorite ? 'fill-white' : ''} ${favoritesPaused ? 'opacity-50' : ''}`} />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                        <CardContent className="p-3 sm:p-3.5 sm:p-4">
-                          <div className="space-y-2 sm:space-y-2.5 sm:space-y-3">
-                            {/* Title */}
-                            <h3 
-                              className="font-bold text-sm sm:text-sm sm:text-base line-clamp-2 cursor-pointer hover:text-green-600 transition-colors leading-tight min-h-[2.4em] sm:min-h-[2.4em] sm:min-h-[2.8em]"
-                              onClick={() => handleVideoPlay(video)}
-                            >
-                              {video.title}
-                            </h3>
-                            
-                            {/* Channel Info */}
-                            <div className="flex items-center gap-2 sm:gap-2.5 sm:gap-3">
-                              <div className="relative">
-                                <div className="w-5 h-5 sm:w-5 sm:h-5 sm:w-6 sm:h-6 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center text-white font-bold text-xs sm:text-xs sm:text-sm shadow-md">
-                                  {video.channelName ? video.channelName.charAt(0).toUpperCase() : 'C'}
-                                </div>
-                                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-card"></div>
-                              </div>
-                              <div className="flex flex-col gap-0.5 sm:gap-0.5 sm:gap-1 min-w-0 flex-1">
-                                <p className="text-sm sm:text-sm sm:text-base text-muted-foreground font-medium truncate hover:text-foreground transition-colors">
-                                  {video.channelName}
-                                </p>
-                                {video.channelName && (
-                                  <span className="text-xs sm:text-xs sm:text-sm text-muted-foreground/70 hidden sm:hidden sm:inline md:inline lg:inline">
-                                    @{video.channelName.toLowerCase().replace(/\s+/g, '')}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            
-                            {/* Video Stats */}
-                            <div className="flex items-center gap-2 sm:gap-2.5 sm:gap-3 text-xs sm:text-xs sm:text-sm text-muted-foreground">
-                              {video.viewCount && (
-                                <span className="font-semibold text-foreground/80">{formatViewCount(video.viewCount)}</span>
-                              )}
-                              {video.publishedAt && (
-                                <>
-                                  <span className="text-muted-foreground/40">•</span>
-                                  <span>{formatPublishedAt(video.publishedAt)}</span>
-                                </>
-                              )}
-                            </div>
-                            
-                            {/* Description */}
-                            {video.description && (
-                              <p className="text-xs sm:text-xs sm:text-sm text-muted-foreground line-clamp-2 sm:line-clamp-2 sm:line-clamp-3 leading-relaxed">
-                                {video.description}
-                              </p>
-                            )}
-                          </div>
-                          
-                          {/* Mobile Action Bar - Always Visible */}
-                          <div className="flex items-center justify-between pt-3 sm:pt-3.5 sm:pt-4 border-t border-border/60 bg-muted/20 rounded-b-lg -mx-3 sm:-mx-3.5 sm:-mx-4 px-3 sm:px-3.5 sm:px-4">
-                            <div className="flex gap-2 sm:gap-2.5 sm:gap-3">
-                              <Button
-                                size="lg"
-                                onClick={() => handleVideoPlay(video)}
-                                className="bg-green-600 hover:bg-green-700 text-white hover:scale-105 transition-all duration-300 shadow-lg h-12 w-12 sm:h-12 sm:w-12 sm:h-14 sm:w-14 rounded-full p-0 flex items-center justify-center"
-                                title="Play video"
-                              >
-                                <Play className="w-5 h-5 sm:w-5 sm:h-5 sm:w-6 sm:h-6 ml-1" fill="currentColor" />
-                              </Button>
-                              
-                              {favoritesEnabled && (
-                                <Button
-                                  size="lg"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    toggleFavorite(video)
-                                  }}
-                                  className={`h-12 w-12 sm:h-12 sm:w-12 sm:h-14 sm:w-14 rounded-full p-0 transition-all duration-200 hover:scale-105 shadow-lg ${
-                                    isFavorite 
-                                      ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
-                                      : 'bg-background/90 hover:bg-background text-foreground'
-                                  }`}
-                                  disabled={favoritesPaused}
-                                  title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                                >
-                                  <Heart className={`w-5 h-5 sm:w-5 sm:h-5 sm:w-6 sm:h-6 ${isFavorite ? 'fill-white' : ''} ${favoritesPaused ? 'opacity-50' : ''}`} />
-                                </Button>
-                              )}
-                            </div>
-                            
-                            {/* More Options Button */}
-                            <Button
-                              size="lg"
-                              variant="ghost"
-                              className="h-12 w-12 sm:h-12 sm:w-12 sm:h-14 sm:w-14 rounded-full p-0 bg-white/90 hover:bg-white text-gray-700 transition-all duration-200 hover:scale-105 shadow-lg"
-                              title="More options"
-                            >
-                              <MoreVertical className="w-5 h-5 sm:w-5 sm:h-5 sm:w-6 sm:h-6" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <UnifiedVideoCard 
+                        key={videoId} 
+                        video={toVideoCardData(video)}
+                        onPlay={handleVideoSelect}
+                      />
                     )
                   })}
                 </div>
@@ -3639,57 +3135,12 @@ export default function MyTubeApp() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mobile-grid mobile-content">
                   {favoriteVideos.slice(0, 6).map((video) => {
                     const videoId = video.videoId || video.id
-                    const isFavorite = favoriteVideoIds.has(videoId)
                     return (
-                      <Card key={videoId} className="group cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
-                        <div className="relative">
-                          <img
-                            src={getSafeThumbnailUrl(video)}
-                            alt={video.title}
-                            className="w-full h-32 object-cover rounded-t-lg"
-                            onClick={() => handleVideoPlay(video)}
-                          />
-                          {video.duration && (
-                            <Badge className="absolute bottom-2 right-2 bg-black/80 text-white text-xs">
-                              {video.duration}
-                            </Badge>
-                          )}
-                          {/* Play button overlay */}
-                          <div 
-                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center rounded-t-lg cursor-pointer"
-                            onClick={() => handleVideoPlay(video)}
-                          >
-                            <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform">
-                              <Play className="w-6 h-6 text-black ml-1" />
-                            </div>
-                          </div>
-                          {/* Favorite button */}
-                          {favoritesEnabled && (
-                            <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              toggleFavorite(video)
-                            }}
-                            className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
-                              isFavorite 
-                                ? 'bg-destructive text-destructive-foreground shadow-lg' 
-                                : 'bg-foreground/60 text-background hover:bg-foreground/80'
-                            }`}
-                          >
-                            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-                              </button>
-                          )}
-                        </div>
-                        <CardContent className="p-3">
-                          <h3 
-                            className="font-medium line-clamp-2 text-sm mb-1 cursor-pointer hover:text-primary transition-colors"
-                            onClick={() => handleVideoPlay(video)}
-                          >
-                            {video.title}
-                          </h3>
-                          <p className="text-xs text-muted-foreground">{video.channelName}</p>
-                        </CardContent>
-                      </Card>
+                      <UnifiedVideoCard 
+                        key={videoId} 
+                        video={toVideoCardData(video)}
+                        onPlay={handleVideoSelect}
+                      />
                     )
                   })}
                 </div>
@@ -4036,7 +3487,7 @@ export default function MyTubeApp() {
                       } else if (item.type === 'channel') {
                         return <ChannelCard key={item.channelId || item.id} channel={item as Channel} />
                       } else {
-                        return <VideoCard key={(item as Video).videoId || item.id} video={item as Video} />
+                        return <UnifiedVideoCard key={(item as Video).videoId || item.id} video={item as Video} onPlay={handleVideoSelect} />
                       }
                     })}
                   </div>

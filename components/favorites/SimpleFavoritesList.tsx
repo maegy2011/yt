@@ -16,7 +16,8 @@ import {
   Clock
 } from 'lucide-react'
 import { FavoriteVideo } from '@/types/favorites-simple'
-import { SimpleFavoriteCard } from './SimpleFavoriteCard'
+import { VideoCard } from '@/components/video'
+import { favoriteVideoToCardData } from '@/components/video/videoCardConverters'
 
 interface SimpleFavoritesListProps {
   favorites: FavoriteVideo[]
@@ -132,11 +133,13 @@ export function SimpleFavoritesList({
         <ScrollArea className="h-[calc(100vh-250px)]">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredFavorites.map((favorite) => (
-              <SimpleFavoriteCard
+              <VideoCard
                 key={favorite.id}
-                favorite={favorite}
+                video={favoriteVideoToCardData(favorite)}
+                variant="favorite"
                 onRemove={onRemove}
                 onPlay={onPlay}
+                size="md"
               />
             ))}
           </div>

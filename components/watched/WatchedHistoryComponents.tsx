@@ -16,7 +16,8 @@ import {
   AlertCircle,
   CheckCircle
 } from 'lucide-react'
-import { formatViewCount, formatDuration } from '@/lib/youtube'
+import { VideoCard } from '@/components/video'
+import { watchedVideoToCardData } from '@/components/video/videoCardConverters'
 import { useState, useCallback } from 'react'
 import type { WatchedVideo, WatchedHistoryStats } from '@/types/watched'
 
@@ -35,90 +36,18 @@ export function WatchedVideoCard({
   onPlay, 
   onDelete 
 }: WatchedVideoCardProps) {
-  const getRelativeTime = (timestamp: string): string => {
-    const date = new Date(timestamp)
-    const now = new Date()
-    const diff = now.getTime() - date.getTime()
-    const seconds = Math.floor(diff / 1000)
-    const minutes = Math.floor(seconds / 60)
-    const hours = Math.floor(minutes / 60)
-    const days = Math.floor(hours / 24)
-    
-    if (seconds < 60) return 'just now'
-    if (minutes < 60) return `${minutes}m ago`
-    if (hours < 24) return `${hours}h ago`
-    if (days < 7) return `${days}d ago`
-    return date.toLocaleDateString()
-  }
-
   return (
-    <Card className={`transition-all duration-200 hover:shadow-md ${isSelected ? 'ring-2 ring-primary' : ''}`}>
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={() => onSelect(video.videoId)}
-            className="mt-1"
-          />
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex gap-3">
-              <div className="relative group cursor-pointer" onClick={() => onPlay(video)}>
-                <img
-                  src={video.thumbnail}
-                  alt={video.title}
-                  className="w-32 h-20 object-cover rounded-md"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.src = '/placeholder-video.png'
-                  }}
-                />
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-md flex items-center justify-center">
-                  <PlayCircle className="w-8 h-8 text-white" />
-                </div>
-                {video.duration && (
-                  <Badge 
-                    variant="secondary" 
-                    className="absolute bottom-1 right-1 text-xs bg-black/80 text-white"
-                  >
-                    {video.duration}
-                  </Badge>
-                )}
-              </div>
-              
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-sm line-clamp-2 mb-1">
-                  {video.title}
-                </h3>
-                <p className="text-xs text-muted-foreground mb-2">
-                  {video.channelName}
-                </p>
-                
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Eye className="w-3 h-3" />
-                    {video.viewCount ? formatViewCount(video.viewCount) : 'N/A'}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {getRelativeTime(video.watchedAt)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onDelete(video.videoId)}
-            className="opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <Trash2 className="w-4 h-4 text-destructive" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <VideoCard
+      video={watchedVideoToCardData(video)}
+      variant="watched"
+      isSelectable={true}
+      isSelected={isSelected}
+      onSelect={(videoId, selected) => onSelect(videoId)}
+      onPlay={onPlay}
+      onRemove={onDelete}
+      showProgress={true}
+      size="sm"
+    />
   )
 }
 

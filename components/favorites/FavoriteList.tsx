@@ -23,7 +23,8 @@ import {
   RefreshCw
 } from 'lucide-react'
 import { FavoriteVideo } from '@/types/favorites'
-import { FavoriteCard } from './FavoriteCard'
+import { VideoCard } from '@/components/video'
+import { favoriteVideoToCardData } from '@/components/video/videoCardConverters'
 import { getFavoritesStats, getUniqueChannels, sortFavoritesByDate, sortFavoritesByTitle, sortFavoritesByViews, formatViewCount } from '@/utils/favorites'
 
 interface FavoriteListProps {
@@ -369,11 +370,13 @@ export function FavoriteList({
         <ScrollArea className="h-[calc(100vh-300px)]">
           <div className={getGridClasses()}>
             {filteredFavorites.map((favorite) => (
-              <FavoriteCard
+              <VideoCard
                 key={favorite.id}
-                favorite={favorite}
+                video={favoriteVideoToCardData(favorite)}
+                variant="favorite"
                 onRemove={onRemove}
                 onPlay={onPlay}
+                size="md"
               />
             ))}
           </div>
