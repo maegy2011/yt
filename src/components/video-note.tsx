@@ -712,7 +712,7 @@ export function VideoNote({
         <div className="text-center text-red-600">
           <p className="text-lg font-medium mb-2">Invalid Video ID</p>
           <p className="text-sm">The video ID provided is not a valid YouTube video ID.</p>
-          <p className="text-xs mt-2 text-gray-500">Video ID: {videoId}</p>
+          <p className="text-xs mt-2 text-muted-foreground">Video ID: {videoId}</p>
         </div>
       </Card>
     )
@@ -744,7 +744,7 @@ export function VideoNote({
           <div className="flex flex-col gap-3">
             {/* Video Title with Quick Note Status */}
             <div className="flex items-center gap-2">
-              <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white line-clamp-2 flex-1">
+              <h1 className="text-lg sm:text-xl font-semibold text-foreground line-clamp-2 flex-1">
                 {videoTitle}
               </h1>
               {quickNoteCapturing && (
@@ -761,16 +761,16 @@ export function VideoNote({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {/* Channel Avatar Placeholder */}
-                <div className="w-10 h-10 bg-gray-300 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+                  <User className="w-5 h-5 text-muted-foreground" />
                 </div>
                 
                 {/* Channel Name */}
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  <p className="text-sm font-medium text-foreground">
                     {channelName || 'Unknown Channel'}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-muted-foreground">
                     {viewCount && formatViewCount(viewCount)} • {publishedAt && formatPublishedAt(publishedAt)}
                   </p>
                 </div>

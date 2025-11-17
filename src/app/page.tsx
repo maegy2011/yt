@@ -2012,7 +2012,7 @@ export default function MyTubeApp() {
         <CardContent className="p-2 xs:p-2.5 sm:p-3 md:p-3 lg:p-3">
           <div className="space-y-2 xs:space-y-2.5 sm:space-y-3">
             {/* Thumbnail Section - Optimized for Mobile */}
-            <div className="relative aspect-video w-full overflow-hidden rounded-md shadow-md ring-1 ring-black/10 max-h-32 xs:max-h-36 sm:max-h-40 md:max-h-44 lg:max-h-48">
+            <div className="relative aspect-video w-full overflow-hidden rounded-md shadow-md ring-1 ring-border/10 max-h-32 xs:max-h-36 sm:max-h-40 md:max-h-44 lg:max-h-48">
               <img
                 src={thumbnailUrl}
                 alt={video.title}
@@ -2024,18 +2024,18 @@ export default function MyTubeApp() {
               />
               
               {/* Enhanced Dark Overlay for Better Mobile Button Visibility */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 via-transparent to-transparent pointer-events-none"></div>
               
               {/* Duration Badge - Smaller on Mobile */}
               {video.duration && (
-                <div className="absolute bottom-1.5 xs:bottom-2 sm:bottom-2.5 right-1.5 xs:right-2 sm:right-2.5 bg-black/95 backdrop-blur-md text-white text-xs font-semibold px-1.5 xs:px-2 sm:px-2 py-0.5 xs:py-1 sm:py-1 rounded shadow-lg border border-white/10">
+                <div className="absolute bottom-1.5 xs:bottom-2 sm:bottom-2.5 right-1.5 xs:right-2 sm:right-2.5 bg-foreground/95 backdrop-blur-md text-background text-xs font-semibold px-1.5 xs:px-2 sm:px-2 py-0.5 xs:py-1 sm:py-1 rounded shadow-lg border border-background/10">
                   {formatDuration(video.duration)}
                 </div>
               )}
               
               {/* Video Quality Badge - Smaller on Mobile */}
               {video.quality && (
-                <div className="absolute top-1.5 xs:top-2 sm:top-2.5 left-1.5 xs:left-2 sm:left-2.5 bg-red-600 text-white text-xs font-bold px-1.5 xs:px-2 py-0.5 rounded shadow-lg border border-red-400/30">
+                <div className="absolute top-1.5 xs:top-2 sm:top-2.5 left-1.5 xs:left-2 sm:left-2.5 bg-destructive text-destructive-foreground text-xs font-bold px-1.5 xs:px-2 py-0.5 rounded shadow-lg border border-destructive/30">
                   {video.quality}
                 </div>
               )}
@@ -2064,8 +2064,8 @@ export default function MyTubeApp() {
                       }}
                       className={`h-10 w-10 rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-lg border-2 backdrop-blur-sm ${
                         isFavorite 
-                          ? 'bg-red-500 hover:bg-red-600 text-white border-red-400/30' 
-                          : 'bg-white/95 hover:bg-white text-gray-700 border-white/30'
+                          ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground border-destructive/30' 
+                          : 'bg-background/95 hover:bg-background text-foreground border-background/30'
                       }`}
                       disabled={favoritesPaused}
                       title={isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -2077,14 +2077,14 @@ export default function MyTubeApp() {
               </div>
 
               {/* Desktop Play Button Overlay - Hover Only */}
-              <div className="hidden xs:block absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-md flex items-center justify-center">
+              <div className="hidden xs:block absolute inset-0 bg-gradient-to-t from-foreground/60 via-foreground/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-md flex items-center justify-center">
                 <Button
                   size="lg"
                   onClick={(e) => {
                     e.stopPropagation()
                     handleVideoSelect(video)
                   }}
-                  className="bg-white/95 hover:bg-white text-black hover:scale-110 transition-all duration-300 shadow-2xl h-10 w-10 xs:h-11 xs:w-11 sm:h-12 sm:w-12 rounded-full p-0 border-2 border-white/50"
+                  className="bg-background/95 hover:bg-background text-foreground hover:scale-110 transition-all duration-300 shadow-2xl h-10 w-10 xs:h-11 xs:w-11 sm:h-12 sm:w-12 rounded-full p-0 border-2 border-background/50"
                   title="Play video"
                 >
                   <Play className="w-4 h-4 xs:w-4.5 xs:h-4.5 sm:w-5 sm:h-5 ml-1" fill="currentColor" />
@@ -2102,8 +2102,8 @@ export default function MyTubeApp() {
                     }}
                     className={`h-7 w-7 xs:h-8 xs:w-8 sm:h-9 sm:w-9 rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-lg ${
                       isFavorite 
-                        ? 'bg-red-500 hover:bg-red-600 text-white' 
-                        : 'bg-white/90 hover:bg-white text-gray-700'
+                        ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
+                        : 'bg-background/90 hover:bg-background text-foreground'
                     }`}
                     disabled={favoritesPaused}
                     title={isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -2210,7 +2210,7 @@ export default function MyTubeApp() {
                       }}
                       className={`h-7 w-7 xs:h-8 xs:w-8 sm:h-9 sm:w-9 rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-md ${
                         isFavorite 
-                          ? 'bg-red-500 hover:bg-red-600 text-white' 
+                          ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
                           : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
                       }`}
                       disabled={favoritesPaused}
@@ -2328,7 +2328,7 @@ export default function MyTubeApp() {
         <CardContent className="p-2 xs:p-2.5 sm:p-3 md:p-3 lg:p-3">
           <div className="space-y-2 xs:space-y-2.5 sm:space-y-3">
             {/* Thumbnail Section - Optimized for Mobile */}
-            <div className="relative aspect-video w-full overflow-hidden rounded-md shadow-md ring-1 ring-black/10 max-h-32 xs:max-h-36 sm:max-h-40 md:max-h-44 lg:max-h-48">
+            <div className="relative aspect-video w-full overflow-hidden rounded-md shadow-md ring-1 ring-border/10 max-h-32 xs:max-h-36 sm:max-h-40 md:max-h-44 lg:max-h-48">
               <img
                 src={thumbnailUrl}
                 alt={playlist.title}
@@ -2340,15 +2340,15 @@ export default function MyTubeApp() {
               />
               
               {/* Enhanced Dark Overlay for Better Mobile Button Visibility */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 via-transparent to-transparent pointer-events-none"></div>
               
               {/* Video Count Badge - Smaller on Mobile */}
-              <div className="absolute bottom-1.5 xs:bottom-2 sm:bottom-2.5 right-1.5 xs:right-2 sm:right-2.5 bg-black/95 backdrop-blur-md text-white text-xs font-semibold px-1.5 xs:px-2 sm:px-2 py-0.5 xs:py-1 sm:py-1 rounded shadow-lg border border-white/10">
+              <div className="absolute bottom-1.5 xs:bottom-2 sm:bottom-2.5 right-1.5 xs:right-2 sm:right-2.5 bg-foreground/95 backdrop-blur-md text-background text-xs font-semibold px-1.5 xs:px-2 sm:px-2 py-0.5 xs:py-1 sm:py-1 rounded shadow-lg border border-background/10">
                 {playlist.videoCount} videos
               </div>
               
               {/* Playlist Badge - Smaller on Mobile */}
-              <div className="absolute top-1.5 xs:top-2 sm:top-2.5 left-1.5 xs:left-2 sm:left-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold px-1.5 xs:px-2 py-0.5 rounded shadow-lg border border-purple-400/30 flex items-center gap-1">
+              <div className="absolute top-1.5 xs:top-2 sm:top-2.5 left-1.5 xs:left-2 sm:left-2.5 bg-gradient-to-r from-primary to-accent text-primary-foreground text-xs font-bold px-1.5 xs:px-2 py-0.5 rounded shadow-lg border border-primary/30 flex items-center gap-1">
                 <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
                 Playlist
               </div>
@@ -2362,7 +2362,7 @@ export default function MyTubeApp() {
                       e.stopPropagation()
                       loadPlaylistVideos(playlist)
                     }}
-                    className="h-10 w-10 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-lg border-2 border-purple-400/30 backdrop-blur-sm"
+                    className="h-10 w-10 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-lg border-2 border-primary/30 backdrop-blur-sm"
                     disabled={playlistVideosLoading}
                     title="Play playlist"
                   >
@@ -2382,7 +2382,7 @@ export default function MyTubeApp() {
                     className={`h-10 w-10 rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-lg border-2 backdrop-blur-sm ${
                       isExpanded 
                         ? 'bg-primary hover:bg-primary/90 text-primary-foreground border-primary/30' 
-                        : 'bg-white/95 hover:bg-white text-gray-700 border-white/30'
+                        : 'bg-background/95 hover:bg-background text-foreground border-background/30'
                     }`}
                     disabled={isLoading}
                     title={isExpanded ? "Collapse playlist" : "Expand playlist"}
@@ -2399,14 +2399,14 @@ export default function MyTubeApp() {
               </div>
 
               {/* Desktop Play Button Overlay - Hover Only */}
-              <div className="hidden xs:block absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-md flex items-center justify-center">
+              <div className="hidden xs:block absolute inset-0 bg-gradient-to-t from-foreground/60 via-foreground/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-md flex items-center justify-center">
                 <Button
                   size="lg"
                   onClick={(e) => {
                     e.stopPropagation()
                     loadPlaylistVideos(playlist)
                   }}
-                  className="bg-white/95 hover:bg-white text-black hover:scale-110 transition-all duration-300 shadow-2xl h-10 w-10 xs:h-11 xs:w-11 sm:h-12 sm:w-12 rounded-full p-0 border-2 border-white/50"
+                  className="bg-background/95 hover:bg-background text-foreground hover:scale-110 transition-all duration-300 shadow-2xl h-10 w-10 xs:h-11 xs:w-11 sm:h-12 sm:w-12 rounded-full p-0 border-2 border-background/50"
                   disabled={playlistVideosLoading}
                   title="Play playlist"
                 >
@@ -2429,7 +2429,7 @@ export default function MyTubeApp() {
                   className={`h-7 w-7 xs:h-8 xs:w-8 sm:h-9 sm:w-9 rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-lg ${
                     isExpanded 
                       ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
-                      : 'bg-white/90 hover:bg-white text-gray-700'
+                      : 'bg-background/90 hover:bg-background text-foreground'
                   }`}
                   disabled={isLoading}
                   title={isExpanded ? "Collapse playlist" : "Expand playlist"}
@@ -2465,7 +2465,7 @@ export default function MyTubeApp() {
               {/* Channel Info - More Compact */}
               <div className="flex items-start gap-1.5 xs:gap-2 sm:gap-2.5">
                 <div className="relative">
-                  <div className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-7 lg:h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs shadow-md">
+                  <div className="w-4 h-4 xs:w-5 xs:h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-7 lg:h-7 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-bold text-xs shadow-md">
                     {playlist.channelName ? playlist.channelName.charAt(0).toUpperCase() : 'P'}
                   </div>
                   <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border border-card"></div>
@@ -2516,7 +2516,7 @@ export default function MyTubeApp() {
                     e.stopPropagation()
                     loadPlaylistVideos(playlist)
                   }}
-                  className="h-7 w-7 xs:h-8 xs:w-8 sm:h-9 sm:w-9 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-md"
+                  className="h-7 w-7 xs:h-8 xs:w-8 sm:h-9 sm:w-9 bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-md"
                   disabled={playlistVideosLoading}
                   title="Play playlist"
                 >
@@ -2785,7 +2785,7 @@ export default function MyTubeApp() {
         </div>
         
         {/* Videos Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 mobile-grid mobile-content">
           {videos.map((video, index) => (
             <div 
               key={video.videoId || video.id} 
@@ -2812,7 +2812,7 @@ export default function MyTubeApp() {
                     }}
                   />
                   {video.duration && (
-                    <Badge className="absolute bottom-1 right-1 bg-black/80 text-white text-xs px-1 py-0">
+                    <Badge className="absolute bottom-1 right-1 bg-foreground/80 text-background text-xs px-1 py-0">
                       {formatDuration(video.duration)}
                     </Badge>
                   )}
@@ -3015,7 +3015,7 @@ export default function MyTubeApp() {
 
               {/* Followed Channels Info */}
               {followedChannels.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 mobile-grid mobile-content">
                   {followedChannels.map((channel) => (
                     <Card key={channel.id} className="p-4">
                       <div className="flex items-center space-x-3">
@@ -3090,7 +3090,7 @@ export default function MyTubeApp() {
                       {videoPagination ? `${videoPagination.totalItems} videos` : `${followedChannelsVideos.length} videos`}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-2 xs:gap-2.5 sm:gap-3 md:gap-3 lg:gap-3 xl:gap-4">
+                  <div className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-2 xs:gap-2.5 sm:gap-3 md:gap-3 lg:gap-3 xl:gap-4 mobile-grid mobile-content">
                     {followedChannelsVideos.slice(0, 12).map((video) => {
                       const videoId = video.videoId || video.id
                       const isFavorite = favoriteVideoIds.has(videoId)
@@ -3110,14 +3110,14 @@ export default function MyTubeApp() {
                             
                             {/* Duration Badge */}
                             {video.duration && (
-                              <div className="absolute bottom-2 xs:bottom-2.5 sm:bottom-3 right-2 xs:right-2.5 sm:right-3 bg-black/90 backdrop-blur-sm text-white text-xs xs:text-xs sm:text-sm font-semibold px-2 xs:px-2 sm:px-2.5 py-1 xs:py-1 sm:py-1.5 rounded-md shadow-lg">
+                              <div className="absolute bottom-2 xs:bottom-2.5 sm:bottom-3 right-2 xs:right-2.5 sm:right-3 bg-foreground/90 backdrop-blur-sm text-background text-xs xs:text-xs sm:text-sm font-semibold px-2 xs:px-2 sm:px-2.5 py-1 xs:py-1 sm:py-1.5 rounded-md shadow-lg">
                                 {formatDuration(video.duration)}
                               </div>
                             )}
                             
                             {/* HD Badge */}
                             {video.quality && (
-                              <div className="absolute top-2 xs:top-2.5 sm:top-3 left-2 xs:left-2.5 sm:left-3 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg">
+                              <div className="absolute top-2 xs:top-2.5 sm:top-3 left-2 xs:left-2.5 sm:left-3 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-md shadow-lg">
                                 {video.quality}
                               </div>
                             )}
@@ -3155,8 +3155,8 @@ export default function MyTubeApp() {
                                   }}
                                   className={`h-6 w-6 xs:h-6 xs:w-6 sm:h-7 sm:w-7 rounded-full p-0 transition-all duration-200 hover:scale-105 shadow-md z-10 ${
                                     isFavorite 
-                                      ? 'bg-red-500 hover:bg-red-600 text-white' 
-                                      : 'bg-white/90 hover:bg-white text-gray-700'
+                                      ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
+                                      : 'bg-background/90 hover:bg-background text-foreground'
                                   }`}
                                   disabled={favoritesPaused}
                                   title={isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -3258,7 +3258,7 @@ export default function MyTubeApp() {
                       {playlistPagination ? `${playlistPagination.totalItems} playlists` : `${followedChannelsPlaylists.length} playlists`}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-2 xs:gap-2.5 sm:gap-3 md:gap-3 lg:gap-3 xl:gap-4">
+                  <div className="grid grid-cols-1 xs:grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-4 gap-2 xs:gap-2.5 sm:gap-3 md:gap-3 lg:gap-3 xl:gap-4 mobile-grid mobile-content">
                     {followedChannelsPlaylists.slice(0, 6).map((playlist) => (
                       <Card key={playlist.id} className="group relative overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-[1.03] border-border/50 hover:border-purple-400 bg-card cursor-pointer">
                         <div className="relative aspect-video w-full overflow-hidden rounded-t-lg">
@@ -3426,7 +3426,7 @@ export default function MyTubeApp() {
               {/* Stats Section */}
               {!followedChannelsLoading && followedChannelsContent && (
                 <div className="mt-6 pt-6 border-t border-border">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mobile-grid mobile-content">
                     <div>
                       <p className="text-2xl font-bold text-primary">{followedChannelsContent.stats?.totalChannels || 0}</p>
                       <p className="text-sm text-muted-foreground">Channels</p>
@@ -3457,7 +3457,7 @@ export default function MyTubeApp() {
                   <div className="w-1 h-6 bg-gradient-to-b from-green-600 to-green-600/50 rounded-full"></div>
                   <h2 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-green-500 bg-clip-text text-transparent">Latest from Favorite Channels</h2>
                 </div>
-                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 xs:gap-2.5 sm:gap-3 md:gap-3 lg:gap-3 xl:gap-4">
+                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 xs:gap-2.5 sm:gap-3 md:gap-3 lg:gap-3 xl:gap-4 mobile-grid mobile-content">
                   {channelVideos.slice(0, 6).map((video) => {
                     const videoId = video.videoId || video.id
                     const isFavorite = favoriteVideoIds.has(videoId)
@@ -3491,7 +3491,7 @@ export default function MyTubeApp() {
                           
                           {/* Live Badge */}
                           {video.isLive && (
-                            <div className="absolute top-2 xs:top-2.5 sm:top-3 right-2 xs:right-2.5 sm:right-3 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
+                            <div className="absolute top-2 xs:top-2.5 sm:top-3 right-2 xs:right-2.5 sm:right-3 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
                               <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                               LIVE
                             </div>
@@ -3521,8 +3521,8 @@ export default function MyTubeApp() {
                                 }}
                                 className={`h-7 w-7 xs:h-7 xs:w-7 sm:h-8 sm:w-8 rounded-full p-0 transition-all duration-200 hover:scale-110 shadow-lg ${
                                   isFavorite 
-                                    ? 'bg-red-500 hover:bg-red-600 text-white' 
-                                    : 'bg-white/90 hover:bg-white text-gray-700'
+                                    ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
+                                    : 'bg-background/90 hover:bg-background text-foreground'
                                 }`}
                                 disabled={favoritesPaused}
                                 title={isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -3604,8 +3604,8 @@ export default function MyTubeApp() {
                                   }}
                                   className={`h-12 w-12 xs:h-12 xs:w-12 sm:h-14 sm:w-14 rounded-full p-0 transition-all duration-200 hover:scale-105 shadow-lg ${
                                     isFavorite 
-                                      ? 'bg-red-500 hover:bg-red-600 text-white' 
-                                      : 'bg-white/90 hover:bg-white text-gray-700'
+                                      ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
+                                      : 'bg-background/90 hover:bg-background text-foreground'
                                   }`}
                                   disabled={favoritesPaused}
                                   title={isFavorite ? "Remove from favorites" : "Add to favorites"}
@@ -3636,7 +3636,7 @@ export default function MyTubeApp() {
             {favoriteVideos.length > 0 && (
               <div className="space-y-4">
                 <h2 className="text-xl font-semibold">Favorite Videos</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mobile-grid mobile-content">
                   {favoriteVideos.slice(0, 6).map((video) => {
                     const videoId = video.videoId || video.id
                     const isFavorite = favoriteVideoIds.has(videoId)
@@ -3672,8 +3672,8 @@ export default function MyTubeApp() {
                             }}
                             className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
                               isFavorite 
-                                ? 'bg-red-600 text-white shadow-lg' 
-                                : 'bg-black/60 text-white hover:bg-black/80'
+                                ? 'bg-destructive text-destructive-foreground shadow-lg' 
+                                : 'bg-foreground/60 text-background hover:bg-foreground/80'
                             }`}
                           >
                             <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
@@ -3891,7 +3891,7 @@ export default function MyTubeApp() {
                     </div>
                     
                     {/* Videos Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mobile-grid mobile-content">
                       {playlistVideos.map((video, index) => (
                         <div key={video.videoId || video.id} className="group">
                           {/* Video Number Badge */}
@@ -4221,7 +4221,7 @@ export default function MyTubeApp() {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Favorite Channels</h3>
               {favoriteChannels.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mobile-grid mobile-content">
                   {favoriteChannels.map((channel) => (
                     <Card key={channel.id} className="p-4 hover:shadow-md transition-shadow">
                       <div className="flex items-start gap-3 mb-3">
@@ -4487,10 +4487,10 @@ export default function MyTubeApp() {
   }
 
   return (
-    <div className="h-full-screen bg-background flex flex-col overflow-hidden scale-container touch-manipulation">
+    <div className="h-screen bg-background flex flex-col overflow-hidden touch-manipulation">
       {/* Header - Always Visible */}
       <header className="bg-card/95 backdrop-blur-lg border-b border-border sticky top-0 z-50 shadow-sm flex-shrink-0 sticky-support">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+        <div className="w-full px-3 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-12 sm:h-14 md:h-16">
             <div className="flex items-center gap-1.5 sm:gap-2">
               {/* Back Button */}
@@ -4531,16 +4531,16 @@ export default function MyTubeApp() {
               
               {/* Network Status Indicator */}
               {networkStatus === 'offline' && (
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/30 rounded-full border border-red-200 dark:border-red-800">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  <span className="text-xs font-medium text-red-700 dark:text-red-300">
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-destructive/10 dark:bg-destructive/30 rounded-full border border-destructive/20 dark:border-destructive/80">
+                  <div className="w-2 h-2 bg-destructive rounded-full"></div>
+                  <span className="text-xs font-medium text-destructive dark:text-destructive-foreground">
                     Offline
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={retryLoadingAllData}
-                    className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/50"
+                    className="h-6 w-6 p-0 text-destructive hover:text-destructive/70 hover:bg-destructive/10 dark:hover:bg-destructive/50"
                     title="Retry connection"
                   >
                     <RefreshCw className="w-3 h-3" />
@@ -4597,7 +4597,7 @@ export default function MyTubeApp() {
             className="absolute top-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-b border-border shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4">
+            <div className="w-full px-3 sm:px-4 py-4">
               <nav className="grid grid-cols-3 sm:grid-cols-4 gap-2" role="navigation" aria-label="Main navigation">
                 {tabs.map((tab, index) => {
                   const isActive = activeTab === tab.id
@@ -4647,7 +4647,7 @@ export default function MyTubeApp() {
 
       {/* Desktop Tabs Bar - Visible on desktop only */}
       <div className="hidden md:block bg-background/95 backdrop-blur-xl border-b border-border/50 sticky top-16 z-30 shadow-lg shadow-black/5 dark:shadow-black/20 sticky-support">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <nav className="flex items-center gap-1 md:gap-2 py-4" role="navigation" aria-label="Main navigation">
             {tabs.map((tab, index) => {
               const isActive = activeTab === tab.id
@@ -4725,7 +4725,7 @@ export default function MyTubeApp() {
 
       {/* Tablet Navigation - Medium screens */}
       <div className="hidden sm:block md:hidden bg-background/95 backdrop-blur-xl border-b border-border/50 sticky top-16 z-30 shadow-md shadow-black/3 dark:shadow-black/15 sticky-support">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="w-full px-4 sm:px-6">
           <nav className="flex items-center justify-between py-3" role="navigation" aria-label="Main navigation">
             {tabs.map((tab, index) => {
               const isActive = activeTab === tab.id
@@ -4774,7 +4774,7 @@ export default function MyTubeApp() {
       </div>
 
       {/* Mobile Bottom Navigation - Always visible on mobile */}
-      <div className={`md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border/50 z-40 shadow-2xl shadow-black/10 dark:shadow-black/40 transition-transform duration-300 ease-out ${
+      <div className={`md:hidden fixed bottom-0 left-0 right-0 w-full bg-background/95 backdrop-blur-xl border-t border-border/50 z-40 shadow-2xl shadow-black/10 dark:shadow-black/40 transition-transform duration-300 ease-out ${
         mobileMenuOpen ? 'translate-y-0' : 'translate-y-0'
       }`}>
         <div className="relative">
@@ -4841,7 +4841,7 @@ export default function MyTubeApp() {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto scroll-smooth touch-pan-y max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-20 sm:pb-24 md:pt-20 md:pb-8 lg:pb-8">
+      <main className="flex-1 overflow-y-auto scroll-smooth touch-pan-y w-full px-3 sm:px-4 lg:px-6 pt-4 sm:pt-6 pb-20 sm:pb-24 md:pt-16 md:pb-8 lg:pb-8">
         {dynamicLoadingMessage && (
           <div className="mb-6 p-3 sm:p-4 bg-muted border border-border rounded-lg">
             <div className="flex items-center gap-2">
