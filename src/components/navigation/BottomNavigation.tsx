@@ -138,8 +138,8 @@ export function BottomNavigation({
   const getIconClasses = (isActive: boolean) => {
     const baseClasses = 'transition-all duration-200'
     const sizeClasses = isExpanded 
-      ? 'w-4 h-4 sm:w-5 sm:h-5' 
-      : 'w-4 h-4 sm:w-4 sm:h-4' // Responsive icon sizes
+      ? 'w-5 h-5 sm:w-6 sm:h-6' 
+      : 'w-5 h-5 sm:w-5 sm:h-5' // Increased icon sizes
     
     return cn(baseClasses, sizeClasses, isActive ? 'scale-110' : 'scale-100')
   }
@@ -147,8 +147,8 @@ export function BottomNavigation({
   const getLabelClasses = (isActive: boolean) => {
     const baseClasses = 'font-medium transition-all duration-200'
     const sizeClasses = isExpanded 
-      ? 'text-[10px] sm:text-xs' 
-      : 'text-[9px] sm:text-[10px]' // Reduced font sizes
+      ? 'text-xs sm:text-sm' 
+      : 'text-xs sm:text-xs' // Increased font sizes
     
     return cn(baseClasses, sizeClasses, isActive ? 'opacity-100' : 'opacity-80')
   }

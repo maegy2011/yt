@@ -2343,12 +2343,12 @@ export default function MyTubeApp() {
               <div className="absolute inset-0 bg-gradient-to-t from-foreground/40 via-transparent to-transparent pointer-events-none"></div>
               
               {/* Video Count Badge - Smaller on Mobile */}
-              <div className="absolute bottom-1.5 sm:bottom-2 sm:bottom-2.5 right-1.5 sm:right-2 sm:right-2.5 bg-foreground/95 backdrop-blur-md text-background text-xs font-semibold px-1.5 sm:px-2 sm:px-2 py-0.5 sm:py-1 sm:py-1 rounded shadow-lg border border-background/10">
+              <div className="absolute bottom-1.5 sm:bottom-2 sm:bottom-2.5 right-1.5 sm:right-2 sm:right-2.5 bg-foreground/95 backdrop-blur-md text-background text-sm font-semibold px-1.5 sm:px-2 sm:px-2 py-0.5 sm:py-1 sm:py-1 rounded shadow-lg border border-background/10">
                 {playlist.videoCount} videos
               </div>
               
               {/* Playlist Badge - Smaller on Mobile */}
-              <div className="absolute top-1.5 sm:top-2 sm:top-2.5 left-1.5 sm:left-2 sm:left-2.5 bg-gradient-to-r from-primary to-accent text-primary-foreground text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded shadow-lg border border-primary/30 flex items-center gap-1">
+              <div className="absolute top-1.5 sm:top-2 sm:top-2.5 left-1.5 sm:left-2 sm:left-2.5 bg-gradient-to-r from-primary to-accent text-primary-foreground text-sm font-bold px-1.5 sm:px-2 py-0.5 rounded shadow-lg border border-primary/30 flex items-center gap-1">
                 <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
                 Playlist
               </div>
@@ -2458,24 +2458,24 @@ export default function MyTubeApp() {
             {/* Content Section - Optimized for Mobile */}
             <div className="space-y-1.5 sm:space-y-2 sm:space-y-2.5">
               {/* Title - Smaller on Mobile */}
-              <h3 className="font-bold text-xs sm:text-sm sm:text-sm md:text-base lg:text-base line-clamp-2 group-hover:text-primary transition-colors leading-tight min-h-[1.8em] sm:min-h-[2em] sm:min-h-[2.4em]">
+              <h3 className="font-bold text-sm sm:text-base md:text-lg lg:text-lg line-clamp-2 group-hover:text-primary transition-colors leading-tight min-h-[1.8em] sm:min-h-[2em] sm:min-h-[2.4em]">
                 {playlist.title}
               </h3>
               
               {/* Channel Info - More Compact */}
               <div className="flex items-start gap-1.5 sm:gap-2 sm:gap-2.5">
                 <div className="relative">
-                  <div className="w-4 h-4 sm:w-5 sm:h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-7 lg:h-7 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-bold text-xs shadow-md">
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-7 lg:h-7 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-bold text-sm shadow-md">
                     {playlist.channelName ? playlist.channelName.charAt(0).toUpperCase() : 'P'}
                   </div>
                   <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border border-card"></div>
                 </div>
                 <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm sm:text-sm text-muted-foreground font-medium truncate hover:text-foreground transition-colors">
+                  <p className="text-sm sm:text-base text-muted-foreground font-medium truncate hover:text-foreground transition-colors">
                     {playlist.channelName}
                   </p>
                   {playlist.channelName && (
-                    <span className="text-xs text-muted-foreground/70 hidden sm:hidden sm:inline md:inline lg:inline">
+                    <span className="text-sm text-muted-foreground/70 hidden sm:hidden sm:inline md:inline lg:inline">
                       @{playlist.channelName.toLowerCase().replace(/\s+/g, '')}
                     </span>
                   )}
@@ -2483,25 +2483,25 @@ export default function MyTubeApp() {
               </div>
               
               {/* Playlist Stats - More Compact */}
-              <div className="flex items-center gap-1.5 sm:gap-2 sm:gap-2.5 text-xs text-muted-foreground flex-wrap">
-                <span className="font-semibold text-foreground/80 text-xs">{playlist.videoCount} videos</span>
+              <div className="flex items-center gap-1.5 sm:gap-2 sm:gap-2.5 text-sm text-muted-foreground flex-wrap">
+                <span className="font-semibold text-foreground/80 text-sm">{playlist.videoCount} videos</span>
                 {playlist.viewCount && (
                   <>
                     <span className="text-muted-foreground/40">•</span>
-                    <span className="text-xs">{formatViewCount(playlist.viewCount)}</span>
+                    <span className="text-sm">{formatViewCount(playlist.viewCount)}</span>
                   </>
                 )}
                 {playlist.lastUpdatedAt && (
                   <>
                     <span className="text-muted-foreground/40 hidden sm:hidden sm:inline md:inline lg:inline">•</span>
-                    <span className="hidden sm:hidden sm:inline md:inline lg:inline text-xs">{playlist.lastUpdatedAt}</span>
+                    <span className="hidden sm:hidden sm:inline md:inline lg:inline text-sm">{playlist.lastUpdatedAt}</span>
                   </>
                 )}
               </div>
               
               {/* Description - Hidden on smaller screens */}
               {playlist.description && (
-                <p className="text-xs text-muted-foreground line-clamp-1 sm:line-clamp-2 sm:line-clamp-3 hidden md:block lg:block leading-relaxed">
+                <p className="text-sm text-muted-foreground line-clamp-1 sm:line-clamp-2 sm:line-clamp-3 hidden md:block lg:block leading-relaxed">
                   {playlist.description}
                 </p>
               )}
@@ -2640,7 +2640,7 @@ export default function MyTubeApp() {
         <div className="mt-4 p-4 bg-muted/30 rounded-lg">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            <span className="ml-2 text-sm text-muted-foreground">Loading playlist videos...</span>
+            <span className="ml-2 text-base text-muted-foreground">Loading playlist videos...</span>
           </div>
         </div>
       )
@@ -2651,7 +2651,7 @@ export default function MyTubeApp() {
         <div className="mt-4 p-4 bg-muted/30 rounded-lg">
           <div className="text-center py-4">
             <Music className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">No videos found in this playlist</p>
+            <p className="text-base text-muted-foreground">No videos found in this playlist</p>
           </div>
         </div>
       )
