@@ -109,7 +109,7 @@ export default function MyTubeApp() {
   const [loading, setLoading] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [multiSelectMode, setMultiSelectMode] = useState(false)
-  const [showSplashScreen, setShowSplashScreen] = useState(true)
+  const [showSplashScreen, setShowSplashScreen] = useState(true) // Re-enabled for debugging
   const [dynamicLoadingMessage, setDynamicLoadingMessage] = useState('')
   const [searchInputTimeout, setSearchInputTimeout] = useState<NodeJS.Timeout | null>(null)
   const [isIntersectionLoading, setIsIntersectionLoading] = useState(false)
@@ -119,6 +119,18 @@ export default function MyTubeApp() {
   const [isUpdatingFollow, setIsUpdatingFollow] = useState(false) // Track follow operations
   
   // Data states
+
+  // Global timeout to force splash screen to hide after maximum time
+  useEffect(() => {
+    const globalTimeout = setTimeout(() => {
+      if (showSplashScreen) {
+        console.log('App: Global timeout - forcing splash screen to hide')
+        setShowSplashScreen(false)
+      }
+    }, 20000) // 20 seconds maximum
+
+    return () => clearTimeout(globalTimeout)
+  }, [showSplashScreen])
 
   const [favoriteChannels, setFavoriteChannels] = useState<FavoriteChannel[]>([])
   const [favoriteVideos, setFavoriteVideos] = useState<FavoriteVideo[]>([])
@@ -153,6 +165,7 @@ export default function MyTubeApp() {
   // Channel search states
   const [channelSearchResults, setChannelSearchResults] = useState<ChannelSearchResult[]>([])
   const [channelSearchLoading, setChannelSearchLoading] = useState(false)
+  const [channelSearchTimeout, setChannelSearchTimeout] = useState<NodeJS.Timeout | null>(null)
   const [channelVideos, setChannelVideos] = useState<SimpleVideo[]>([])
   const [channelVideosLoading, setChannelVideosLoading] = useState(false)
   
@@ -310,6 +323,7 @@ export default function MyTubeApp() {
 
   // Handle splash screen completion
   const handleSplashComplete = useCallback(() => {
+    console.log('App: Splash screen completed, hiding splash screen')
     setShowSplashScreen(false)
   }, [])
 
@@ -1772,6 +1786,28 @@ export default function MyTubeApp() {
     }
   }
 
+  // Debounced channel search effect - triggers search when user stops typing
+  useEffect(() => {
+    // Clear existing timeout
+    if (channelSearchTimeout) {
+      clearTimeout(channelSearchTimeout)
+    }
+
+    // Set new timeout to search after user stops typing (500ms delay)
+    const newTimeout = setTimeout(() => {
+      handleChannelSearch()
+    }, 500)
+
+    setChannelSearchTimeout(newTimeout)
+
+    // Cleanup function to clear timeout on unmount or when dependencies change
+    return () => {
+      if (newTimeout) {
+        clearTimeout(newTimeout)
+      }
+    }
+  }, [channelSearchQuery]) // Only depend on channelSearchQuery
+
   const handleFollowChannel = async (channel: any) => {
     try {
       setIsUpdatingFollow(true) // Prevent useEffect from overriding our updates
@@ -1845,25 +1881,38 @@ export default function MyTubeApp() {
     }
 
     const loadInitialData = async () => {
+      console.log('App: Starting initial data load')
       try {
+        console.log('App: Loading favorite channels, videos, and notes...')
         const results = await Promise.all([
           loadFavoriteChannels(),
           loadFavoriteVideos(),
           loadNotes()
         ])
+        console.log('App: Initial data load completed', results)
         
         // The second result is favoriteChannels data
         const favoriteChannelsData = results[1]
         if (favoriteChannelsData && favoriteChannelsData.length > 0) {
+          console.log('App: Loading channel videos for', favoriteChannelsData.length, 'channels')
           await loadChannelVideos(favoriteChannelsData)
         }
       } catch (error) {
-        
+        console.error('App: Failed to load initial data:', error)
       }
     }
     
+    // Debug splash screen state changes
+    console.log('App: showSplashScreen changed to:', showSplashScreen)
     if (!showSplashScreen) {
+      console.log('App: Splash screen hidden, triggering initial data load')
       loadInitialData()
+      
+      // Add a fallback timeout to show the app even if data loading fails
+      setTimeout(() => {
+        console.log('App: Fallback timeout - showing app regardless of data load status')
+        // The app should already be visible, but this ensures we're not stuck
+      }, 5000) // 5 seconds after splash screen
     }
   }, [showSplashScreen, loadFavoriteChannels, loadFavoriteVideos, loadNotes])
 
@@ -3595,24 +3644,17 @@ export default function MyTubeApp() {
                 </Button>
               </div>
               <div className="flex gap-3">
-                <Input
-                  placeholder="Search for channels..."
-                  value={channelSearchQuery}
-                  onChange={(e) => setChannelSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleChannelSearch()
-                    }
-                  }}
-                  className="flex-1"
-                />
-                <Button
-                  onClick={handleChannelSearch}
-                  disabled={channelSearchLoading}
-                  className="bg-primary hover:bg-primary/90"
-                >
-                  {channelSearchLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                </Button>
+                <div className="relative flex-1">
+                  <Input
+                    placeholder="Search for channels..."
+                    value={channelSearchQuery}
+                    onChange={(e) => setChannelSearchQuery(e.target.value)}
+                    className="flex-1 pr-10"
+                  />
+                  {channelSearchLoading && (
+                    <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
+                  )}
+                </div>
               </div>
             </div>
 

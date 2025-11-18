@@ -10,10 +10,51 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Play, Pause, RotateCcw, Plus, Trash2, Save, Bookmark, Edit, Clock, MessageSquare, User, Eye, Heart, ChevronLeft, ChevronRight, Loader2, Scissors, Volume2, VolumeX, Maximize2, RefreshCw, FileText, ChevronUp, ChevronDown } from 'lucide-react'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
-import { formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
+
+// Import YouTube utility functions (we'll need to create these)
+const formatViewCount = (count: number | string | undefined | null): string => {
+  if (count === undefined || count === null) return '0 views'
+  
+  const numCount = typeof count === 'string' ? parseInt(count) : count
+  
+  if (isNaN(numCount) || numCount < 0) return '0 views'
+  
+  if (numCount >= 1000000) {
+    return `${(numCount / 1000000).toFixed(1)}M views`
+  } else if (numCount >= 1000) {
+    return `${(numCount / 1000).toFixed(1)}K views`
+  } else {
+    return `${numCount} views`
+  }
+}
+
+const formatPublishedAt = (dateString: string): string => {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  
+  if (diffDays === 0) {
+    return 'Today'
+  } else if (diffDays === 1) {
+    return 'Yesterday'
+  } else if (diffDays < 30) {
+    return `${diffDays} days ago`
+  } else if (diffDays < 365) {
+    return `${Math.floor(diffDays / 30)} months ago`
+  } else {
+    return `${Math.floor(diffDays / 365)} years ago`
+  }
+}
 
 const getChannelName = (video: any): string => {
   return video.channelName || video.channel?.name || 'Unknown Channel'
+}
+
+const formatTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
 interface VideoNote {
@@ -682,6 +723,11 @@ export function VideoNote({
     }
   }
 
+  const onError = (event: any) => {
+    console.error('YouTube player error:', event.data)
+    // Don't throw error to prevent breaking the app
+  }
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
@@ -697,7 +743,12 @@ export function VideoNote({
       rel: 0,
       showinfo: 0,
       modestbranding: 1,
+      disablekb: 0,
+      enablejsapi: 1,
+      origin: window.location.origin
     },
+    // Handle cross-origin properly
+    host: 'https://www.youtube.com'
   }
 
   // Validate and get the correct video ID
@@ -751,6 +802,7 @@ export function VideoNote({
               }}
               onReady={onReady}
               onStateChange={onStateChange}
+              onError={onError}
               className="w-full h-full"
             />
           </div>
@@ -977,7 +1029,6 @@ export function VideoNote({
                   value={newNote.title}
                   onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
                   placeholder="Enter a title for this clip..."
-                  className="break-words"
                 />
               </div>
               
@@ -988,7 +1039,6 @@ export function VideoNote({
                   value={newNote.note}
                   onChange={(e) => setNewNote({ ...newNote, note: e.target.value })}
                   placeholder="Add your notes or comments..."
-                  className="break-words"
                 />
               </div>
             </div>
@@ -1192,13 +1242,13 @@ export function VideoNote({
                               value={editingNoteTitle}
                               onChange={(e) => setEditingNoteTitle(e.target.value)}
                               placeholder="Note title"
-                              className="font-medium text-sm break-words"
+                              className="font-medium text-sm break-words whitespace-normal"
                             />
                             <textarea
                               value={editingNoteContent}
                               onChange={(e) => setEditingNoteContent(e.target.value)}
                               placeholder="Note content"
-                              className="w-full p-2 border rounded-md text-xs sm:text-sm resize-none whitespace-pre-wrap break-words"
+                              className="w-full p-2 border rounded-md text-xs sm:text-sm resize-none break-words whitespace-normal"
                               rows={3}
                             />
                             <div className="flex gap-1 sm:gap-2">
@@ -1222,12 +1272,12 @@ export function VideoNote({
                           </div>
                         ) : (
                           <>
-                            <h3 className="font-medium text-gray-900 dark:text-white mb-1 text-sm sm:text-base break-words">
+                            <h3 className="font-medium text-gray-900 dark:text-white mb-1 break-words whitespace-normal text-sm sm:text-base">
                               {note.title}
                             </h3>
                             
                             {note.note && (
-                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 whitespace-pre-wrap break-words">
+                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 break-words whitespace-normal">
                                 {note.note}
                               </p>
                             )}
