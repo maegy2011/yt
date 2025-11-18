@@ -3544,6 +3544,7 @@ export default function MyTubeApp() {
                   viewCount={selectedVideo.viewCount}
                   publishedAt={selectedVideo.publishedAt}
                   thumbnail={getThumbnailUrl(selectedVideo)}
+                  description={selectedVideo.description}
                   isFavorited={favoriteVideoIds.has(selectedVideo.videoId || selectedVideo.id)}
                   favoritesEnabled={favoritesEnabled}
                   favoritesPaused={favoritesPaused}

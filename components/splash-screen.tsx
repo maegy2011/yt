@@ -40,7 +40,10 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
         if (prev >= loadingMessages.length - 1) {
           clearInterval(messageInterval)
           setIsLoading(false)
-          setShowConfirmation(true)
+          // Complete after a brief delay to show final message
+          setTimeout(() => {
+            onComplete()
+          }, 500)
           return prev
         }
         return prev + 1

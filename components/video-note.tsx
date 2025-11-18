@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Play, Pause, RotateCcw, Plus, Trash2, Save, Bookmark, Edit, Clock, MessageSquare, User, Eye, Heart, ChevronLeft, ChevronRight, Loader2, Scissors, Volume2, VolumeX, Maximize2, RefreshCw } from 'lucide-react'
+import { Play, Pause, RotateCcw, Plus, Trash2, Save, Bookmark, Edit, Clock, MessageSquare, User, Eye, Heart, ChevronLeft, ChevronRight, Loader2, Scissors, Volume2, VolumeX, Maximize2, RefreshCw, FileText, ChevronUp, ChevronDown } from 'lucide-react'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
 
 // Import YouTube utility functions (we'll need to create these)
@@ -79,6 +79,7 @@ interface VideoNoteProps {
   viewCount?: number
   publishedAt?: string
   thumbnail?: string
+  description?: string
   isFavorited?: boolean
   favoritesEnabled?: boolean
   favoritesPaused?: boolean
@@ -95,6 +96,7 @@ export function VideoNote({
   viewCount, 
   publishedAt, 
   thumbnail,
+  description,
   isFavorited: propIsFavorited,
   favoritesEnabled = true,
   favoritesPaused = false,
@@ -124,6 +126,7 @@ export function VideoNote({
   const [isCapturing, setIsCapturing] = useState(false)
   const [quickNoteCapturing, setQuickNoteCapturing] = useState(false)
   const [quickNoteStartTime, setQuickNoteStartTime] = useState(0)
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false)
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [editingNoteTitle, setEditingNoteTitle] = useState('')
   const [editingNoteContent, setEditingNoteContent] = useState('')
@@ -137,6 +140,11 @@ export function VideoNote({
   
 
   
+
+  // Function to toggle description expansion
+  const toggleDescriptionExpanded = useCallback(() => {
+    setDescriptionExpanded(prev => !prev)
+  }, [])
 
   // Function to refresh notes
   const refreshNotes = useCallback(async () => {
@@ -185,6 +193,44 @@ export function VideoNote({
     }
   }
 
+  // Function to generate unique note title with serial number
+  const generateUniqueNoteTitle = useCallback((baseTitle: string): string => {
+    // Handle edge case: empty or null base title
+    if (!baseTitle || baseTitle.trim() === '') {
+      baseTitle = 'Untitled Video'
+    }
+    
+    // Escape special characters for regex
+    const escapedBaseTitle = baseTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    
+    // Find existing notes with this base title pattern
+    const existingNotesWithBase = notes.filter(note => {
+      // Check for exact match
+      if (note.title === baseTitle) return true
+      
+      // Check for pattern: "Base Title (number)"
+      const pattern = new RegExp(`^${escapedBaseTitle}\\s*\\(\\d+\\)$`)
+      return pattern.test(note.title)
+    })
+    
+    if (existingNotesWithBase.length === 0) {
+      return baseTitle
+    }
+    
+    // Extract serial numbers from existing titles
+    const serialNumbers = existingNotesWithBase
+      .map(note => {
+        const match = note.title.match(/\((\d+)\)$/)
+        return match ? parseInt(match[1]) : 0
+      })
+      .filter(num => num > 0)
+    
+    // Find the next available serial number
+    const nextSerial = serialNumbers.length > 0 ? Math.max(...serialNumbers) + 1 : 1
+    
+    return `${baseTitle} (${nextSerial})`
+  }, [notes])
+
   const toggleQuickNote = async () => {
     if (!playerRef.current || !playerReady) {
       return
@@ -219,7 +265,7 @@ export function VideoNote({
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               videoId,
-              title: `Quick Note ${formatTime(quickNoteStartTime)}-${formatTime(endTime)}`,
+              title: generateUniqueNoteTitle(videoTitle),
               channelName: channelName || '',
               thumbnail: thumbnail || '',
               note: `Quick clip from ${formatTime(quickNoteStartTime)} to ${formatTime(endTime)}`,
@@ -230,8 +276,12 @@ export function VideoNote({
           })
           
           if (response.ok) {
+            const newNote = await response.json()
             setQuickNoteCapturing(false)
             setQuickNoteStartTime(0)
+            
+            // Update local notes state immediately
+            setNotes(prev => [newNote, ...prev])
             
             // Call parent callback to refresh notes
             if (onNotesChange) {
@@ -282,7 +332,7 @@ export function VideoNote({
     }
     
     loadNotes()
-  }, [videoId, onNotesChange]) // Reload when videoId changes or onNotesChange is called
+  }, [videoId]) // Only reload when videoId changes
 
   // Monitor video progress for current time updates
   useEffect(() => {
@@ -368,8 +418,12 @@ export function VideoNote({
         })
         
         if (response.ok) {
+          const newNote = await response.json()
           setNewNote({ title: '', note: '', startTime: 0, endTime: 30 })
           setIsCapturing(false)
+          
+          // Update local notes state immediately
+          setNotes(prev => [newNote, ...prev])
           
           // Call parent callback to refresh notes
           if (onNotesChange) {
@@ -453,9 +507,13 @@ export function VideoNote({
         })
         
         if (response.ok) {
+          const newNote = await response.json()
           // Reset form
           setNewNote({ title: '', note: '', startTime: 0, endTime: 30 })
           setIsCapturing(false)
+          
+          // Update local notes state immediately
+          setNotes(prev => [newNote, ...prev])
           
           // Call parent callback to refresh notes
           if (onNotesChange) {
@@ -854,22 +912,63 @@ export function VideoNote({
               </div>
             </div>
             
-            {/* Description Preview */}
-            <div className="pt-2 border-t border-gray-200 dark:border-gray-800">
-              {quickNoteCapturing ? (
-                <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 animate-pulse">
-                  <Scissors className="w-4 h-4 fill-current" />
-                  <span className="font-medium">
-                    Quick Note in progress... Started at {formatTime(quickNoteStartTime)}
-                  </span>
-                  <span className="text-xs">• Click scissors icon to stop & save</span>
+            {/* Video Description Section */}
+            {description && (
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-800">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <FileText className="w-4 h-4" />
+                      <span className="font-medium">Description</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={toggleDescriptionExpanded}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors duration-200"
+                    >
+                      {descriptionExpanded ? (
+                        <>
+                          <ChevronUp className="w-3 h-3" />
+                          <span>Read Less</span>
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown className="w-3 h-3" />
+                          <span>Read More</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <div className={`text-sm text-gray-700 dark:text-gray-300 leading-relaxed transition-all duration-300 ${
+                    descriptionExpanded ? 'max-h-none' : 'max-h-24 overflow-hidden'
+                  }`}>
+                    {quickNoteCapturing ? (
+                      <div className="flex items-center gap-2 text-red-600 dark:text-red-400 animate-pulse">
+                        <Scissors className="w-4 h-4 fill-current" />
+                        <span className="font-medium">
+                          Quick Note in progress... Started at {formatTime(quickNoteStartTime)}
+                        </span>
+                        <span className="text-xs">• Click scissors icon to stop & save</span>
+                      </div>
+                    ) : (
+                      <p className="whitespace-pre-wrap break-words">
+                        {descriptionExpanded ? description : `${description.substring(0, 150)}${description.length > 150 ? '...' : ''}`}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              ) : (
-                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                  Create video notes and capture clips from this video. Use the controls below to set timestamps and add comments.
-                </p>
-              )}
-            </div>
+              </div>
+            )}
+            
+            {/* Fallback when no description */}
+            {!description && (
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-800">
+                <div className="text-sm text-gray-500 dark:text-gray-400 italic">
+                  No description available for this video.
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
