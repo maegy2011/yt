@@ -216,9 +216,13 @@ export function ScrollingChannelBar({ channels, className = '' }: ScrollingChann
               <div className="relative">
                 {/* Channel Avatar */}
                 <img
-                  src={channel.thumbnail?.url || `https://via.placeholder.com/${imageSizeMap[settings.imageSize].width}x${imageSizeMap[settings.imageSize].height}/374151/ffffff?text=${channel.name.charAt(0)}`}
+                  src={channel.thumbnail?.url || `https://via.placeholder.com/${imageSizeMap[settings.imageSize].width}x${imageSizeMap[settings.imageSize].height}/374151/ffffff?text=${encodeURIComponent(channel.name.charAt(0))}`}
                   alt={channel.name}
                   className={`${imageSizeMap[settings.imageSize].class} rounded-full object-cover border-2 border-border group-hover:border-primary transition-colors`}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = `https://via.placeholder.com/${imageSizeMap[settings.imageSize].width}x${imageSizeMap[settings.imageSize].height}/374151/ffffff?text=${encodeURIComponent(channel.name.charAt(0))}`;
+                  }}
                 />
                 
                 {/* Hover Overlay */}

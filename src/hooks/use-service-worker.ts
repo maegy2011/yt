@@ -18,24 +18,11 @@ export function useServiceWorker(): ServiceWorkerHook {
   const keepAliveIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    // Check if service worker is supported
-    if ('serviceWorker' in navigator) {
-      setIsSupported(true)
-      
-      // Register service worker
-      navigator.serviceWorker.register('/sw.js')
-        .then((reg) => {
-          console.log('Service Worker registered successfully')
-          setRegistration(reg)
-          setIsRegistered(true)
-        })
-        .catch((error) => {
-          console.error('Service Worker registration failed:', error)
-          setIsRegistered(false)
-        })
-    } else {
-      setIsSupported(false)
-    }
+    // Service Worker is not available - disable functionality
+    console.log('🚫 [SERVICE-WORKER] Service Worker disabled - no sw.js file found')
+    setIsSupported(false)
+    setIsRegistered(false)
+    setRegistration(null)
   }, [])
 
   const startKeepAlive = useCallback(() => {

@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "MyTube - YouTube Client",
-  description: "A modern YouTube client with favorites, notes, and background playback features.",
-  keywords: ["YouTube", "Video", "Music", "Player", "Favorites", "Notes", "Background Playback"],
+  description: "A modern YouTube client with favorites, notes, background playback, and autoplay features.",
+  keywords: ["YouTube", "Video", "Music", "Player", "Favorites", "Notes", "Background Playback", "Autoplay"],
   authors: [{ name: "MyTube Team" }],
   icons: {
     icon: "/logo.svg",

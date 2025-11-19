@@ -42,6 +42,11 @@ interface BackgroundPlayerContextType {
   updateCurrentTime: (time: number) => void
   updateDuration: (duration: number) => void
   updatePlayingState: (isPlaying: boolean) => void
+  
+  // Resumable playback actions
+  getPlaybackPosition: (videoId: string) => Promise<number>
+  savePlaybackPosition: (videoId: string, position: number, videoData?: any) => Promise<void>
+  resumeFromPosition: (video: SimpleVideo) => Promise<number>
 }
 
 const BackgroundPlayerContext = createContext<BackgroundPlayerContextType | undefined>(undefined)
@@ -189,6 +194,163 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
     }
   }, [startMonitoring, stopMonitoring])
 
+  // Resumable playback functions
+  const getPlaybackPosition = useCallback(async (videoId: string): Promise<number> => {
+    console.log('🎯 [BACKGROUND-PLAYER] Getting playback position for video:', videoId)
+    try {
+      debugLog('BackgroundPlayer', 'Fetching playback position', { videoId })
+      const response = await fetch(`/api/playback-position?videoId=${encodeURIComponent(videoId)}`)
+      
+      if (!response.ok) {
+        console.error('❌ [BACKGROUND-PLAYER] Failed to fetch playback position', { videoId, status: response.status })
+        debugError('BackgroundPlayer', 'Failed to fetch playback position', { status: response.status })
+        return 0
+      }
+      
+      const data = await response.json()
+      const position = data.currentPosition || 0
+      console.log('✅ [BACKGROUND-PLAYER] Retrieved playback position:', { videoId, position, exists: data.exists })
+      debugLog('BackgroundPlayer', 'Retrieved playback position', { videoId, position })
+      return position
+    } catch (error) {
+      console.error('💥 [BACKGROUND-PLAYER] Error fetching playback position:', { videoId, error })
+      debugError('BackgroundPlayer', 'Error fetching playback position', error)
+      return 0
+    }
+  }, [])
+
+  const savePlaybackPosition = useCallback(async (videoId: string, position: number, videoData?: any): Promise<void> => {
+    console.log('💾 [BACKGROUND-PLAYER] Saving playback position:', { videoId, position })
+    try {
+      debugLog('BackgroundPlayer', 'Saving playback position', { videoId, position })
+      
+      const payload = {
+        videoId,
+        currentPosition: position,
+        lastWatchedAt: new Date().toISOString(),
+        ...(videoData || {})
+      }
+      
+      console.log('📤 [BACKGROUND-PLAYER] Sending save request:', { 
+        videoId, 
+        position, 
+        hasVideoData: !!videoData,
+        title: videoData?.title?.substring(0, 30) + (videoData?.title?.length > 30 ? '...' : '')
+      })
+      
+      const response = await fetch('/api/playback-position', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      
+      if (!response.ok) {
+        console.error('❌ [BACKGROUND-PLAYER] Failed to save playback position', { 
+          videoId, 
+          position, 
+          status: response.status,
+          statusText: response.statusText 
+        })
+        debugError('BackgroundPlayer', 'Failed to save playback position', { status: response.status })
+      } else {
+        console.log('✅ [BACKGROUND-PLAYER] Successfully saved playback position:', { videoId, position })
+        debugLog('BackgroundPlayer', 'Successfully saved playback position', { videoId, position })
+      }
+    } catch (error) {
+      console.error('💥 [BACKGROUND-PLAYER] Error saving playback position:', { videoId, position, error })
+      debugError('BackgroundPlayer', 'Error saving playback position', error)
+    }
+  }, [])
+
+  const resumeFromPosition = useCallback(async (video: SimpleVideo): Promise<number> => {
+    console.log('🔄 [BACKGROUND-PLAYER] Getting resume position for video:', { 
+      videoId: video.id, 
+      title: video.title?.substring(0, 50) + (video.title?.length > 50 ? '...' : '') 
+    })
+    try {
+      debugLog('BackgroundPlayer', 'Getting resume position for video', { videoId: video.id })
+      const position = await getPlaybackPosition(video.id)
+      
+      // Only resume if there's a meaningful position (more than 5 seconds)
+      // and not too close to the end (within 30 seconds of completion)
+      const duration = video.duration ? parseFloat(video.duration) : 0
+      const shouldResume = position > 5 && (duration === 0 || position < (duration - 30))
+      
+      console.log('🤔 [BACKGROUND-PLAYER] Resume decision:', {
+        videoId: video.id,
+        savedPosition: position,
+        duration,
+        shouldResume,
+        reason: !shouldResume ? (position <= 5 ? 'Position too early' : 'Too close to end') : 'Valid resume point'
+      })
+      
+      if (shouldResume) {
+        console.log('✅ [BACKGROUND-PLAYER] Will resume video from saved position:', { 
+          videoId: video.id, 
+          resumePosition: position 
+        })
+        debugLog('BackgroundPlayer', 'Resuming video from saved position', { 
+          videoId: video.id, 
+          resumePosition: position 
+        })
+        return position
+      } else {
+        console.log('🔄 [BACKGROUND-PLAYER] Will start video from beginning:', { 
+          videoId: video.id, 
+          savedPosition: position,
+          reason: shouldResume ? 'none' : 'position too close to start or end'
+        })
+        debugLog('BackgroundPlayer', 'Starting video from beginning', { 
+          videoId: video.id, 
+          savedPosition: position,
+          reason: shouldResume ? 'none' : 'position too close to start or end'
+        })
+        return 0
+      }
+    } catch (error) {
+      console.error('💥 [BACKGROUND-PLAYER] Error getting resume position:', { videoId: video.id, error })
+      debugError('BackgroundPlayer', 'Error getting resume position', error)
+      return 0
+    }
+  }, [getPlaybackPosition])
+
+  // Auto-save playback position during monitoring
+  useEffect(() => {
+    if (isPlaying && backgroundVideo && currentTime > 0) {
+      const saveInterval = setInterval(() => {
+        if (playerRef.current && playerRef.current.getCurrentTime) {
+          try {
+            const currentPos = playerRef.current.getCurrentTime()
+            savePlaybackPosition(backgroundVideo.id, currentPos, {
+              title: backgroundVideo.title,
+              channelName: backgroundVideo.channelName,
+              thumbnail: backgroundVideo.thumbnail,
+              duration: backgroundVideo.duration,
+              viewCount: backgroundVideo.viewCount
+            })
+          } catch (error) {
+            debugError('BackgroundPlayer', 'Error auto-saving playback position', error)
+          }
+        }
+      }, 10000) // Save every 10 seconds during playback
+
+      return () => clearInterval(saveInterval)
+    }
+  }, [isPlaying, backgroundVideo, currentTime, savePlaybackPosition])
+
+  // Save position when pausing or stopping
+  useEffect(() => {
+    if (!isPlaying && backgroundVideo && currentTime > 0) {
+      savePlaybackPosition(backgroundVideo.id, currentTime, {
+        title: backgroundVideo.title,
+        channelName: backgroundVideo.channelName,
+        thumbnail: backgroundVideo.thumbnail,
+        duration: backgroundVideo.duration,
+        viewCount: backgroundVideo.viewCount
+      })
+    }
+  }, [isPlaying, backgroundVideo, currentTime, savePlaybackPosition])
+
   // Cleanup on unmount
   const cleanup = useCallback(() => {
     stopMonitoring()
@@ -282,6 +444,9 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
         updateCurrentTime,
         updateDuration,
         updatePlayingState,
+        getPlaybackPosition,
+        savePlaybackPosition,
+        resumeFromPosition,
       }}
     >
       {children}
