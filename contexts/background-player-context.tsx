@@ -5,6 +5,22 @@ import { SimpleVideo } from '@/lib/type-compatibility'
 
 import { useKeepAliveService } from '@/hooks/use-keep-alive'
 
+// Debug logging utility for contexts
+const debugLog = (context: string, action: string, data?: any) => {
+  const timestamp = new Date().toISOString()
+  console.log(`[${timestamp}] [Context:${context}] ${action}`, data ? data : '')
+}
+
+const debugError = (context: string, action: string, error: any) => {
+  const timestamp = new Date().toISOString()
+  console.error(`[${timestamp}] [Context:${context}] ERROR in ${action}:`, error)
+}
+
+const debugWarn = (context: string, action: string, warning: any) => {
+  const timestamp = new Date().toISOString()
+  console.warn(`[${timestamp}] [Context:${context}] WARNING in ${action}:`, warning)
+}
+
 interface BackgroundPlayerContextType {
   backgroundVideo: SimpleVideo | null
   isPlaying: boolean
@@ -43,6 +59,8 @@ interface BackgroundPlayerProviderProps {
 }
 
 export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderProps) {
+  debugLog('BackgroundPlayer', 'Provider initializing')
+  
   const [backgroundVideo, setBackgroundVideo] = useState<SimpleVideo | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -63,6 +81,7 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
 
   // Monitor current time when playing
   const startMonitoring = useCallback(() => {
+    debugLog('BackgroundPlayer', 'Starting time monitoring')
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
     }
@@ -73,6 +92,7 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
           const time = playerRef.current.getCurrentTime()
           setCurrentTime(time)
         } catch (error) {
+          debugError('BackgroundPlayer', 'Error getting current time', error)
           console.error('Error getting current time:', error)
         }
       }
@@ -80,6 +100,7 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
   }, [])
 
   const stopMonitoring = useCallback(() => {
+    debugLog('BackgroundPlayer', 'Stopping time monitoring')
     if (intervalRef.current) {
       clearInterval(intervalRef.current)
       intervalRef.current = null
@@ -87,6 +108,10 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
   }, [])
 
   const playBackgroundVideo = useCallback((video: SimpleVideo) => {
+    debugLog('BackgroundPlayer', 'Playing background video', { 
+      videoId: video.id, 
+      title: video.title?.substring(0, 50) + '...' 
+    })
     setBackgroundVideo(video)
     setIsBackgroundMode(true)
     setShowMiniPlayer(true)
@@ -99,6 +124,7 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
   }, [startMonitoring, startKeepAlive])
 
   const pauseBackgroundVideo = useCallback(() => {
+    debugLog('BackgroundPlayer', 'Pausing background video')
     setIsPlaying(false)
     if (playerRef.current) {
       playerRef.current.pauseVideo()
@@ -107,6 +133,7 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
   }, [stopMonitoring])
 
   const stopBackgroundVideo = useCallback(() => {
+    debugLog('BackgroundPlayer', 'Stopping background video')
     setBackgroundVideo(null)
     setIsPlaying(false)
     setIsBackgroundMode(false)

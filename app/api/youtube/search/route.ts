@@ -1,16 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+// Debug logging utility for API routes
+const debugLog = (route: string, action: string, data?: any) => {
+  const timestamp = new Date().toISOString()
+  console.log(`[${timestamp}] [API:${route}] ${action}`, data ? data : '')
+}
+
+const debugError = (route: string, action: string, error: any) => {
+  const timestamp = new Date().toISOString()
+  console.error(`[${timestamp}] [API:${route}] ERROR in ${action}:`, error)
+}
+
+const debugWarn = (route: string, action: string, warning: any) => {
+  const timestamp = new Date().toISOString()
+  console.warn(`[${timestamp}] [API:${route}] WARNING in ${action}:`, warning)
+}
+
 // Use dynamic import for youtubei to avoid module resolution issues
 let Client: any
 let youtubei: any
 
 const initializeYoutubei = async () => {
   try {
+    debugLog('YouTubeSearch', 'Initializing YouTubei')
     const youtubeiModule = await import('youtubei')
     youtubei = youtubeiModule.default || youtubeiModule
     Client = youtubei.Client || youtubeiModule.Client
     console.log('YouTubei initialized successfully')
+    debugLog('YouTubeSearch', 'YouTubei initialized successfully')
   } catch (error) {
+    debugError('YouTubeSearch', 'Failed to initialize YouTubei', error)
     console.error('Failed to initialize YouTubei:', error)
   }
 }
@@ -111,6 +130,8 @@ function extractChannel(channel: any): { id: string; name: string; thumbnail?: s
 }
 
 export async function GET(request: NextRequest) {
+  debugLog('YouTubeSearch', 'GET request received')
+  
   try {
     const { searchParams } = new URL(request.url)
     const query = searchParams.get('query')
@@ -118,7 +139,16 @@ export async function GET(request: NextRequest) {
     const continuation = searchParams.get('continuation')
     const page = searchParams.get('page') || '1'
 
+    debugLog('YouTubeSearch', 'Request parameters', { 
+      query, 
+      type,
+      page,
+      hasContinuation: !!continuation,
+      continuationLength: continuation?.length || 0
+    })
+
     if (!query) {
+      debugWarn('YouTubeSearch', 'Missing query parameter')
       return NextResponse.json({ error: 'Query parameter is required' }, { status: 400 })
     }
 
@@ -131,10 +161,12 @@ export async function GET(request: NextRequest) {
 
     // Use youtubei for real YouTube data only
     if (!Client) {
+      debugError('YouTubeSearch', 'YouTube client not initialized')
       console.error('YouTube client not initialized, waiting...')
       // Wait a bit and retry once
       await new Promise(resolve => setTimeout(resolve, 1000))
       if (!Client) {
+        debugError('YouTubeSearch', 'YouTube client still not initialized after delay')
         return NextResponse.json({ 
           error: 'YouTube service temporarily unavailable. Please try again.',
           items: [],
@@ -145,16 +177,20 @@ export async function GET(request: NextRequest) {
         }, { status: 503 })
       }
     }
+    
+    debugLog('YouTubeSearch', 'Creating YouTube client')
     const youtube = new Client()
     
     let results
     if (continuation) {
       // For pagination, use the continuation token properly
       try {
+        debugLog('YouTubeSearch', 'Attempting continuation search', { continuation: continuation.substring(0, 50) + '...' })
         console.log('Attempting continuation search with token:', continuation.substring(0, 50) + '...')
         
         // Create a new client for continuation
         if (!Client) {
+          debugError('YouTubeSearch', 'YouTube client not initialized for continuation')
           return NextResponse.json({ error: 'YouTube client not initialized' }, { status: 500 })
         }
         const continuationClient = new Client()
@@ -165,11 +201,13 @@ export async function GET(request: NextRequest) {
         
         if (continuationResults && continuationResults.items) {
           results = continuationResults
+          debugLog('YouTubeSearch', 'Continuation search successful', { itemCount: results.items?.length || 0 })
           console.log('Continuation search successful, items count:', results.items?.length || 0)
         } else {
           throw new Error('Continuation returned no results')
         }
       } catch (continuationError) {
+        debugError('YouTubeSearch', 'Continuation search failed', continuationError)
         console.error('Continuation search failed:', continuationError)
         // When continuation fails, return empty results to stop pagination
         // This prevents showing unrelated content
@@ -185,6 +223,7 @@ export async function GET(request: NextRequest) {
       // Initial search
       if (type === 'all') {
         // For 'all' type, perform separate searches and combine results
+        debugLog('YouTubeSearch', 'Performing separate searches for all types')
         console.log('Performing separate searches for videos, playlists, and channels')
         
         const [videoResults, playlistResults, channelResults] = await Promise.all([
@@ -216,20 +255,31 @@ export async function GET(request: NextRequest) {
           continuation: videoResults.continuation || playlistResults.continuation
         }
         
+        debugLog('YouTubeSearch', 'Combined search completed', {
+          videoCount: selectedVideos.length,
+          playlistCount: selectedPlaylists.length,
+          channelCount: selectedChannels.length,
+          total: combinedItems.length
+        })
         console.log(`Combined search completed: ${selectedVideos.length} videos, ${selectedPlaylists.length} playlists, ${selectedChannels.length} channels, total: ${combinedItems.length}`)
       } else if (type === 'playlist') {
         // For playlist search, try to get playlist results
+        debugLog('YouTubeSearch', 'Performing playlist search')
         results = await youtube.search(query, { type: 'playlist' })
+        debugLog('YouTubeSearch', 'Playlist search completed', { itemCount: results.items?.length || 0 })
         console.log('Playlist search completed, items count:', results.items?.length || 0)
         
         // If no playlists found, try video search with playlist keywords
         if (!results.items || results.items.length === 0) {
+          debugLog('YouTubeSearch', 'No playlists found, trying video search with playlist keywords')
           console.log('No playlists found, trying video search with playlist keywords')
           results = await youtube.search(query + ' playlist', { type: 'video' })
+          debugLog('YouTubeSearch', 'Video search with playlist keywords completed', { itemCount: results.items?.length || 0 })
           console.log('Video search with playlist keywords completed, items count:', results.items?.length || 0)
         }
       } else if (type === 'channel') {
         // For channel search, use the search-channels API
+        debugLog('YouTubeSearch', 'Performing channel search via search-channels API')
         const channelSearchUrl = new URL(`${request.nextUrl.origin}/api/youtube/search-channels`)
         channelSearchUrl.searchParams.set('query', query)
         channelSearchUrl.searchParams.set('limit', '20')
@@ -267,10 +317,13 @@ export async function GET(request: NextRequest) {
           continuation: null // Channel search doesn't support pagination
         }
         
+        debugLog('YouTubeSearch', 'Channel search completed', { itemCount: channelItems.length })
         console.log('Channel search completed, items count:', channelItems.length)
       } else {
         // For specific types (video, playlist), use normal search
+        debugLog('YouTubeSearch', 'Performing normal search', { type })
         results = await youtube.search(query, { type: type as any })
+        debugLog('YouTubeSearch', 'Initial search completed', { itemCount: results.items?.length || 0 })
         console.log('Initial search completed, items count:', results.items?.length || 0)
       }
     }
@@ -378,6 +431,7 @@ export async function GET(request: NextRequest) {
       return null
     }).filter(Boolean) || []
     
+    debugLog('YouTubeSearch', 'Items processed', { itemCount: videoItems.length })
     console.log('Items processed:', videoItems.length)
     console.log('Continuation token available:', !!results.continuation)
     
@@ -390,11 +444,18 @@ export async function GET(request: NextRequest) {
       hasMore: !!results.continuation
     }
     
+    debugLog('YouTubeSearch', 'Final response prepared', {
+      itemCount: response.items.length,
+      hasContinuation: !!response.continuation,
+      page: response.page,
+      hasMore: response.hasMore
+    })
     console.log('Final response items count:', response.items.length)
     console.log('First item channel data:', response.items[0]?.channel)
     
     return NextResponse.json(response)
   } catch (error) {
+    debugError('YouTubeSearch', 'YouTube search error', error)
     console.error('YouTube search error:', error)
     const { searchParams } = new URL(request.url)
     return NextResponse.json({ 

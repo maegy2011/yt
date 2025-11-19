@@ -1,6 +1,22 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+
+// Debug logging utility
+const debugLog = (component: string, action: string, data?: any) => {
+  const timestamp = new Date().toISOString()
+  console.log(`[${timestamp}] [${component}] ${action}`, data ? data : '')
+}
+
+const debugError = (component: string, action: string, error: any) => {
+  const timestamp = new Date().toISOString()
+  console.error(`[${timestamp}] [${component}] ERROR in ${action}:`, error)
+}
+
+const debugWarn = (component: string, action: string, warning: any) => {
+  const timestamp = new Date().toISOString()
+  console.warn(`[${timestamp}] [${component}] WARNING in ${action}:`, warning)
+}
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -83,6 +99,8 @@ interface SearchResults {
 }
 
 export default function MyTubeApp() {
+  debugLog('MyTubeApp', 'Component initializing')
+  
   // Background player context
   const {
     backgroundVideo,
@@ -94,8 +112,15 @@ export default function MyTubeApp() {
     stopBackgroundVideo,
   } = useBackgroundPlayer()
 
+  debugLog('MyTubeApp', 'Background player context loaded', {
+    hasBackgroundVideo: !!backgroundVideo,
+    isPlaying: isBackgroundPlaying,
+    showMiniPlayer
+  })
+
   // Watch history hook
   const { addToWatchedHistory, isVideoWatched } = useWatchedHistory()
+  debugLog('MyTubeApp', 'Watch history hook loaded')
 
   // Core state
   const [activeTab, setActiveTab] = useState<Tab>('home')
@@ -117,6 +142,13 @@ export default function MyTubeApp() {
   const [autoLoadMore, setAutoLoadMore] = useState(true) // Default to enabled
   const [searchCountdown, setSearchCountdown] = useState<number | null>(null)
   const [isUpdatingFollow, setIsUpdatingFollow] = useState(false) // Track follow operations
+
+  debugLog('MyTubeApp', 'Core state initialized', {
+    activeTab,
+    showSplashScreen,
+    autoLoadMore,
+    multiSelectMode
+  })
   
   // Data states
 
@@ -208,6 +240,7 @@ export default function MyTubeApp() {
 
   // Check network connectivity
   const checkNetworkConnectivity = async (): Promise<boolean> => {
+    debugLog('MyTubeApp', 'Checking network connectivity')
     try {
       setNetworkStatus('checking')
       // Try to fetch a simple endpoint to check connectivity
@@ -218,8 +251,10 @@ export default function MyTubeApp() {
       })
       const isOnline = response.ok
       setNetworkStatus(isOnline ? 'online' : 'offline')
+      debugLog('MyTubeApp', 'Network connectivity check completed', { isOnline, status: response.status })
       return isOnline
     } catch (error) {
+      debugError('MyTubeApp', 'Network connectivity check failed', error)
       console.warn('Network connectivity check failed:', error)
       setNetworkStatus('offline')
       // Don't throw error, just return false
@@ -229,13 +264,18 @@ export default function MyTubeApp() {
 
   // Utility function for retrying fetch requests
   const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 3): Promise<Response> => {
+    debugLog('MyTubeApp', 'Starting fetch with retry', { url, retries, options })
+    
     for (let i = 0; i < retries; i++) {
       let timeoutId: NodeJS.Timeout | undefined
       
       try {
+        debugLog('MyTubeApp', `Fetch attempt ${i + 1}/${retries}`, { url })
+        
         // Create timeout signal manually for better compatibility
         const controller = new AbortController()
         timeoutId = setTimeout(() => {
+          debugWarn('MyTubeApp', 'Fetch timeout, aborting request', { url, attempt: i + 1 })
           controller.abort()
         }, 30000) // 30 second timeout
 
@@ -252,11 +292,13 @@ export default function MyTubeApp() {
         
         // Clear timeout if request succeeds
         if (timeoutId) clearTimeout(timeoutId)
+        debugLog('MyTubeApp', 'Fetch successful', { url, attempt: i + 1, status: response.status })
         return response
       } catch (error) {
         // Clear timeout if request fails
         if (timeoutId) clearTimeout(timeoutId)
         
+        debugError('MyTubeApp', `Fetch attempt ${i + 1} failed`, { url, error })
         console.warn(`Fetch attempt ${i + 1} failed for ${url}:`, error)
         
         // Don't check connectivity on first attempt to avoid circular dependency
@@ -271,9 +313,14 @@ export default function MyTubeApp() {
           }
         }
         
-        if (i === retries - 1) throw error
+        if (i === retries - 1) {
+          debugError('MyTubeApp', 'Max retries exceeded', { url, totalRetries: retries })
+          throw error
+        }
         // Wait before retrying with exponential backoff
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000))
+        const delay = Math.pow(2, i) * 1000
+        debugLog('MyTubeApp', `Retrying after delay`, { url, delay, attempt: i + 1 })
+        await new Promise(resolve => setTimeout(resolve, delay))
       }
     }
     throw new Error('Max retries exceeded')
@@ -310,6 +357,7 @@ export default function MyTubeApp() {
 
   // Show dynamic loading message
   const showDynamicLoading = useCallback((operation: 'search' | 'loadMore' | 'favorites' | 'channels' | 'general') => {
+    debugLog('MyTubeApp', 'Showing dynamic loading message', { operation })
     const message = getLoadingMessage(operation)
     setDynamicLoadingMessage(message)
     return message
@@ -317,12 +365,14 @@ export default function MyTubeApp() {
 
   // Show dynamic confirmation message
   const showDynamicConfirmation = useCallback((operation: keyof typeof confirmationMessages, ...args: unknown[]) => {
+    debugLog('MyTubeApp', 'Showing dynamic confirmation message', { operation, args })
     const message = getConfirmationMessage(operation, args)
     setDynamicLoadingMessage('')
   }, [])
 
   // Handle splash screen completion
   const handleSplashComplete = useCallback(() => {
+    debugLog('MyTubeApp', 'Splash screen completed, hiding splash screen')
     console.log('App: Splash screen completed, hiding splash screen')
     setShowSplashScreen(false)
   }, [])
@@ -332,13 +382,16 @@ export default function MyTubeApp() {
     const cacheKey = `${query}:${type}`
     const cached = searchCache.get(cacheKey)
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      debugLog('MyTubeApp', 'Cache hit', { query, type, cacheKey, itemCount: cached.items.length })
       return cached
     }
+    debugLog('MyTubeApp', 'Cache miss', { query, type, cacheKey, hasCached: !!cached })
     return null
   }, [searchCache, searchType])
 
   const setCachedResults = useCallback((query: string, items: Video[], continuation: string | null, hasMore: boolean, type: string = searchType) => {
     const cacheKey = `${query}:${type}`
+    debugLog('MyTubeApp', 'Setting cache results', { query, type, cacheKey, itemCount: items.length, hasMore, hasContinuation: !!continuation })
     setSearchCache(prev => {
       const newCache = new Map(prev)
       newCache.set(cacheKey, {
@@ -352,6 +405,8 @@ export default function MyTubeApp() {
   }, [searchType])
 
   const clearExpiredCache = useCallback(() => {
+    debugLog('MyTubeApp', 'Clearing expired cache')
+    const initialSize = searchCache.size
     setSearchCache(prev => {
       const newCache = new Map()
       for (const [key, value] of prev.entries()) {
@@ -359,28 +414,38 @@ export default function MyTubeApp() {
           newCache.set(key, value)
         }
       }
+      debugLog('MyTubeApp', 'Cache cleared', { initialSize, newSize: newCache.size })
       return newCache
     })
-  }, [])
+  }, [searchCache])
 
   // Periodic cache cleanup
   useEffect(() => {
+    debugLog('MyTubeApp', 'Setting up periodic cache cleanup', { interval: CACHE_DURATION })
     const cleanupInterval = setInterval(() => {
+      debugLog('MyTubeApp', 'Running periodic cache cleanup')
       clearExpiredCache()
     }, CACHE_DURATION)
     
-    return () => clearInterval(cleanupInterval)
+    return () => {
+      debugLog('MyTubeApp', 'Cleaning up periodic cache cleanup interval')
+      clearInterval(cleanupInterval)
+    }
   }, [clearExpiredCache])
 
   // Save auto-load preference to localStorage
   useEffect(() => {
+    debugLog('MyTubeApp', 'Saving auto-load preference to localStorage', { autoLoadMore })
     localStorage.setItem('mytube-auto-load-more', autoLoadMore.toString())
   }, [autoLoadMore])
 
   // Close mobile menu when screen size changes from mobile to larger
   useEffect(() => {
+    debugLog('MyTubeApp', 'Setting up resize handler for mobile menu')
     const handleResize = () => {
-      if (window.innerWidth >= 768) { // md breakpoint
+      const width = window.innerWidth
+      debugLog('MyTubeApp', 'Window resized', { width, isMobile: width < 768 })
+      if (width >= 768) { // md breakpoint
         setMobileMenuOpen(false)
       }
     }
@@ -388,23 +453,32 @@ export default function MyTubeApp() {
     window.addEventListener('resize', handleResize)
     handleResize() // Check on initial load
 
-    return () => window.removeEventListener('resize', handleResize)
+    return () => {
+      debugLog('MyTubeApp', 'Cleaning up resize handler')
+      window.removeEventListener('resize', handleResize)
+    }
   }, [])
 
   // Close mobile menu when pressing Escape key
   useEffect(() => {
+    debugLog('MyTubeApp', 'Setting up escape key handler for mobile menu')
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && mobileMenuOpen) {
+        debugLog('MyTubeApp', 'Escape key pressed, closing mobile menu')
         setMobileMenuOpen(false)
       }
     }
 
     document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
+    return () => {
+      debugLog('MyTubeApp', 'Cleaning up escape key handler')
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [mobileMenuOpen])
 
   // Reset intersection loading when search query changes or tab switches
   useEffect(() => {
+    debugLog('MyTubeApp', 'Resetting intersection loading state', { searchQuery, activeTab })
     setIsIntersectionLoading(false)
     setHasTriggeredLoad(false)
   }, [searchQuery, activeTab])
