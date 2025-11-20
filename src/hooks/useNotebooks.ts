@@ -1,0 +1,230 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { 
+  Notebook, 
+  CreateNotebookRequest, 
+  UpdateNotebookRequest,
+  NotebookOperations 
+} from '@/types/notes'
+
+interface UseNotebooksReturn extends NotebookOperations {
+  notebooks: Notebook[]
+  loading: boolean
+  error: string | null
+}
+
+export function useNotebooks(): UseNotebooksReturn {
+  const [notebooks, setNotebooks] = useState<Notebook[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Generic fetch function with error handling
+  const fetchWithRetry = async (url: string, options: RequestInit = {}): Promise<Response> => {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        ...options,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      return response
+    } catch (error) {
+      console.error(`Fetch error for ${url}:`, error)
+      throw error
+    }
+  }
+
+  // Fetch all notebooks
+  const fetchNotebooks = useCallback(async (): Promise<Notebook[]> => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const response = await fetchWithRetry('/api/notebooks')
+      const data = await response.json()
+      setNotebooks(data.notebooks || [])
+      return data.notebooks || []
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch notebooks'
+      setError(errorMessage)
+      console.error('Failed to fetch notebooks:', error)
+      return []
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Fetch a single notebook
+  const fetchNotebook = useCallback(async (id: string): Promise<Notebook | null> => {
+    try {
+      const response = await fetchWithRetry(`/api/notebooks/${id}`)
+      const data = await response.json()
+      return data.notebook
+    } catch (error) {
+      console.error(`Failed to fetch notebook ${id}:`, error)
+      return null
+    }
+  }, [])
+
+  // Create a new notebook
+  const createNotebook = useCallback(async (data: CreateNotebookRequest): Promise<Notebook> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetchWithRetry('/api/notebooks', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+      const newNotebook = result.notebook
+
+      // Update local state
+      setNotebooks(prev => [newNotebook, ...prev])
+      return newNotebook
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create notebook'
+      setError(errorMessage)
+      console.error('Failed to create notebook:', error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Update an existing notebook
+  const updateNotebook = useCallback(async (id: string, data: UpdateNotebookRequest): Promise<Notebook> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetchWithRetry(`/api/notebooks/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+      const updatedNotebook = result.notebook
+
+      // Update local state
+      setNotebooks(prev => 
+        prev.map(nb => nb.id === id ? updatedNotebook : nb)
+      )
+      return updatedNotebook
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update notebook'
+      setError(errorMessage)
+      console.error('Failed to update notebook:', error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Delete a notebook
+  const deleteNotebook = useCallback(async (id: string): Promise<void> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      await fetchWithRetry(`/api/notebooks/${id}`, {
+        method: 'DELETE',
+      })
+
+      // Update local state
+      setNotebooks(prev => prev.filter(nb => nb.id !== id))
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete notebook'
+      setError(errorMessage)
+      console.error('Failed to delete notebook:', error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Add a note to a notebook
+  const addNoteToNotebook = useCallback(async (notebookId: string, noteId: string): Promise<void> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      await fetchWithRetry(`/api/notebooks/${notebookId}/notes`, {
+        method: 'POST',
+        body: JSON.stringify({ noteId }),
+      })
+
+      // Refresh notebooks to get updated note counts
+      await fetchNotebooks()
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add note to notebook'
+      setError(errorMessage)
+      console.error('Failed to add note to notebook:', error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchNotebooks])
+
+  // Remove a note from a notebook
+  const removeNoteFromNotebook = useCallback(async (noteId: string): Promise<void> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      await fetchWithRetry(`/api/notes/${noteId}/notebook`, {
+        method: 'DELETE',
+      })
+
+      // Refresh notebooks to get updated note counts
+      await fetchNotebooks()
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to remove note from notebook'
+      setError(errorMessage)
+      console.error('Failed to remove note from notebook:', error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchNotebooks])
+
+  // Get notes for a specific notebook
+  const getNotebookNotes = useCallback(async (notebookId: string) => {
+    try {
+      const response = await fetchWithRetry(`/api/notebooks/${notebookId}/notes`)
+      const data = await response.json()
+      return data.notes || []
+    } catch (error) {
+      console.error(`Failed to fetch notes for notebook ${notebookId}:`, error)
+      return []
+    }
+  }, [])
+
+  // Load notebooks on mount
+  useEffect(() => {
+    fetchNotebooks()
+  }, [fetchNotebooks])
+
+  return {
+    notebooks,
+    loading,
+    error,
+    createNotebook,
+    updateNotebook,
+    deleteNotebook,
+    fetchNotebooks,
+    fetchNotebook,
+    addNoteToNotebook,
+    removeNoteFromNotebook,
+    getNotebookNotes,
+  }
+}
