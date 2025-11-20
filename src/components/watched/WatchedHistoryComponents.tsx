@@ -136,6 +136,7 @@ interface WatchedHistoryListProps {
   onDeleteVideo: (videoId: string) => void
   onDeleteSelected: () => void
   onClearAll: () => void
+  viewMode?: 'grid' | 'list'
 }
 
 export function WatchedHistoryList({
@@ -148,7 +149,8 @@ export function WatchedHistoryList({
   onPlayVideo,
   onDeleteVideo,
   onDeleteSelected,
-  onClearAll
+  onClearAll,
+  viewMode = 'grid'
 }: WatchedHistoryListProps) {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
 
@@ -189,8 +191,13 @@ export function WatchedHistoryList({
     return (
       <Alert>
         <Eye className="h-4 w-4" />
-        <AlertDescription>
-          No watch history yet. Start watching videos to see them here!
+        <AlertDescription className="flex flex-col items-center gap-4">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold mb-2">No watch history yet</h3>
+            <p className="text-muted-foreground">
+              Start watching videos to see them here!
+            </p>
+          </div>
         </AlertDescription>
       </Alert>
     )
@@ -247,16 +254,17 @@ export function WatchedHistoryList({
       </div>
 
       {/* Video list */}
-      <ScrollArea className="h-[600px]">
-        <div className="space-y-3">
+      <ScrollArea className="h-[calc(100vh-280px)]">
+        <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-3'}>
           {videos.map((video) => (
-            <div key={video.id} className="group">
+            <div key={video.id} className={viewMode === 'list' ? 'group' : ''}>
               <WatchedVideoCard
                 video={video}
                 isSelected={selectedVideos.has(video.videoId)}
                 onSelect={onSelectVideo}
                 onPlay={onPlayVideo}
                 onDelete={onDeleteVideo}
+                size={viewMode === 'list' ? 'sm' : 'md'}
               />
             </div>
           ))}

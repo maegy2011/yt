@@ -141,7 +141,7 @@ export function NoteCard({ note, onEdit, onDelete, onPlay, className = '' }: Not
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm sm:text-base break-words mb-1 whitespace-normal">
+            <h3 className="font-semibold text-sm sm:text-base break-words mb-1">
               {note.title}
             </h3>
             <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
@@ -199,7 +199,7 @@ export function NoteCard({ note, onEdit, onDelete, onPlay, className = '' }: Not
       <CardContent className="pt-0">
         {/* Note Content */}
         <div className="space-y-2">
-          <p className="text-xs sm:text-sm text-muted-foreground break-words whitespace-normal">
+          <p className="text-xs sm:text-sm text-muted-foreground whitespace-pre-wrap break-words">
             {note.note}
           </p>
           

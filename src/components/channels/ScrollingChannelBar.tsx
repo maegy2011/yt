@@ -104,10 +104,13 @@ export function ScrollingChannelBar({ channels, className = '' }: ScrollingChann
 
   if (channels.length === 0) {
     return (
-      <Card className={`p-6 ${className}`}>
+      <Card className={`p-8 ${className}`}>
         <div className="text-center text-muted-foreground">
-          <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
-          <p>No followed channels yet</p>
+          <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
+          <h3 className="text-lg font-semibold mb-2">No Followed Channels</h3>
+          <p className="text-sm max-w-md mx-auto">
+            Start following YouTube channels to see them here in a beautiful scrolling carousel.
+          </p>
         </div>
       </Card>
     )
@@ -120,7 +123,8 @@ export function ScrollingChannelBar({ channels, className = '' }: ScrollingChann
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold flex items-center gap-2">
-              📺 Followed Channels
+              <Users className="w-5 h-5 text-blue-500" />
+              Followed Channels
               <Badge variant="secondary">{channels.length}</Badge>
             </h3>
             <p className="text-sm text-muted-foreground">
@@ -216,13 +220,9 @@ export function ScrollingChannelBar({ channels, className = '' }: ScrollingChann
               <div className="relative">
                 {/* Channel Avatar */}
                 <img
-                  src={channel.thumbnail?.url || `https://via.placeholder.com/${imageSizeMap[settings.imageSize].width}x${imageSizeMap[settings.imageSize].height}/374151/ffffff?text=${encodeURIComponent(channel.name.charAt(0))}`}
+                  src={channel.thumbnail?.url || `https://via.placeholder.com/${imageSizeMap[settings.imageSize].width}x${imageSizeMap[settings.imageSize].height}/374151/ffffff?text=${channel.name.charAt(0)}`}
                   alt={channel.name}
                   className={`${imageSizeMap[settings.imageSize].class} rounded-full object-cover border-2 border-border group-hover:border-primary transition-colors`}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = `https://via.placeholder.com/${imageSizeMap[settings.imageSize].width}x${imageSizeMap[settings.imageSize].height}/374151/ffffff?text=${encodeURIComponent(channel.name.charAt(0))}`;
-                  }}
                 />
                 
                 {/* Hover Overlay */}

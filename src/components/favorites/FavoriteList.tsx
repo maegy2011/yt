@@ -260,84 +260,50 @@ export function FavoriteList({
               />
             </div>
 
-            {/* Filter Controls - Mobile First */}
-            <div className="space-y-3">
+            {/* Filter Controls */}
+            <div className="flex flex-col sm:flex-row gap-3">
               {/* Channel Filter */}
-              <div className="flex items-center gap-1 p-2 bg-muted rounded-lg">
-                <Button
-                  variant={channelFilter === 'all' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setChannelFilter('all')}
-                  className="text-xs flex-1 justify-start"
-                >
-                  All Channels
-                </Button>
-                {uniqueChannels.slice(0, 3).map(channel => (
-                  <Button
-                    key={channel}
-                    variant={channelFilter === channel ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setChannelFilter(channel)}
-                    className="text-xs flex-1 justify-start"
-                  >
-                    <Users className="w-3 h-3 mr-2" />
-                    {channel}
-                  </Button>
+              <select
+                value={channelFilter}
+                onChange={(e) => setChannelFilter(e.target.value)}
+                className="px-3 py-2 text-sm border rounded-md bg-background hover:bg-muted/50 transition-colors flex-1"
+                disabled={paused}
+              >
+                <option value="all">All Channels</option>
+                {uniqueChannels.slice(0, 5).map(channel => (
+                  <option key={channel} value={channel}>{channel}</option>
                 ))}
-              </div>
+              </select>
 
-              {/* Sort and View Options */}
-              <div className="flex flex-col sm:flex-row gap-2">
-                {/* Sort Options */}
-                <div className="flex items-center gap-1 p-2 bg-muted rounded-lg flex-1">
-                  <Button
-                    variant={sortBy === 'date' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setSortBy('date')}
-                    className="text-xs flex-1 justify-start"
-                  >
-                    <Clock className="w-3 h-3 mr-2" />
-                    Date
-                  </Button>
-                  <Button
-                    variant={sortBy === 'title' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setSortBy('title')}
-                    className="text-xs flex-1 justify-start"
-                  >
-                    A-Z
-                  </Button>
-                  <Button
-                    variant={sortBy === 'views' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setSortBy('views')}
-                    className="text-xs flex-1 justify-start"
-                  >
-                    Views
-                  </Button>
-                </div>
+              {/* Sort Options */}
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'date' | 'title' | 'views')}
+                className="px-3 py-2 text-sm border rounded-md bg-background hover:bg-muted/50 transition-colors flex-1"
+              >
+                <option value="date">Latest</option>
+                <option value="title">A-Z</option>
+                <option value="views">Most Views</option>
+              </select>
 
-                {/* View Mode */}
-                <div className="flex items-center gap-1 p-2 bg-muted rounded-lg">
-                  <Button
-                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('grid')}
-                    className="text-xs flex-1 justify-start"
-                  >
-                    <Grid className="w-3 h-3 mr-2" />
-                    Grid
-                  </Button>
-                  <Button
-                    variant={viewMode === 'list' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('list')}
-                    className="text-xs flex-1 justify-start"
-                  >
-                    <List className="w-3 h-3 mr-2" />
-                    List
-                  </Button>
-                </div>
+              {/* View Mode */}
+              <div className="flex gap-1 p-1 bg-muted rounded-md">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className="h-8 w-8 p-0"
+                >
+                  <Grid className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('list')}
+                  className="h-8 w-8 p-0"
+                >
+                  <List className="w-4 h-4" />
+                </Button>
               </div>
             </div>
           </div>
@@ -348,9 +314,9 @@ export function FavoriteList({
       {filteredFavorites.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center h-64">
-            <Heart className="w-12 h-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No favorites found</h3>
-            <p className="text-muted-foreground text-center mb-4">
+            <Heart className="w-16 h-16 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No favorites found</h3>
+            <p className="text-muted-foreground text-center mb-4 max-w-md">
               {paused 
                 ? 'Favorites are currently paused. Unpause to add favorites.'
                 : searchQuery || channelFilter !== 'all'
@@ -367,7 +333,7 @@ export function FavoriteList({
           </CardContent>
         </Card>
       ) : (
-        <ScrollArea className="h-[calc(100vh-300px)]">
+        <ScrollArea className="h-[calc(100vh-320px)]">
           <div className={getGridClasses()}>
             {filteredFavorites.map((favorite) => (
               <VideoCard
