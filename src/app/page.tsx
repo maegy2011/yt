@@ -14,7 +14,6 @@ import VideoCard from '@/components/video/VideoCard'
 import FavoritesContainer from '@/components/favorites/FavoritesContainer'
 import NotesContainer from '@/components/notes/NotesContainer'
 import WatchedHistoryContainer from '@/components/watched/WatchedHistoryContainer'
-import { SplashScreen } from '@/components/splash-screen'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useNotes } from '@/hooks/useNotes'
@@ -35,11 +34,10 @@ export default function Home() {
   const [paginationToken, setPaginationToken] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
-  const [showSplash, setShowSplash] = useState(true)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
   const { theme, setTheme } = useTheme()
-  const { backgroundVideo, isPlaying, playBackgroundVideo, pauseBackgroundVideo, currentTime, duration } = useBackgroundPlayer()
+  const { currentVideo, isPlaying, playVideo, pauseVideo, currentTime, duration } = useBackgroundPlayer()
   const { addFavorite, removeFavorite, isFavorited } = useFavorites()
   const { addNote, updateNote, deleteNote, getNotesForVideo } = useNotes()
   const { addToHistory, getHistory } = useWatchedHistory()
@@ -87,10 +85,8 @@ export default function Home() {
   }, [toast])
 
   useEffect(() => {
-    if (!showSplash) {
-      loadVideos(activeTab)
-    }
-  }, [activeTab, loadVideos, showSplash])
+    loadVideos(activeTab)
+  }, [activeTab, loadVideos])
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -120,7 +116,7 @@ export default function Home() {
     try {
       const videoDetails = await getVideoDetails(video.id.videoId)
       setSelectedVideo(videoDetails)
-      playBackgroundVideo(videoDetails)
+      playVideo(videoDetails)
       addToHistory(videoDetails)
     } catch (error) {
       console.error('Error fetching video details:', error)
@@ -250,11 +246,7 @@ export default function Home() {
   ]
 
   return (
-    <>
-      {showSplash ? (
-        <SplashScreen onComplete={() => setShowSplash(false)} />
-      ) : (
-        <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-14 items-center">
           <div className="mr-4 hidden md:flex">
@@ -477,20 +469,18 @@ export default function Home() {
         onTabChange={setActiveTab}
       />
       
-      {backgroundVideo && (
+      {currentVideo && (
         <MiniPlayer
-          video={backgroundVideo}
+          video={currentVideo}
           isPlaying={isPlaying}
           currentTime={currentTime}
           duration={duration}
-          onPlay={pauseBackgroundVideo}
-          onPause={pauseBackgroundVideo}
+          onPlay={pauseVideo}
+          onPause={pauseVideo}
         />
       )}
       
       <Toaster />
     </div>
-      )}
-    </>
   )
 }
