@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Sun, Moon, Monitor } from 'lucide-react'
+import { Moon, Sun, Monitor } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import {
@@ -10,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useEffect, useState } from 'react'
 
 export function ThemeSwitch() {
   const { setTheme, theme } = useTheme()
@@ -20,7 +20,12 @@ export function ThemeSwitch() {
   }, [])
 
   if (!mounted) {
-    return null
+    return (
+      <Button variant="ghost" size="sm" className="w-9 px-0">
+        <Sun className="h-[1.2rem] w-[1.2rem]" />
+        <span className="sr-only">Toggle theme</span>
+      </Button>
+    )
   }
 
   const getThemeIcon = () => {
@@ -31,6 +36,17 @@ export function ThemeSwitch() {
         return <Moon className="h-[1.2rem] w-[1.2rem]" />
       default:
         return <Monitor className="h-[1.2rem] w-[1.2rem]" />
+    }
+  }
+
+  const getThemeLabel = () => {
+    switch (theme) {
+      case 'light':
+        return 'Light'
+      case 'dark':
+        return 'Dark'
+      default:
+        return 'System'
     }
   }
 

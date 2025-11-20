@@ -26,44 +26,7 @@ export function favoriteVideoToCardData(favorite: FavoriteVideo | SimpleFavorite
 
 // Convert WatchedVideo to VideoCardData
 export function watchedVideoToCardData(watched: WatchedVideo): VideoCardData {
-  console.log('🎯 [VIDEO-CARD-CONVERTER] Converting watched video to card data:', {
-    videoId: watched.videoId,
-    title: watched.title?.substring(0, 50) + (watched.title?.length > 50 ? '...' : ''),
-    currentPosition: watched.currentPosition,
-    duration: watched.duration
-  })
-  
-  // Calculate progress percentage
-  let progress = 0
-  if (watched.currentPosition && watched.duration) {
-    // Parse duration string (e.g., "5:30" -> 330 seconds)
-    const durationParts = watched.duration.split(':').map(Number)
-    const durationInSeconds = durationParts.length === 2 
-      ? durationParts[0] * 60 + durationParts[1] 
-      : durationParts.length === 3 
-        ? durationParts[0] * 3600 + durationParts[1] * 60 + durationParts[2]
-        : 0
-    
-    if (durationInSeconds > 0) {
-      progress = Math.min((watched.currentPosition / durationInSeconds) * 100, 100)
-    }
-    
-    console.log('📊 [VIDEO-CARD-CONVERTER] Calculated progress:', {
-      videoId: watched.videoId,
-      currentPosition: watched.currentPosition,
-      durationString: watched.duration,
-      durationInSeconds,
-      progressPercent: progress
-    })
-  } else {
-    console.log('📝 [VIDEO-CARD-CONVERTER] No progress calculation possible:', {
-      videoId: watched.videoId,
-      currentPosition: watched.currentPosition,
-      duration: watched.duration
-    })
-  }
-
-  const result = {
+  return {
     videoId: watched.videoId,
     title: watched.title,
     channelName: watched.channelName,
@@ -71,7 +34,7 @@ export function watchedVideoToCardData(watched: WatchedVideo): VideoCardData {
     duration: watched.duration,
     viewCount: watched.viewCount,
     watchedAt: watched.watchedAt,
-    progress: Math.round(progress), // Round to nearest integer
+    progress: watched.progress,
     description: watched.description,
     channelThumbnail: watched.channelThumbnail,
     channelHandle: watched.channelHandle,
@@ -79,14 +42,6 @@ export function watchedVideoToCardData(watched: WatchedVideo): VideoCardData {
     isLive: watched.isLive,
     subscriberCount: watched.subscriberCount
   }
-
-  console.log('✅ [VIDEO-CARD-CONVERTER] Final card data:', {
-    videoId: result.videoId,
-    title: result.title?.substring(0, 30) + (result.title?.length > 30 ? '...' : ''),
-    progress: result.progress
-  })
-
-  return result
 }
 
 // Convert SimpleVideo to VideoCardData

@@ -31,9 +31,9 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
       }
       const videos = await response.json()
       setWatchedVideos(videos)
-      console.log('✅ [USE-WATCHED-HISTORY] Fetched', videos.length, 'watched videos')
+      console.log('Fetched', videos.length, 'watched videos')
     } catch (err) {
-      console.error('💥 [USE-WATCHED-HISTORY] Failed to fetch watched videos:', err)
+      console.error('Failed to fetch watched videos:', err)
       setError(err as Error)
     } finally {
       setIsLoading(false)

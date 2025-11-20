@@ -141,11 +141,8 @@ export function useKeepAliveService(): KeepAliveServiceHook {
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
-    // 6. Keep WebSocket connections alive if any (DISABLED - NO WEBSOCKET SERVER)
+    // 6. Keep WebSocket connections alive if any
     var keepWebSocketAlive = function() {
-      console.log('🚫 [KEEP-ALIVE] WebSocket keep-alive disabled - no WebSocket server available')
-      return
-      /*
       if ('WebSocket' in window) {
         // Send ping to any active WebSocket connections
         var originalSend = WebSocket.prototype.send
@@ -157,7 +154,6 @@ export function useKeepAliveService(): KeepAliveServiceHook {
           }
         }
       }
-      */
     }
 
     keepWebSocketAlive()
