@@ -1,6 +1,22 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { WatchedVideo, WatchedVideoInput } from '@/types/watched'
 
+// Debug logging utility for hooks
+const debugLog = (hook: string, action: string, data?: any) => {
+  const timestamp = new Date().toISOString()
+  console.log(`[${timestamp}] [Hook:${hook}] ${action}`, data ? data : '')
+}
+
+const debugError = (hook: string, action: string, error: any) => {
+  const timestamp = new Date().toISOString()
+  console.error(`[${timestamp}] [Hook:${hook}] ERROR in ${action}:`, error)
+}
+
+const debugWarn = (hook: string, action: string, warning: any) => {
+  const timestamp = new Date().toISOString()
+  console.warn(`[${timestamp}] [Hook:${hook}] WARNING in ${action}:`, warning)
+}
+
 interface UseWatchedHistoryReturn {
   watchedVideos: WatchedVideo[]
   isLoading: boolean
@@ -15,11 +31,14 @@ interface UseWatchedHistoryReturn {
 }
 
 export function useWatchedHistory(): UseWatchedHistoryReturn {
+  debugLog('useWatchedHistory', 'Hook initializing')
+  
   const [watchedVideos, setWatchedVideos] = useState<WatchedVideo[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
   const fetchWatchedVideos = useCallback(async () => {
+    debugLog('useWatchedHistory', 'Fetching watched videos')
     setIsLoading(true)
     setError(null)
     
@@ -31,8 +50,10 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
       }
       const videos = await response.json()
       setWatchedVideos(videos)
+      debugLog('useWatchedHistory', 'Watched videos fetched successfully', { count: videos.length })
       console.log('Fetched', videos.length, 'watched videos')
     } catch (err) {
+      debugError('useWatchedHistory', 'Failed to fetch watched videos', err)
       console.error('Failed to fetch watched videos:', err)
       setError(err as Error)
     } finally {
@@ -41,6 +62,7 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
   }, [])
 
   const addToWatchedHistory = useCallback(async (video: WatchedVideoInput) => {
+    debugLog('useWatchedHistory', 'Adding video to watched history', { videoId: video.videoId, title: video.title })
     try {
       setIsLoading(true)
       setError(null)
@@ -59,12 +81,14 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
       }
       
       // Don't immediately refresh - let the server respond first
+      debugLog('useWatchedHistory', 'Successfully added to watched history', { title: video.title })
       console.log('Successfully added to watched history:', video.title)
       
       // Optimistically update local state for better UX
       setWatchedVideos(prev => {
         const exists = prev.find(v => v.videoId === video.videoId)
         if (exists) {
+          debugLog('useWatchedHistory', 'Updating existing watched video', { videoId: video.videoId })
           // Update existing video with latest data
           return prev.map(v => 
             v.videoId === video.videoId 
@@ -72,11 +96,13 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
               : v
           )
         } else {
+          debugLog('useWatchedHistory', 'Adding new watched video', { videoId: video.videoId })
           // Add new video
           return [...prev, { ...video, watchedAt: new Date(), updatedAt: new Date() }]
         }
       })
     } catch (err) {
+      debugError('useWatchedHistory', 'Failed to add to watched history', err)
       console.error('Failed to add to watched history:', err)
       setError(err as Error)
     } finally {

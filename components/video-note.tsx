@@ -8,53 +8,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Play, Pause, RotateCcw, Plus, Trash2, Save, Bookmark, Edit, Clock, MessageSquare, User, Eye, Heart, ChevronLeft, ChevronRight, Loader2, Scissors, Volume2, VolumeX, Maximize2, RefreshCw, FileText, ChevronUp, ChevronDown } from 'lucide-react'
+import { Play, Pause, RotateCcw, Plus, Trash2, Save, Bookmark, Edit, Clock, MessageSquare, User, Eye, Heart, ChevronLeft, ChevronRight, Loader2, Scissors, Volume2, VolumeX, Maximize2, RefreshCw, FileText, ChevronUp, ChevronDown, SkipForward } from 'lucide-react'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
-
-// Import YouTube utility functions (we'll need to create these)
-const formatViewCount = (count: number | string | undefined | null): string => {
-  if (count === undefined || count === null) return '0 views'
-  
-  const numCount = typeof count === 'string' ? parseInt(count) : count
-  
-  if (isNaN(numCount) || numCount < 0) return '0 views'
-  
-  if (numCount >= 1000000) {
-    return `${(numCount / 1000000).toFixed(1)}M views`
-  } else if (numCount >= 1000) {
-    return `${(numCount / 1000).toFixed(1)}K views`
-  } else {
-    return `${numCount} views`
-  }
-}
-
-const formatPublishedAt = (dateString: string): string => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-  
-  if (diffDays === 0) {
-    return 'Today'
-  } else if (diffDays === 1) {
-    return 'Yesterday'
-  } else if (diffDays < 30) {
-    return `${diffDays} days ago`
-  } else if (diffDays < 365) {
-    return `${Math.floor(diffDays / 30)} months ago`
-  } else {
-    return `${Math.floor(diffDays / 365)} years ago`
-  }
-}
+import { formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
 
 const getChannelName = (video: any): string => {
   return video.channelName || video.channel?.name || 'Unknown Channel'
-}
-
-const formatTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
 interface VideoNote {
@@ -87,6 +46,8 @@ interface VideoNoteProps {
   onPreviousVideo?: () => void
   onNextVideo?: () => void
   onNotesChange?: () => void
+  onVideoEnd?: () => void // Autoplay callback
+  autoplayEnabled?: boolean // Autoplay setting
 }
 
 export function VideoNote({ 
@@ -103,7 +64,9 @@ export function VideoNote({
   onFavoriteToggle,
   onPreviousVideo,
   onNextVideo,
-  onNotesChange
+  onNotesChange,
+  onVideoEnd,
+  autoplayEnabled = true
 }: VideoNoteProps) {
   // Background player context
   const {
@@ -112,6 +75,9 @@ export function VideoNote({
     playBackgroundVideo,
     pauseBackgroundVideo,
     stopBackgroundVideo,
+    getPlaybackPosition,
+    savePlaybackPosition,
+    resumeFromPosition,
   } = useBackgroundPlayer()
 
   const [notes, setNotes] = useState<VideoNote[]>([])
@@ -133,18 +99,89 @@ export function VideoNote({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [noteToDelete, setNoteToDelete] = useState<string | null>(null)
   const [playerReady, setPlayerReady] = useState(false)
+  const [resumePosition, setResumePosition] = useState(0)
+  const [showResumePrompt, setShowResumePrompt] = useState(false)
   const playerRef = useRef<any>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   
-  
-  
-
-  
-
   // Function to toggle description expansion
   const toggleDescriptionExpanded = useCallback(() => {
     setDescriptionExpanded(prev => !prev)
   }, [])
+  
+  
+  
+
+  
+
+  // Check for resume position when component mounts
+  useEffect(() => {
+    console.log('🎯 [VIDEO-NOTE] Checking resume position for video:', { 
+      videoId, 
+      title: videoTitle?.substring(0, 50) + (videoTitle?.length > 50 ? '...' : '') 
+    })
+    
+    const checkResumePosition = async () => {
+      try {
+        const videoData = {
+          id: videoId,
+          title: videoTitle,
+          channelName: channelName || '',
+          thumbnail: thumbnail || '',
+          duration: duration?.toString()
+        }
+        
+        console.log('📊 [VIDEO-NOTE] Getting resume position for video data:', videoData)
+        const position = await resumeFromPosition(videoData as any)
+        
+        console.log('📋 [VIDEO-NOTE] Resume position result:', { videoId, position })
+        
+        if (position > 0) {
+          console.log('✅ [VIDEO-NOTE] Showing resume prompt for position:', position)
+          setResumePosition(position)
+          setShowResumePrompt(true)
+        } else {
+          console.log('🔄 [VIDEO-NOTE] No resume prompt needed, starting from beginning')
+        }
+      } catch (error) {
+        console.error('💥 [VIDEO-NOTE] Error checking resume position:', { videoId, error })
+      }
+    }
+    
+    if (videoId) {
+      checkResumePosition()
+    }
+  }, [videoId, videoTitle, channelName, thumbnail, duration, resumeFromPosition])
+
+  // Function to handle resume from saved position
+  const handleResume = () => {
+    console.log('⏯ [VIDEO-NOTE] User chose to resume from position:', resumePosition)
+    if (playerRef.current && resumePosition > 0) {
+      try {
+        playerRef.current.seekTo(resumePosition, true)
+        setCurrentTime(resumePosition)
+        setShowResumePrompt(false)
+        console.log('✅ [VIDEO-NOTE] Successfully resumed video from position:', resumePosition)
+      } catch (error) {
+        console.error('💥 [VIDEO-NOTE] Error resuming video:', { videoId, resumePosition, error })
+      }
+    }
+  }
+
+  // Function to start from beginning
+  const handleStartFromBeginning = () => {
+    console.log('🔄 [VIDEO-NOTE] User chose to start from beginning')
+    if (playerRef.current) {
+      try {
+        playerRef.current.seekTo(0, true)
+        setCurrentTime(0)
+        setShowResumePrompt(false)
+        console.log('✅ [VIDEO-NOTE] Successfully started video from beginning')
+      } catch (error) {
+        console.error('💥 [VIDEO-NOTE] Error starting video from beginning:', { videoId, error })
+      }
+    }
+  }
 
   // Function to refresh notes
   const refreshNotes = useCallback(async () => {
@@ -701,7 +738,7 @@ export function VideoNote({
       setCurrentTime(0)
     }
     
-    // Set initial video position if needed
+    // Set initial video position if needed (for notes)
     if (newNote.startTime > 0) {
       try {
         event.target.seekTo(newNote.startTime, true)
@@ -712,14 +749,72 @@ export function VideoNote({
     }
   }
 
+  // Auto-save playback position during playback
+  useEffect(() => {
+    if (isPlaying && playerRef.current && videoId) {
+      console.log('⏱ [VIDEO-NOTE] Starting auto-save interval for video:', videoId)
+      
+      const saveInterval = setInterval(() => {
+        try {
+          const currentPos = playerRef.current.getCurrentTime()
+          if (currentPos > 0) {
+            console.log('💾 [VIDEO-NOTE] Auto-saving position:', { videoId, position: currentPos })
+            savePlaybackPosition(videoId, currentPos, {
+              title: videoTitle,
+              channelName: channelName || '',
+              thumbnail: thumbnail || '',
+              duration: duration?.toString(),
+              viewCount: viewCount?.toString()
+            })
+          }
+        } catch (error) {
+          console.error('💥 [VIDEO-NOTE] Error auto-saving playback position:', { videoId, error })
+        }
+      }, 10000) // Save every 10 seconds
+
+      return () => {
+        console.log('🛑 [VIDEO-NOTE] Clearing auto-save interval for video:', videoId)
+        clearInterval(saveInterval)
+      }
+    }
+  }, [isPlaying, videoId, videoTitle, channelName, thumbnail, duration, viewCount, savePlaybackPosition])
+
+  // Save position when pausing
+  useEffect(() => {
+    if (!isPlaying && currentTime > 0 && videoId) {
+      console.log('⏸ [VIDEO-NOTE] Video paused, saving position:', { videoId, position: currentTime })
+      savePlaybackPosition(videoId, currentTime, {
+        title: videoTitle,
+        channelName: channelName || '',
+        thumbnail: thumbnail || '',
+        duration: duration?.toString(),
+        viewCount: viewCount?.toString()
+      })
+    }
+  }, [isPlaying, currentTime, videoId, videoTitle, channelName, thumbnail, duration, viewCount, savePlaybackPosition])
+
   const onStateChange = (event: any) => {
     const state = event.data
+    console.log('📺 [VIDEO-NOTE] YouTube player state changed:', { state, autoplayEnabled })
+    
     if (state === 1) { // Playing
       setIsPlaying(true)
     } else if (state === 2) { // Paused
       setIsPlaying(false)
     } else if (state === 0) { // Ended
+      console.log('🏁 [VIDEO-NOTE] Video ended, checking autoplay:', { autoplayEnabled, hasCallback: !!onVideoEnd })
       setIsPlaying(false)
+      
+      // Handle autoplay when video ends
+      if (autoplayEnabled && onVideoEnd) {
+        console.log('⏯ [VIDEO-NOTE] Triggering autoplay callback')
+        // Small delay before autoplaying next video
+        setTimeout(() => {
+          onVideoEnd()
+        }, 1000) // 1 second delay
+      } else {
+        console.log('🚫 [VIDEO-NOTE] Autoplay disabled or no callback provided')
+      }
     }
   }
 
@@ -795,6 +890,45 @@ export function VideoNote({
               className="w-full h-full"
             />
           </div>
+          
+          {/* Resume Prompt Overlay */}
+          {showResumePrompt && (
+            <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-10">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm mx-4 text-center">
+                <div className="mb-4">
+                  <Play className="w-12 h-12 text-blue-600 dark:text-blue-400 mx-auto mb-2" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Resume from where you left off?
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
+                    You were at {formatTime(resumePosition)} in this video
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Video: {videoTitle.length > 50 ? videoTitle.substring(0, 50) + '...' : videoTitle}
+                  </p>
+                </div>
+                <div className="flex gap-3 justify-center">
+                  <Button
+                    onClick={handleResume}
+                    className="flex-1"
+                    size="sm"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Resume
+                  </Button>
+                  <Button
+                    onClick={handleStartFromBeginning}
+                    variant="outline"
+                    className="flex-1"
+                    size="sm"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Start Over
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Video Info Section - YouTube Style */}
@@ -836,6 +970,24 @@ export function VideoNote({
               
               {/* Action Buttons */}
               <div className="flex items-center gap-2">
+                {/* Autoplay Status */}
+                <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md">
+                  <Play className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Autoplay
+                  </span>
+                </div>
+                
+                <Button
+                  onClick={() => onVideoEnd?.()}
+                  variant="ghost"
+                  size="sm"
+                  title="Skip to next video"
+                  className="transition-all duration-200"
+                >
+                  <SkipForward className="w-4 h-4" />
+                </Button>
+                
                 <Button
                   onClick={toggleQuickNote}
                   variant="ghost"
@@ -1018,6 +1170,7 @@ export function VideoNote({
                   value={newNote.title}
                   onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
                   placeholder="Enter a title for this clip..."
+                  className="break-words"
                 />
               </div>
               
@@ -1028,6 +1181,7 @@ export function VideoNote({
                   value={newNote.note}
                   onChange={(e) => setNewNote({ ...newNote, note: e.target.value })}
                   placeholder="Add your notes or comments..."
+                  className="break-words"
                 />
               </div>
             </div>
@@ -1231,13 +1385,13 @@ export function VideoNote({
                               value={editingNoteTitle}
                               onChange={(e) => setEditingNoteTitle(e.target.value)}
                               placeholder="Note title"
-                              className="font-medium text-sm"
+                              className="font-medium text-sm break-words"
                             />
                             <textarea
                               value={editingNoteContent}
                               onChange={(e) => setEditingNoteContent(e.target.value)}
                               placeholder="Note content"
-                              className="w-full p-2 border rounded-md text-xs sm:text-sm resize-none"
+                              className="w-full p-2 border rounded-md text-xs sm:text-sm resize-none whitespace-pre-wrap break-words"
                               rows={3}
                             />
                             <div className="flex gap-1 sm:gap-2">
@@ -1261,12 +1415,12 @@ export function VideoNote({
                           </div>
                         ) : (
                           <>
-                            <h3 className="font-medium text-gray-900 dark:text-white mb-1 truncate text-sm sm:text-base">
+                            <h3 className="font-medium text-gray-900 dark:text-white mb-1 text-sm sm:text-base break-words">
                               {note.title}
                             </h3>
                             
                             {note.note && (
-                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">
+                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 whitespace-pre-wrap break-words">
                                 {note.note}
                               </p>
                             )}

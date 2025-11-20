@@ -1,4 +1,20 @@
 // Enhanced YouTube API utilities for frontend use
+
+// Debug logging utility for YouTube library
+const debugLog = (component: string, action: string, data?: any) => {
+  const timestamp = new Date().toISOString()
+  console.log(`[${timestamp}] [YouTube:${component}] ${action}`, data ? data : '')
+}
+
+const debugError = (component: string, action: string, error: any) => {
+  const timestamp = new Date().toISOString()
+  console.error(`[${timestamp}] [YouTube:${component}] ERROR in ${action}:`, error)
+}
+
+const debugWarn = (component: string, action: string, warning: any) => {
+  const timestamp = new Date().toISOString()
+  console.warn(`[${timestamp}] [YouTube:${component}] WARNING in ${action}:`, warning)
+}
 export interface Video {
   id: string
   title: string
@@ -98,26 +114,34 @@ export interface SearchResult {
 }
 
 export async function searchVideos(query: string, type: 'video' | 'playlist' | 'channel' | 'all' = 'all'): Promise<SearchResult> {
+  debugLog('SearchVideos', 'Starting search', { query, type })
+  
   try {
     if (!query.trim()) {
+      debugWarn('SearchVideos', 'Empty search query')
       return { items: [], error: 'Search query cannot be empty' }
     }
 
+    debugLog('SearchVideos', 'Making API request', { query, type })
     const response = await fetch(`/api/youtube/search?query=${encodeURIComponent(query)}&type=${type}`)
     
     if (!response.ok) {
+      debugError('SearchVideos', 'API request failed', { status: response.status, statusText: response.statusText })
       throw new Error(`Search failed with status: ${response.status}`)
     }
     
     const result = await response.json()
+    debugLog('SearchVideos', 'API response received', { itemCount: result.items?.length || 0, hasError: !!result.error })
     
     // Validate the response structure
     if (!result || typeof result !== 'object') {
+      debugError('SearchVideos', 'Invalid response structure', result)
       return { items: [], error: 'Invalid search response' }
     }
     
     return result
   } catch (error) {
+    debugError('SearchVideos', 'Search failed', error)
     console.error('Search error:', error)
     return { 
       items: [], 

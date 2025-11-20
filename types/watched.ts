@@ -6,8 +6,11 @@ export interface WatchedVideo {
   thumbnail: string
   duration?: string
   viewCount?: string
+  currentPosition?: number  // Current playback position in seconds
+  lastWatchedAt?: string   // Last time the video was watched
   watchedAt: string
   updatedAt: string
+  progress?: number        // Calculated progress percentage (0-100)
 }
 
 export interface WatchedVideoInput {
@@ -17,6 +20,8 @@ export interface WatchedVideoInput {
   thumbnail: string
   duration?: string
   viewCount?: string
+  currentPosition?: number
+  lastWatchedAt?: string
 }
 
 export interface WatchedHistoryStats {

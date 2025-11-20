@@ -6,20 +6,26 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // 禁用 Next.js 热重载，由 nodemon 处理重编译
-  reactStrictMode: false,
-  webpack: (config, { dev }) => {
-    if (dev) {
-      // 禁用 webpack 的热模块替换
-      config.watchOptions = {
-        ignored: ["**/*"], // 忽略所有文件变化
-      };
-    }
-    return config;
-  },
+  // Enable React strict mode for better development experience
+  reactStrictMode: true,
+  // Remove webpack watch options to enable proper HMR and WebSocket functionality
   eslint: {
     // 构建时忽略ESLint错误
     ignoreDuringBuilds: true,
+  },
+  // Add proper WebSocket and HMR configuration
+  experimental: {
+    // Enable proper HMR
+    webpackBuildWorker: true,
+  },
+  // Configure rewrites to handle API routes properly
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: '/api/:path*',
+      },
+    ];
   },
 };
 

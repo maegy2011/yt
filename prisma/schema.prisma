@@ -26,15 +26,17 @@ model Post {
 }
 
 model WatchedVideo {
-  id          String   @id @default(cuid())
-  videoId     String   @unique
-  title       String
-  channelName String
-  thumbnail   String
-  duration    String?
-  viewCount   String?
-  watchedAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  videoId         String   @unique
+  title           String
+  channelName     String
+  thumbnail       String
+  duration        String?
+  viewCount       String?
+  currentPosition  Float    @default(0)    // Current playback position in seconds
+  lastWatchedAt   DateTime @default(now()) // Last time the video was watched
+  watchedAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model FavoriteVideo {
