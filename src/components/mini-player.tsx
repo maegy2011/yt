@@ -22,6 +22,7 @@ import {
 
 } from 'lucide-react'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
+import { usePlaybackPosition } from '@/hooks/use-playback-position'
 
 import { formatDuration } from '@/lib/youtube'
 
@@ -42,7 +43,11 @@ export function MiniPlayer() {
     updateCurrentTime,
     updateDuration,
     updatePlayingState,
+    savedPosition,
+    resumeFromSavedPosition,
   } = useBackgroundPlayer()
+
+  const { savePlaybackPosition, loadPlaybackPosition } = usePlaybackPosition(backgroundVideo?.videoId || '')
 
 
 
@@ -119,10 +124,24 @@ export function MiniPlayer() {
     },
   }
 
-  const onReady = (event: any) => {
+  const onReady = async (event: any) => {
     playerRef.current = event.target
     event.target.setVolume(volume * 100)
-    updateDuration(event.target.getDuration())
+    const videoDuration = event.target.getDuration()
+    updateDuration(videoDuration)
+    
+    // Load saved position for this video
+    const savedTime = await loadPlaybackPosition(backgroundVideo?.videoId || '')
+    
+    // If there's a saved position worth resuming, seek to it
+    if (savedTime && savedTime > 10 && videoDuration > 0 && savedTime < videoDuration - 10) {
+      setTimeout(() => {
+        if (playerRef.current) {
+          playerRef.current.seekTo(savedTime, true)
+          updateCurrentTime(savedTime)
+        }
+      }, 500) // Small delay to ensure player is ready
+    }
   }
 
   const onStateChange = (event: any) => {

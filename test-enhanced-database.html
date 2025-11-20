@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Enhanced Database Modules Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1000px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .status { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .feature-list { list-style: none; padding: 0; }
+        .feature-list li { padding: 8px 0; border-bottom: 1px solid #eee; }
+        .feature-title { font-weight: bold; color: #333; }
+        .feature-desc { font-size: 14px; color: #666; margin-top: 4px; }
+        .code-block { background: #f4f4f4; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🗄️ Enhanced Database Modules Test</h1>
+    
+    <div class="test-section">
+        <h2>✨ New Enhanced Features</h2>
+        <ul class="feature-list">
+            <li>
+                <div class="feature-title">🏗️ Modular Architecture</div>
+                <div class="feature-desc">Separate modules for each data type with comprehensive CRUD operations</div>
+            </li>
+            <li>
+                <div class="feature-title">🔧 Enhanced Error Handling</div>
+                <div class="feature-desc">Better error handling and logging throughout all operations</div>
+            </li>
+            <li>
+                <div class="feature-title">📊 Statistics Tracking</div>
+                <div class="feature-desc">Accurate count and statistics for all data types</div>
+            </li>
+            <li>
+                <div class="feature-title">⚡ Batch Operations</div>
+                <div class="feature-desc">Multiple operations in single API call with detailed results</div>
+            </li>
+            <li>
+                <div class="feature-title">🎯 Comprehensive Clearing</div>
+                <div class="feature-desc">Support for selective and complete data clearing</div>
+            </li>
+            <li>
+                <div class="feature-title">📝 Playback Position Support</div>
+                <div class="feature-desc">Enhanced module for resumable playback data management</div>
+            </li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 Test Instructions</h2>
+        <ol>
+            <li><strong>Open YouTube App:</strong> <button onclick="window.open('http://localhost:3000', '_blank')">Launch MyTube</button></li>
+            <li><strong>Navigate to Settings:</strong> Click settings icon → "Clear Data" button</li>
+            <li><strong>Test Enhanced Clear:</strong> Should see new enhanced clear data interface</li>
+            <li><strong>Check API Responses:</strong> Use buttons below to test API endpoints</li>
+            <li><strong>Verify Results:</strong> Check console for detailed operation logs</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>📡 API Testing</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+                <h3>Statistics API</h3>
+                <button onclick="testStatistics()">Test GET /api/clear-all-data</button>
+                <div id="stats-result" class="status">Click to test</div>
+            </div>
+            
+            <div>
+                <h3>Enhanced Clear All</h3>
+                <button onclick="testClearAll()">Test POST /api/clear-all-data</button>
+                <div id="clear-all-result" class="status">Click to test</div>
+            </div>
+            
+            <div>
+                <h3>Selective Clear</h3>
+                <button onclick="testSelectiveClear()">Test POST /api/clear-selective-data</button>
+                <div id="selective-result" class="status">Click to test</div>
+            </div>
+            
+            <div>
+                <h3>Batch Operations</h3>
+                <button onclick="testBatchOperations()">Test POST /api/batch-operations</button>
+                <div id="batch-result" class="status">Click to test</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>📋 Sample API Calls</h2>
+        <div class="code-block">
+// Sample selective clear data call
+fetch('/api/clear-selective-data', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    favoriteVideos: true,
+    videoNotes: true,
+    playbackPositions: true
+  })
+})
+
+// Sample batch operations call
+fetch('/api/batch-operations', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    operations: [
+      { type: 'favoriteVideos', ids: ['video1', 'video2'] },
+      { type: 'videoNotes', ids: ['note1', 'note2'] },
+      { type: 'playbackPositions' }
+    ]
+  })
+})
+        </div>
+    </div>
+
+    <script>
+        function testAPI(endpoint, method = 'GET', data = null) {
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            };
+            
+            if (data && method === 'POST') {
+                options.body = JSON.stringify(data);
+            }
+            
+            return fetch(`http://localhost:3000/api/${endpoint}`, options)
+                .then(response => response.json())
+                .then(result => {
+                    console.log(`${endpoint} result:`, result);
+                    const resultDiv = document.getElementById(`${endpoint}-result`);
+                    if (resultDiv) {
+                        resultDiv.innerHTML = `
+                            <h4>✅ ${endpoint} Response:</h4>
+                            <div style="background: #e8f5e8; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                                <pre style="color: #155724; font-size: 12px; overflow-x: auto;">${JSON.stringify(result, null, 2)}</pre>
+                            </div>
+                        `;
+                        resultDiv.className = 'status success';
+                    }
+                })
+                .catch(error => {
+                    console.error(`${endpoint} error:`, error);
+                    const resultDiv = document.getElementById(`${endpoint}-result`);
+                    if (resultDiv) {
+                        resultDiv.innerHTML = `
+                            <h4>❌ ${endpoint} Error:</h4>
+                            <div style="background: #fee2e2; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                                <pre style="color: #721c24; font-size: 12px; overflow-x: auto;">${error.message}</pre>
+                            </div>
+                        `;
+                        resultDiv.className = 'status error';
+                    }
+                });
+        }
+
+        function testStatistics() {
+            testAPI('clear-all-data', 'GET');
+        }
+
+        function testClearAll() {
+            testAPI('clear-all-data', 'POST');
+        }
+
+        function testSelectiveClear() {
+            testAPI('clear-selective-data', 'POST', {
+                favoriteChannels: true,
+                favoriteVideos: true,
+                videoNotes: true,
+                playbackPositions: true
+            });
+        }
+
+        function testBatchOperations() {
+            testAPI('batch-operations', 'POST', {
+                operations: [
+                    { type: 'favoriteVideos', ids: ['test-video-1', 'test-video-2'] },
+                    { type: 'videoNotes', ids: ['test-note-1', 'test-note-2'] },
+                    { type: 'playbackPositions' }
+                ]
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,33 +1,18 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { DataManager } from '@/lib/database-modules'
 
 export async function POST() {
   try {
-    console.log('Starting clear all data operation...')
+    console.log('Starting comprehensive clear all data operation with enhanced modules...')
     
-    // Delete all data from all tables
-    const favoriteChannelsCount = await db.favoriteChannel.deleteMany()
-    const favoriteVideosCount = await db.favoriteVideo.deleteMany()
-    const videoNotesCount = await db.videoNote.deleteMany()
+    const result = await DataManager.clearAll()
     
-    const totalDeleted = favoriteChannelsCount.count + favoriteVideosCount.count + videoNotesCount.count
-    
-    console.log('Database cleanup completed:', {
-      favoriteChannels: favoriteChannelsCount.count,
-      favoriteVideos: favoriteVideosCount.count,
-      videoNotes: videoNotesCount.count,
-      total: totalDeleted
-    })
+    console.log('Comprehensive database cleanup completed:', result)
     
     return NextResponse.json({
       success: true,
-      message: 'All data cleared successfully',
-      deleted: {
-        favoriteChannels: favoriteChannelsCount.count,
-        favoriteVideos: favoriteVideosCount.count,
-        videoNotes: videoNotesCount.count,
-        total: totalDeleted
-      },
+      message: 'All data cleared successfully using enhanced modules',
+      deleted: result.deleted,
       localStorageCleared: true // Client will handle this
     })
   } catch (error) {
@@ -42,21 +27,12 @@ export async function POST() {
 
 export async function GET() {
   try {
-    // Get current data statistics
-    const favoriteChannelsCount = await db.favoriteChannel.count()
-    const favoriteVideosCount = await db.favoriteVideo.count()
-    const videoNotesCount = await db.videoNote.count()
-    
-    const total = favoriteChannelsCount + favoriteVideosCount + videoNotesCount
+    const statistics = await DataManager.getStatistics()
     
     return NextResponse.json({
-      statistics: {
-        favoriteChannels: favoriteChannelsCount,
-        favoriteVideos: favoriteVideosCount,
-        videoNotes: videoNotesCount,
-        total: total
-      },
-      hasData: total > 0
+      statistics,
+      hasData: statistics.total > 0,
+      enhanced: true // Using enhanced modules
     })
   } catch (error) {
     console.error('Failed to get data statistics:', error)

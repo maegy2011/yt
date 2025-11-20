@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Resumable Playback Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .status { margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🎬 Resumable Playback Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Check localStorage functionality</h2>
+        <button onclick="testLocalStorage()">Test localStorage</button>
+        <div id="localStorage-status" class="status">Click to test</div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Check app accessibility</h2>
+        <button onclick="window.open('http://localhost:3000', '_blank')">Open YouTube App</button>
+        <div class="status">
+            <p>Instructions:</p>
+            <ol>
+                <li>Open the YouTube app in a new tab</li>
+                <li>Search for any video and play it</li>
+                <li>Let it play for at least 15 seconds</li>
+                <li>Close the tab or navigate away</li>
+                <li>Reopen the same video</li>
+                <li>You should see a "Resume from saved position?" dialog</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Manual localStorage check</h2>
+        <button onclick="checkPlaybackData()">Check saved playback data</button>
+        <div id="playback-data" class="status">Click to check</div>
+    </div>
+
+    <script>
+        function testLocalStorage() {
+            try {
+                const testKey = 'test-playback-position';
+                const testData = {
+                    videoId: 'test-video-123',
+                    title: 'Test Video',
+                    channelName: 'Test Channel',
+                    thumbnail: 'test.jpg',
+                    duration: 300,
+                    currentTime: 45,
+                    lastWatched: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                
+                localStorage.setItem(testKey, JSON.stringify(testData));
+                
+                const retrieved = JSON.parse(localStorage.getItem(testKey));
+                
+                if (retrieved && retrieved.currentTime === 45) {
+                    document.getElementById('localStorage-status').innerHTML = '<div class="success">✅ localStorage is working correctly!</div>';
+                } else {
+                    document.getElementById('localStorage-status').innerHTML = '<div class="error">❌ localStorage test failed</div>';
+                }
+            } catch (error) {
+                document.getElementById('localStorage-status').innerHTML = '<div class="error">❌ Error: ' + error.message + '</div>';
+            }
+        }
+
+        function checkPlaybackData() {
+            const data = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('playback-position-')) {
+                    const value = localStorage.getItem(key);
+                    try {
+                        const parsed = JSON.parse(value);
+                        data.push({ key, ...parsed });
+                    } catch (e) {
+                        data.push({ key, error: 'Invalid JSON' });
+                    }
+                }
+            }
+            
+            const html = data.length > 0 
+                ? '<div class="success">Found ' + data.length + ' saved playback positions:</div>' +
+                  data.map(item => 
+                    `<div style="margin: 5px 0; padding: 5px; background: #e9ecef; border-radius: 3px;">
+                        <strong>${item.videoId}</strong>: ${item.title || 'No title'} - ${formatTime(item.currentTime)} / ${formatTime(item.duration)}
+                    </div>`
+                  ).join('')
+                : '<div class="status">No saved playback positions found</div>';
+            
+            document.getElementById('playback-data').innerHTML = html;
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Auto-check on page load
+        window.onload = function() {
+            checkPlaybackData();
+        };
+    </script>
+</body>
+</html>

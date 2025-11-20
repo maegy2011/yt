@@ -62,30 +62,42 @@ model FavoriteChannel {
 }
 
 model Notebook {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   title       String
   description String?
-  color       String   @default("#3b82f6")
-  isPublic    Boolean  @default(false)
-  tags        String   @default("")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  color       String      @default("#3b82f6")
+  isPublic    Boolean     @default(false)
+  tags        String      @default("")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
   notes       VideoNote[]
 }
 
 model VideoNote {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   videoId     String
   title       String
   channelName String
   thumbnail   String
   note        String
-  fontSize    Int      @default(16)
+  fontSize    Int       @default(16)
   startTime   Int?
   endTime     Int?
-  isClip      Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isClip      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   notebookId  String?
-  notebook    Notebook? @relation(fields: [notebookId], references: [id], onDelete: SetNull)
+  notebook    Notebook? @relation(fields: [notebookId], references: [id])
+}
+
+model VideoPlaybackPosition {
+  id          String   @id @default(cuid())
+  videoId     String   @unique
+  title       String
+  channelName String
+  thumbnail   String
+  duration    Float
+  currentTime Float    @default(0)
+  lastWatched DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

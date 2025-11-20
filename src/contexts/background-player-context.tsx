@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useRef, useCallback, useEffect, ReactNode } from 'react'
 import { SimpleVideo } from '@/lib/type-compatibility'
+import { usePlaybackPosition } from '@/hooks/use-playback-position'
 
 import { useKeepAliveService } from '@/hooks/use-keep-alive'
 
@@ -14,6 +15,7 @@ interface BackgroundPlayerContextType {
   isBackgroundMode: boolean
   showMiniPlayer: boolean
   playerRef: any
+  savedPosition: number | null
   
   // Actions
   playBackgroundVideo: (video: SimpleVideo) => void
@@ -26,6 +28,7 @@ interface BackgroundPlayerContextType {
   updateCurrentTime: (time: number) => void
   updateDuration: (duration: number) => void
   updatePlayingState: (isPlaying: boolean) => void
+  resumeFromSavedPosition: () => void
 }
 
 const BackgroundPlayerContext = createContext<BackgroundPlayerContextType | undefined>(undefined)
@@ -50,6 +53,7 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
   const [volume, setVolumeState] = useState(1)
   const [isBackgroundMode, setIsBackgroundMode] = useState(false)
   const [showMiniPlayer, setShowMiniPlayer] = useState(false)
+  const [savedPosition, setSavedPosition] = useState<number | null>(null)
   const playerRef = useRef<any>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   
@@ -60,6 +64,13 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
     requestWakeLock,
     releaseWakeLock
   } = useKeepAliveService()
+
+  // Playback position hook
+  const {
+    playbackPosition,
+    savePlaybackPosition,
+    loadPlaybackPosition
+  } = usePlaybackPosition(backgroundVideo?.videoId || '')
 
   // Monitor current time when playing
   const startMonitoring = useCallback(() => {
@@ -72,12 +83,24 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
         try {
           const time = playerRef.current.getCurrentTime()
           setCurrentTime(time)
+          
+          // Save playback position periodically
+          if (backgroundVideo && duration > 0) {
+            savePlaybackPosition(
+              backgroundVideo.videoId,
+              backgroundVideo.title,
+              backgroundVideo.channelName,
+              backgroundVideo.thumbnail,
+              duration,
+              time
+            )
+          }
         } catch (error) {
           console.error('Error getting current time:', error)
         }
       }
-    }, 1000) // Update every second for background mode
-  }, [])
+    }, 5000) // Update every 5 seconds for background mode (less frequent than main player)
+  }, [backgroundVideo, duration, savePlaybackPosition])
 
   const stopMonitoring = useCallback(() => {
     if (intervalRef.current) {
@@ -86,17 +109,21 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
     }
   }, [])
 
-  const playBackgroundVideo = useCallback((video: SimpleVideo) => {
+  const playBackgroundVideo = useCallback(async (video: SimpleVideo) => {
     setBackgroundVideo(video)
     setIsBackgroundMode(true)
     setShowMiniPlayer(true)
     setIsPlaying(true)
     
+    // Load saved position for this video
+    const savedTime = await loadPlaybackPosition(video.videoId)
+    setSavedPosition(savedTime > 0 ? savedTime : null)
+    
     startMonitoring()
     
     // Start keep-alive mechanisms
     startKeepAlive()
-  }, [startMonitoring, startKeepAlive])
+  }, [loadPlaybackPosition, startMonitoring, startKeepAlive])
 
   const pauseBackgroundVideo = useCallback(() => {
     setIsPlaying(false)
@@ -107,12 +134,26 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
   }, [stopMonitoring])
 
   const stopBackgroundVideo = useCallback(() => {
+    // Save final position before stopping
+    if (backgroundVideo && currentTime > 0 && duration > 0) {
+      savePlaybackPosition(
+        backgroundVideo.videoId,
+        backgroundVideo.title,
+        backgroundVideo.channelName,
+        backgroundVideo.thumbnail,
+        duration,
+        currentTime,
+        true // immediate save
+      )
+    }
+    
     setBackgroundVideo(null)
     setIsPlaying(false)
     setIsBackgroundMode(false)
     setShowMiniPlayer(false)
     setCurrentTime(0)
     setDuration(0)
+    setSavedPosition(null)
     
     if (playerRef.current) {
       playerRef.current.stopVideo()
@@ -121,7 +162,15 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
     
     // Stop keep-alive mechanisms
     stopKeepAlive()
-  }, [stopMonitoring, stopKeepAlive])
+  }, [backgroundVideo, currentTime, duration, savePlaybackPosition, stopMonitoring, stopKeepAlive])
+
+  const resumeFromSavedPosition = useCallback(() => {
+    if (savedPosition && playerRef.current) {
+      playerRef.current.seekTo(savedPosition, true)
+      setCurrentTime(savedPosition)
+      setSavedPosition(null) // Clear saved position after using it
+    }
+  }, [savedPosition])
 
   const seekTo = useCallback((time: number) => {
     if (playerRef.current) {
@@ -245,6 +294,7 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
         isBackgroundMode,
         showMiniPlayer,
         playerRef,
+        savedPosition,
         playBackgroundVideo,
         pauseBackgroundVideo,
         stopBackgroundVideo,
@@ -255,6 +305,7 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
         updateCurrentTime,
         updateDuration,
         updatePlayingState,
+        resumeFromSavedPosition,
       }}
     >
       {children}

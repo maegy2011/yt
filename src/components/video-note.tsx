@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Play, Pause, RotateCcw, Plus, Trash2, Save, Bookmark, Edit, Clock, MessageSquare, User, Eye, Heart, ChevronLeft, ChevronRight, Loader2, Scissors, Volume2, VolumeX, Maximize2, RefreshCw, FileText, ChevronUp, ChevronDown } from 'lucide-react'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
+import { usePlaybackPosition } from '@/hooks/use-playback-position'
 import { formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
 
 const getChannelName = (video: any): string => {
@@ -73,6 +74,13 @@ export function VideoNote({
     stopBackgroundVideo,
   } = useBackgroundPlayer()
 
+  // Playback position hook
+  const {
+    playbackPosition,
+    savePlaybackPosition,
+    loadPlaybackPosition
+  } = usePlaybackPosition(videoId)
+
   const [notes, setNotes] = useState<VideoNote[]>([])
   const [filteredNotes, setFilteredNotes] = useState<VideoNote[]>([])
   const [notesSearchQuery, setNotesSearchQuery] = useState('')
@@ -80,6 +88,8 @@ export function VideoNote({
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [savedPosition, setSavedPosition] = useState<number | null>(null)
+  const [showResumePrompt, setShowResumePrompt] = useState(false)
   const [autoStopTriggered, setAutoStopTriggered] = useState(false)
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null)
   const [isCapturing, setIsCapturing] = useState(false)
@@ -300,14 +310,26 @@ export function VideoNote({
         try {
           const currentTime = playerRef.current.getCurrentTime()
           setCurrentTime(currentTime)
+          
+          // Save playback position periodically
+          if (duration > 0 && isPlaying) {
+            savePlaybackPosition(
+              videoId,
+              videoTitle,
+              channelName || '',
+              thumbnail || '',
+              duration,
+              currentTime
+            )
+          }
         } catch (error) {
           console.error('Error getting current time:', error)
         }
       }
-    }, 100) // Update every 100ms for more accuracy
+    }, 2000) // Update every 2 seconds and save position
 
     return () => clearInterval(interval)
-  }, [])
+  }, [videoId, videoTitle, channelName, thumbnail, duration, isPlaying, savePlaybackPosition])
 
   // Monitor video progress and enforce timestamp limits
   useEffect(() => {
@@ -645,29 +667,34 @@ export function VideoNote({
     }
   }
 
-  const onReady = (event: any) => {
+  const onReady = async (event: any) => {
     playerRef.current = event.target
-    setDuration(event.target.getDuration())
+    const videoDuration = event.target.getDuration()
+    setDuration(videoDuration)
     setPlayerReady(true)
+    
+    // Load saved position for this video
+    const savedTime = await loadPlaybackPosition(videoId)
     
     // Initialize current time from player
     try {
       const initialTime = event.target.getCurrentTime()
-      setCurrentTime(initialTime)
+      setCurrentTime(initialTime || 0)
       console.log('YouTube player ready, initial time:', initialTime)
     } catch (error) {
       console.error('Error getting initial time from YouTube player:', error)
       setCurrentTime(0)
     }
     
-    // Set initial video position if needed
-    if (newNote.startTime > 0) {
-      try {
-        event.target.seekTo(newNote.startTime, true)
-        setCurrentTime(newNote.startTime)
-      } catch (error) {
-        console.error('Error seeking to initial time:', error)
-      }
+    // Check if there's a saved position that's worth resuming (more than 10 seconds)
+    if (savedTime && savedTime > 10 && videoDuration > 0 && savedTime < videoDuration - 10) {
+      setSavedPosition(savedTime)
+      setShowResumePrompt(true)
+      console.log('Found saved position:', savedTime, 'showing resume prompt')
+    } else {
+      // Set initial video position if needed
+      setSavedPosition(null)
+      setShowResumePrompt(false)
     }
   }
 
@@ -738,9 +765,47 @@ export function VideoNote({
   return (
     <div className="w-full max-w-7xl mx-auto space-y-4 sm:space-y-6">
       {/* YouTube-like Video Player Container */}
-      <div className="bg-black rounded-lg overflow-hidden shadow-lg">
+      <div className="bg-black rounded-lg overflow-hidden shadow-lg relative">
         {/* Video Player */}
         <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+          {/* Resume Prompt Dialog */}
+          {showResumePrompt && savedPosition && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm mx-4">
+                <div className="text-center">
+                  <Play className="w-12 h-12 mx-auto mb-4 text-blue-600 dark:text-blue-400" />
+                  <h3 className="text-lg font-semibold mb-2">Resume from saved position?</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                    You left off at {formatDuration(savedPosition)} of {formatDuration(duration)}
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowResumePrompt(false)
+                        setSavedPosition(null)
+                      }}
+                    >
+                      Start from beginning
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (playerRef.current) {
+                          playerRef.current.seekTo(savedPosition, true)
+                          setCurrentTime(savedPosition)
+                          setSavedPosition(null)
+                          setShowResumePrompt(false)
+                        }
+                      }}
+                    >
+                      Resume
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="absolute inset-0">
             <YouTube
               videoId={validVideoId}

@@ -62,6 +62,7 @@ import { NotesContainer } from '@/components/notes/NotesContainer'
 import { NotebooksContainer } from '@/components/notebooks/NotebooksContainer'
 import { FavoritesContainer } from '@/components/favorites/FavoritesContainer'
 import { WatchedHistoryContainer } from '@/components/watched/WatchedHistoryContainer'
+import { EnhancedClearData } from '@/components/enhanced-clear-data'
 import { useWatchedHistory } from '@/hooks/useWatchedHistory'
 import { BottomNavigation } from '@/components/navigation/BottomNavigation'
 import { NavigationSpacer } from '@/components/navigation/NavigationSpacer'
@@ -199,6 +200,8 @@ export default function MyTubeApp() {
   // Settings states
   const [showSettings, setShowSettings] = useState(false)
   const [showClearDataConfirmation, setShowClearDataConfirmation] = useState(false)
+  const [showEnhancedClearData, setShowEnhancedClearData] = useState(false)
+  const [dataStatistics, setDataStatistics] = useState<any>(null)
   const [favoritesEnabled, setFavoritesEnabled] = useState(true)
   const [favoritesPaused, setFavoritesPaused] = useState(false)
   
@@ -987,6 +990,14 @@ export default function MyTubeApp() {
         localStorage.removeItem(key)
       })
       
+      // Clear all localStorage including playback positions
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && (key.startsWith('playback-position-') || key.startsWith('mytube-'))) {
+          localStorage.removeItem(key)
+        }
+      }
+      
       // Clear search cache
       setSearchCache(new Map())
       
@@ -1007,12 +1018,90 @@ export default function MyTubeApp() {
         loadFavoriteVideos()
       ])
       
-      
       setShowSettings(false)
       
     } catch (error) {
       console.error('Failed to clear all data:', error)
       
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleEnhancedClearData = async (options: any): Promise<void> => {
+    try {
+      setLoading(true)
+      setShowEnhancedClearData(false)
+      
+      // Clear selected database data
+      const response = await fetch('/api/clear-selective-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(options)
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to clear selected data')
+      }
+      
+      const result = await response.json()
+      
+      // Clear localStorage based on options
+      if (options.localStorage || options.searchCache || options.userPreferences) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key) {
+            let shouldRemove = false
+            
+            if (options.localStorage && key.startsWith('playback-position-')) {
+              shouldRemove = true
+            }
+            
+            if (options.searchCache && key.startsWith('mytube-search-cache')) {
+              shouldRemove = true
+            }
+            
+            if (options.userPreferences && key.startsWith('mytube-') && !key.startsWith('playback-position-')) {
+              shouldRemove = true
+            }
+            
+            if (shouldRemove) {
+              localStorage.removeItem(key)
+            }
+          }
+        }
+      }
+      
+      // Clear search cache if selected
+      if (options.searchCache) {
+        setSearchCache(new Map())
+      }
+      
+      // Clear relevant state based on options
+      if (options.favoriteChannels) {
+        setFavoriteChannels([])
+      }
+      
+      if (options.favoriteVideos) {
+        setFavoriteVideos([])
+      }
+      
+      if (options.watchedVideos) {
+        setWatchedVideos([])
+      }
+      
+      // Reload fresh data
+      await Promise.all([
+        loadFavoriteChannels(),
+        loadFavoriteVideos()
+      ])
+      
+      setDataStatistics(null)
+      
+    } catch (error) {
+      console.error('Failed to clear selected data:', error)
     } finally {
       setLoading(false)
     }
@@ -4379,7 +4468,22 @@ export default function MyTubeApp() {
         </DialogContent>
       </Dialog>
 
-      {/* Clear Data Confirmation Dialog */}
+      {/* Enhanced Clear Data Dialog */}
+      <Dialog open={showEnhancedClearData} onOpenChange={setShowEnhancedClearData}>
+        <DialogContent className="max-w-4xl mx-auto max-h-[90vh] overflow-y-auto">
+          <EnhancedClearData
+            statistics={dataStatistics}
+            onClearData={handleEnhancedClearData}
+            onCancel={() => {
+              setShowEnhancedClearData(false)
+              setDataStatistics(null)
+            }}
+            loading={loading}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Legacy Clear Data Confirmation Dialog */}
       <Dialog open={showClearDataConfirmation} onOpenChange={setShowClearDataConfirmation}>
         <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-[425px] mx-auto">
           <DialogHeader className="pb-4">
