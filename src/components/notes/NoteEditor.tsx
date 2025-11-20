@@ -185,7 +185,7 @@ export function NoteEditor({ isOpen, onClose, onSave, note, videoData, mode }: N
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm line-clamp-1">{videoData.title}</p>
+                  <p className="font-medium text-sm break-words">{videoData.title}</p>
                   <p className="text-xs text-muted-foreground line-clamp-1">{videoData.channelName}</p>
                 </div>
               </div>
@@ -224,7 +224,7 @@ export function NoteEditor({ isOpen, onClose, onSave, note, videoData, mode }: N
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter note title..."
-              className="w-full break-words whitespace-normal"
+              className="w-full break-words"
             />
           </div>
 
@@ -238,7 +238,7 @@ export function NoteEditor({ isOpen, onClose, onSave, note, videoData, mode }: N
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Enter your note content..."
-              className="w-full min-h-[100px] resize-none break-words whitespace-normal"
+              className="w-full min-h-[100px] resize-none whitespace-pre-wrap break-words"
             />
           </div>
 

@@ -185,7 +185,7 @@ export function VideoCard({
       title: 'text-sm font-semibold line-clamp-2',
       channel: 'text-xs font-medium',
       stats: 'text-xs',
-      description: 'text-xs break-words whitespace-normal'
+      description: 'text-xs line-clamp-2'
     },
     md: {
       card: 'max-w-sm',
@@ -193,7 +193,7 @@ export function VideoCard({
       title: 'text-sm sm:text-base font-semibold line-clamp-2',
       channel: 'text-xs sm:text-sm font-medium',
       stats: 'text-xs sm:text-sm',
-      description: 'text-xs sm:text-sm break-words whitespace-normal'
+      description: 'text-xs sm:text-sm line-clamp-2'
     },
     lg: {
       card: 'max-w-md',
@@ -201,7 +201,7 @@ export function VideoCard({
       title: 'text-base sm:text-lg font-semibold line-clamp-3',
       channel: 'text-sm sm:text-base font-medium',
       stats: 'text-sm sm:text-base',
-      description: 'text-sm sm:text-base break-words whitespace-normal'
+      description: 'text-sm sm:text-base line-clamp-3'
     }
   }
 
@@ -475,11 +475,9 @@ export function VideoCard({
           
           {/* Description */}
           {showDescription && video.description && (
-            <div className={`${config.description} text-muted-foreground leading-relaxed bg-muted/30 p-3 rounded-lg break-words whitespace-normal`}>
-              <p className="m-0">
-                {video.description}
-              </p>
-            </div>
+            <p className={`${config.description} text-muted-foreground leading-relaxed bg-muted/30 p-3 rounded-lg`}>
+              {video.description}
+            </p>
           )}
         </div>
 
