@@ -24,6 +24,11 @@ export async function GET(
           select: {
             notes: true
           }
+        },
+        noteLinks: {
+          select: {
+            id: true
+          }
         }
       }
     })
@@ -37,7 +42,7 @@ export async function GET(
 
     const formattedNotebook = {
       ...notebook,
-      noteCount: notebook._count.notes,
+      noteCount: notebook._count.notes + notebook.noteLinks.length,
       createdAt: notebook.createdAt.toISOString(),
       updatedAt: notebook.updatedAt.toISOString(),
     }
@@ -79,12 +84,24 @@ export async function PUT(
 
     const notebook = await db.notebook.update({
       where: { id },
-      data: validatedData
+      data: validatedData,
+      include: {
+        _count: {
+          select: {
+            notes: true
+          }
+        },
+        noteLinks: {
+          select: {
+            id: true
+          }
+        }
+      }
     })
 
     const formattedNotebook = {
       ...notebook,
-      noteCount: 0, // We'll count notes separately if needed
+      noteCount: notebook._count.notes + notebook.noteLinks.length,
       createdAt: notebook.createdAt.toISOString(),
       updatedAt: notebook.updatedAt.toISOString(),
     }

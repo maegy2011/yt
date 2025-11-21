@@ -15,7 +15,9 @@ import {
   Eye,
   Volume2,
   VolumeX,
-  Maximize2
+  Maximize2,
+  CheckSquare,
+  Square
 } from 'lucide-react'
 import { VideoNote } from '@/types/notes'
 import { formatTime, getNoteDuration, isNoteClip } from '@/utils/notes'
@@ -26,10 +28,22 @@ interface NoteCardProps {
   onEdit: (note: VideoNote) => void
   onDelete: (noteId: string) => void
   onPlay?: (note: VideoNote) => void
+  isSelected?: boolean
+  isSelectionMode?: boolean
+  onSelect?: (noteId: string) => void
   className?: string
 }
 
-export function NoteCard({ note, onEdit, onDelete, onPlay, className = '' }: NoteCardProps) {
+export function NoteCard({ 
+  note, 
+  onEdit, 
+  onDelete, 
+  onPlay, 
+  isSelected = false,
+  isSelectionMode = false,
+  onSelect,
+  className = '' 
+}: NoteCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   
@@ -51,11 +65,24 @@ export function NoteCard({ note, onEdit, onDelete, onPlay, className = '' }: Not
   }
 
   const handleCardClick = (e: React.MouseEvent) => {
+    // If in selection mode, handle selection instead of playing
+    if (isSelectionMode && onSelect) {
+      onSelect(note.id)
+      return
+    }
+    
     // Prevent playing video if clicking on buttons
     if ((e.target as HTMLElement).closest('button')) {
       return
     }
     handlePlay()
+  }
+
+  const handleSelectionClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (onSelect) {
+      onSelect(note.id)
+    }
   }
 
   const handleEdit = () => {
@@ -72,8 +99,9 @@ export function NoteCard({ note, onEdit, onDelete, onPlay, className = '' }: Not
     const baseClasses = 'group relative transition-all duration-200 hover:shadow-md cursor-pointer'
     const mobileClasses = 'w-full max-w-sm mx-auto'
     const desktopClasses = 'w-full'
+    const selectionClasses = isSelected ? 'ring-2 ring-primary ring-offset-2' : ''
     
-    return `${baseClasses} ${mobileClasses} sm:${desktopClasses} ${className}`
+    return `${baseClasses} ${mobileClasses} sm:${desktopClasses} ${selectionClasses} ${className}`
   }
 
   return (
@@ -103,6 +131,24 @@ export function NoteCard({ note, onEdit, onDelete, onPlay, className = '' }: Not
           </div>
         )}
         
+        {/* Selection Checkbox */}
+        {isSelectionMode && (
+          <div className="absolute top-2 left-2 z-10">
+            <Button
+              size="sm"
+              variant="secondary"
+              className="h-8 w-8 p-0 bg-black/60 hover:bg-black/80"
+              onClick={handleSelectionClick}
+            >
+              {isSelected ? (
+                <CheckSquare className="w-4 h-4 text-white" />
+              ) : (
+                <Square className="w-4 h-4 text-white" />
+              )}
+            </Button>
+          </div>
+        )}
+        
         {/* Duration Badge */}
         {isClip && duration > 0 && (
           <Badge 
@@ -114,7 +160,7 @@ export function NoteCard({ note, onEdit, onDelete, onPlay, className = '' }: Not
         )}
         
         {/* Clip Badge */}
-        {isClip && (
+        {isClip && !isSelectionMode && (
           <Badge 
             variant="default" 
             className="absolute top-2 left-2 bg-primary hover:bg-primary/90"

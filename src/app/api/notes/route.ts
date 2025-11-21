@@ -6,7 +6,15 @@ export async function GET() {
     const notes = await db.videoNote.findMany({
       orderBy: { createdAt: 'desc' }
     })
-    return NextResponse.json(notes)
+    
+    // Convert Date objects to strings for JSON serialization
+    const formattedNotes = notes.map(note => ({
+      ...note,
+      createdAt: note.createdAt.toISOString(),
+      updatedAt: note.updatedAt.toISOString()
+    }))
+    
+    return NextResponse.json(formattedNotes)
   } catch (error) {
     console.error('Failed to fetch notes:', error)
     return NextResponse.json({ error: 'Failed to fetch notes' }, { status: 500 })
@@ -41,7 +49,14 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    return NextResponse.json(videoNote)
+    // Convert Date objects to strings for JSON serialization
+    const formattedNote = {
+      ...videoNote,
+      createdAt: videoNote.createdAt.toISOString(),
+      updatedAt: videoNote.updatedAt.toISOString()
+    }
+
+    return NextResponse.json(formattedNote)
   } catch (error) {
     console.error('Failed to add note:', error)
     return NextResponse.json({ 

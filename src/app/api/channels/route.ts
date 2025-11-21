@@ -9,9 +9,16 @@ export async function GET() {
       orderBy: { addedAt: 'desc' }
     })
     
-    console.log(`Found ${channels.length} favorite channels`)
+    // Convert Date objects to strings for JSON serialization
+    const formattedChannels = channels.map(channel => ({
+      ...channel,
+      addedAt: channel.addedAt.toISOString(),
+      updatedAt: channel.updatedAt.toISOString()
+    }))
     
-    return NextResponse.json(channels)
+    console.log(`Found ${formattedChannels.length} favorite channels`)
+    
+    return NextResponse.json(formattedChannels)
   } catch (error) {
     console.error('Failed to fetch channels - Full error:', {
       error: error instanceof Error ? error.message : String(error),
@@ -49,9 +56,15 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       console.log('Channel already exists:', { channelId, name })
+      // Convert Date objects to strings for JSON serialization
+      const formattedExisting = {
+        ...existing,
+        addedAt: existing.addedAt.toISOString(),
+        updatedAt: existing.updatedAt.toISOString()
+      }
       return NextResponse.json({ 
         error: 'Channel already followed',
-        channel: existing
+        channel: formattedExisting
       }, { status: 409 })
     }
 
@@ -66,14 +79,21 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Convert Date objects to strings for JSON serialization
+    const formattedChannel = {
+      ...channel,
+      addedAt: channel.addedAt.toISOString(),
+      updatedAt: channel.updatedAt.toISOString()
+    }
+
     console.log('Channel followed successfully:', { 
-      id: channel.id, 
-      channelId: channel.channelId, 
-      name: channel.name,
-      viewCount: channel.viewCount
+      id: formattedChannel.id, 
+      channelId: formattedChannel.channelId, 
+      name: formattedChannel.name,
+      viewCount: formattedChannel.viewCount
     })
 
-    return NextResponse.json(channel)
+    return NextResponse.json(formattedChannel)
   } catch (error) {
     console.error('Failed to add channel - Full error:', {
       error: error instanceof Error ? error.message : String(error),

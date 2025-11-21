@@ -21,8 +21,16 @@ export async function GET(
       })
     }
 
-    return NextResponse.json({
+    // Convert Date objects to strings for JSON serialization
+    const formattedPosition = {
       ...playbackPosition,
+      lastWatched: playbackPosition.lastWatched.toISOString(),
+      createdAt: playbackPosition.createdAt.toISOString(),
+      updatedAt: playbackPosition.updatedAt.toISOString()
+    }
+
+    return NextResponse.json({
+      ...formattedPosition,
       exists: true
     })
   } catch (error) {
@@ -73,7 +81,15 @@ export async function PUT(
       }
     })
 
-    return NextResponse.json(playbackPosition)
+    // Convert Date objects to strings for JSON serialization
+    const formattedPosition = {
+      ...playbackPosition,
+      lastWatched: playbackPosition.lastWatched.toISOString(),
+      createdAt: playbackPosition.createdAt.toISOString(),
+      updatedAt: playbackPosition.updatedAt.toISOString()
+    }
+
+    return NextResponse.json(formattedPosition)
   } catch (error) {
     console.error('Error updating playback position:', error)
     return NextResponse.json(

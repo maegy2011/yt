@@ -31,13 +31,18 @@ export async function GET(request: NextRequest) {
           select: {
             notes: true
           }
+        },
+        noteLinks: {
+          select: {
+            id: true
+          }
         }
       }
     })
 
     const formattedNotebooks = notebooks.map(notebook => ({
       ...notebook,
-      noteCount: notebook._count.notes,
+      noteCount: notebook._count.notes + notebook.noteLinks.length,
       createdAt: notebook.createdAt.toISOString(),
       updatedAt: notebook.updatedAt.toISOString(),
     }))

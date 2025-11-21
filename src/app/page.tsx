@@ -62,7 +62,6 @@ import { NotesContainer } from '@/components/notes/NotesContainer'
 import { NotebooksContainer } from '@/components/notebooks/NotebooksContainer'
 import { NotebookView } from '@/components/notebooks/NotebookView'
 import { ShareNotebookDialog } from '@/components/notebooks/ShareNotebookDialog'
-import { AddToNotebookDialog } from '@/components/notes/AddToNotebookDialog'
 import { FavoritesContainer } from '@/components/favorites/FavoritesContainer'
 import { WatchedHistoryContainer } from '@/components/watched/WatchedHistoryContainer'
 import { EnhancedClearData } from '@/components/enhanced-clear-data'
@@ -165,7 +164,6 @@ export default function MyTubeApp() {
   const [notebookNotesLoading, setNotebookNotesLoading] = useState(false)
   const [showNotebookView, setShowNotebookView] = useState(false)
   const [shareNotebookDialogOpen, setShareNotebookDialogOpen] = useState(false)
-  const [addToNotebookDialogOpen, setAddToNotebookDialogOpen] = useState(false)
   const [notesForNotebook, setNotesForNotebook] = useState<VideoNote[]>([])
   
   // Playlist states
@@ -1704,11 +1702,9 @@ export default function MyTubeApp() {
     }
   }
 
-  const handleAddNoteToNotebook = (notebook: any) => {
-    setSelectedNotebook(notebook)
-    // Get all notes for selection
-    setNotesForNotebook(allNotes)
-    setAddToNotebookDialogOpen(true)
+  const handleAddNoteToNotebook = (selectedNotes: VideoNote[]) => {
+    // Set the notes for selection - the dialog will be opened when user switches to notebooks tab
+    setNotesForNotebook(selectedNotes)
   }
 
   const handleBackToNotebooks = () => {
@@ -1719,6 +1715,70 @@ export default function MyTubeApp() {
 
   const handleNotebookShare = () => {
     setShareNotebookDialogOpen(true)
+  }
+
+  const handleCreateNoteForNotebook = async (noteData: {
+    title: string
+    content: string
+    videoId?: string
+    videoTitle?: string
+    channelName?: string
+    thumbnail?: string
+  }) => {
+    try {
+      // Create the note first
+      const response = await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoId: noteData.videoId || 'manual-note',
+          title: noteData.title,
+          channelName: noteData.channelName || 'Manual Note',
+          thumbnail: noteData.thumbnail || '',
+          note: noteData.content,
+          fontSize: 16,
+          startTime: null,
+          endTime: null,
+          isClip: false
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to create note: ${response.status}`)
+      }
+
+      const createdNote = await response.json()
+
+      // If we have a selected notebook, add the note to it
+      if (selectedNotebook) {
+        const addResponse = await fetch(`/api/notebooks/${selectedNotebook.id}/notes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            noteId: createdNote.id
+          })
+        })
+
+        if (!addResponse.ok) {
+          throw new Error(`Failed to add note to notebook: ${addResponse.status}`)
+        }
+
+        // Refresh notebook notes
+        const notebookResponse = await fetch(`/api/notebooks/${selectedNotebook.id}/notes`)
+        const notebookData = await notebookResponse.json()
+        
+        if (notebookData.success) {
+          setNotebookNotes(notebookData.notes)
+        }
+      }
+
+      // Refresh all notes
+      await loadNotes()
+      
+    } catch (error) {
+      console.error('Failed to create note for notebook:', error)
+      throw error
+    }
   }
 
   const handleVideoSelect = (video: Video) => {
@@ -3801,6 +3861,7 @@ export default function MyTubeApp() {
             thumbnail: selectedVideo.thumbnail
           } : undefined}
           onVideoPlay={handleNotesVideoPlay}
+          onAddToNotebook={handleAddNoteToNotebook}
         />
 
       case 'notebooks':
@@ -3833,6 +3894,7 @@ export default function MyTubeApp() {
                 }
               }}
               onShare={handleNotebookShare}
+              onNoteCreate={handleCreateNoteForNotebook}
             />
             
             <ShareNotebookDialog
@@ -3841,23 +3903,12 @@ export default function MyTubeApp() {
               notebook={selectedNotebook}
               noteCount={notebookNotes.length}
             />
-            
-            <AddToNotebookDialog
-              open={addToNotebookDialogOpen}
-              onOpenChange={setAddToNotebookDialogOpen}
-              notes={notesForNotebook}
-              mode="batch"
-              onSuccess={() => {
-                setAddToNotebookDialogOpen(false)
-                setNotesForNotebook([])
-                // Refresh notebooks if needed
-              }}
-            />
           </>
         ) : (
           <NotebooksContainer 
             onNotebookSelect={handleNotebookSelect}
             onAddNoteToNotebook={handleAddNoteToNotebook}
+            notesForSelection={notesForNotebook}
           />
         )
 

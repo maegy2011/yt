@@ -48,7 +48,14 @@ export async function PUT(
       }
     })
 
-    return NextResponse.json(updatedNote)
+    // Convert Date objects to strings for JSON serialization
+    const formattedNote = {
+      ...updatedNote,
+      createdAt: updatedNote.createdAt.toISOString(),
+      updatedAt: updatedNote.updatedAt.toISOString()
+    }
+
+    return NextResponse.json(formattedNote)
   } catch (error) {
     console.error('Update note error:', error)
     return NextResponse.json({ 

@@ -17,7 +17,10 @@ import {
   Clock,
   SortAsc,
   SortDesc,
-  RefreshCw
+  RefreshCw,
+  CheckSquare,
+  Square,
+  BookOpen
 } from 'lucide-react'
 import { VideoNote } from '@/types/notes'
 import { NoteCard } from './NoteCard'
@@ -31,6 +34,7 @@ interface NoteListProps {
   onPlay?: (note: VideoNote) => void
   onCreateNew: () => void
   onRefresh?: () => void
+  onAddToNotebook?: (selectedNotes: VideoNote[]) => void
   className?: string
 }
 
@@ -42,12 +46,15 @@ export function NoteList({
   onPlay, 
   onCreateNew,
   onRefresh,
+  onAddToNotebook,
   className = '' 
 }: NoteListProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [filterType, setFilterType] = useState<'all' | 'clips' | 'notes'>('all')
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'time'>('date')
+  const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set())
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
 
   const filteredNotes = useMemo(() => {
     let filtered = notes
@@ -87,6 +94,40 @@ export function NoteList({
 
   const stats = useMemo(() => getNotesStats(notes), [notes])
 
+  const handleSelectNote = (noteId: string) => {
+    setSelectedNotes(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(noteId)) {
+        newSet.delete(noteId)
+      } else {
+        newSet.add(noteId)
+      }
+      return newSet
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (selectedNotes.size === filteredNotes.length) {
+      setSelectedNotes(new Set())
+    } else {
+      setSelectedNotes(new Set(filteredNotes.map(note => note.id)))
+    }
+  }
+
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode)
+    if (isSelectionMode) {
+      setSelectedNotes(new Set())
+    }
+  }
+
+  const handleAddSelectedToNotebook = () => {
+    const selected = filteredNotes.filter(note => selectedNotes.has(note.id))
+    if (selected.length > 0 && onAddToNotebook) {
+      onAddToNotebook(selected)
+    }
+  }
+
   const getContainerClasses = () => {
     const baseClasses = 'w-full'
     return `${baseClasses} ${className}`
@@ -114,6 +155,38 @@ export function NoteList({
 
   return (
     <div className={getContainerClasses()}>
+      {/* Batch Selection Header */}
+      {isSelectionMode && selectedNotes.size > 0 && (
+        <Card className="mb-4 border-primary bg-primary/5">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">
+                {selectedNotes.size} note{selectedNotes.size !== 1 ? 's' : ''} selected
+              </span>
+              <div className="flex items-center gap-2">
+                {onAddToNotebook && (
+                  <Button
+                    size="sm"
+                    onClick={handleAddSelectedToNotebook}
+                    className="flex items-center gap-2"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    Add to Notebook
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSelectedNotes(new Set())}
+                >
+                  Clear Selection
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header */}
       <Card>
         <CardHeader>
@@ -143,6 +216,27 @@ export function NoteList({
                 <Plus className="w-4 h-4 mr-2" />
                 New Note
               </Button>
+              
+              {onAddToNotebook && (
+                <Button
+                  variant="outline"
+                  onClick={toggleSelectionMode}
+                  className={`w-full sm:w-auto ${isSelectionMode ? 'bg-primary text-primary-foreground' : ''}`}
+                >
+                  {isSelectionMode ? (
+                    <>
+                      <Square className="w-4 h-4 mr-2" />
+                      Exit Selection
+                    </>
+                  ) : (
+                    <>
+                      <CheckSquare className="w-4 h-4 mr-2" />
+                      Select Notes
+                    </>
+                  )}
+                </Button>
+              )}
+              
               {onRefresh && (
                 <Button
                   variant="outline"
@@ -211,6 +305,29 @@ export function NoteList({
 
               {/* Sort and View Options */}
               <div className="flex flex-col sm:flex-row gap-2">
+                {/* Selection Controls */}
+                {isSelectionMode && (
+                  <div className="flex items-center gap-1 p-2 bg-primary/10 rounded-lg flex-1">
+                    <Button
+                      size="sm"
+                      onClick={handleSelectAll}
+                      className="text-xs flex-1 justify-start"
+                    >
+                      {selectedNotes.size === filteredNotes.length ? (
+                        <>
+                          <Square className="w-3 h-3 mr-2" />
+                          Deselect All
+                        </>
+                      ) : (
+                        <>
+                          <CheckSquare className="w-3 h-3 mr-2" />
+                          Select All ({filteredNotes.length})
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
                 {/* Sort Options */}
                 <div className="flex items-center gap-1 p-2 bg-muted rounded-lg flex-1">
                   <Button
@@ -296,6 +413,9 @@ export function NoteList({
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onPlay={onPlay}
+                isSelected={selectedNotes.has(note.id)}
+                isSelectionMode={isSelectionMode}
+                onSelect={handleSelectNote}
               />
             ))}
           </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
@@ -18,7 +19,9 @@ import {
   Tag,
   FileText,
   MoreHorizontal,
-  Check
+  Check,
+  Plus,
+  MessageSquare
 } from 'lucide-react'
 import { 
   DropdownMenu,
@@ -37,6 +40,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { VideoNote, Notebook } from '@/types/notes'
 import { formatDistanceToNow } from 'date-fns'
 
@@ -48,6 +58,14 @@ interface NotebookViewProps {
   onNoteEdit: (note: VideoNote) => void
   onNoteUnlink: (noteId: string, notebookId: string) => void
   onShare: (notebook: Notebook) => void
+  onNoteCreate?: (noteData: {
+    title: string
+    content: string
+    videoId?: string
+    videoTitle?: string
+    channelName?: string
+    thumbnail?: string
+  }) => Promise<void>
   className?: string
 }
 
@@ -59,12 +77,23 @@ export function NotebookView({
   onNoteEdit,
   onNoteUnlink,
   onShare,
+  onNoteCreate,
   className = '' 
 }: NotebookViewProps) {
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set())
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false)
   const [noteToUnlink, setNoteToUnlink] = useState<{noteId: string, noteTitle: string} | null>(null)
   const [isUnlinking, setIsUnlinking] = useState(false)
+  const [showAddNoteDialog, setShowAddNoteDialog] = useState(false)
+  const [isCreatingNote, setIsCreatingNote] = useState(false)
+  const [newNote, setNewNote] = useState({
+    title: '',
+    content: '',
+    videoId: '',
+    videoTitle: '',
+    channelName: '',
+    thumbnail: ''
+  })
 
   const handleSelectNote = (noteId: string) => {
     setSelectedNotes(prev => {
@@ -123,6 +152,56 @@ export function NotebookView({
     }
   }
 
+  const handleAddNote = async () => {
+    if (!newNote.title.trim() || !newNote.content.trim()) {
+      return
+    }
+
+    if (!onNoteCreate) {
+      console.error('Note creation not supported')
+      return
+    }
+
+    setIsCreatingNote(true)
+    try {
+      await onNoteCreate({
+        title: newNote.title.trim(),
+        content: newNote.content.trim(),
+        videoId: newNote.videoId || undefined,
+        videoTitle: newNote.videoTitle || undefined,
+        channelName: newNote.channelName || undefined,
+        thumbnail: newNote.thumbnail || undefined
+      })
+      
+      // Reset form and close dialog
+      setNewNote({
+        title: '',
+        content: '',
+        videoId: '',
+        videoTitle: '',
+        channelName: '',
+        thumbnail: ''
+      })
+      setShowAddNoteDialog(false)
+    } catch (error) {
+      console.error('Failed to create note:', error)
+    } finally {
+      setIsCreatingNote(false)
+    }
+  }
+
+  const openAddNoteDialog = () => {
+    setNewNote({
+      title: '',
+      content: '',
+      videoId: '',
+      videoTitle: '',
+      channelName: '',
+      thumbnail: ''
+    })
+    setShowAddNoteDialog(true)
+  }
+
   const getNotebookColor = (color: string) => {
     const colorMap: Record<string, string> = {
       '#3b82f6': 'bg-blue-500',
@@ -168,6 +247,18 @@ export function NotebookView({
             <FileText className="w-3 h-3" />
             {notes.length} notes
           </Badge>
+          
+          {onNoteCreate && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openAddNoteDialog}
+              className="flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Note
+            </Button>
+          )}
           
           <Button
             variant="outline"
@@ -232,7 +323,15 @@ export function NotebookView({
             <div className="text-center py-12">
               <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-medium mb-2">No notes yet</h3>
-              <p className="text-muted-foreground">Add some notes to this notebook to get started.</p>
+              <p className="text-muted-foreground mb-4">
+                Add some notes to this notebook to get started.
+              </p>
+              {onNoteCreate && (
+                <Button onClick={openAddNoteDialog} className="flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add Your First Note
+                </Button>
+              )}
             </div>
           ) : (
             <>
@@ -375,6 +474,101 @@ export function NotebookView({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add Note Dialog */}
+      <Dialog open={showAddNoteDialog} onOpenChange={setShowAddNoteDialog}>
+        <DialogContent className="max-w-[95vw] sm:max-w-[500px] mx-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5" />
+              Add New Note to "{notebook.title}"
+            </DialogTitle>
+            <DialogDescription>
+              Create a new note and add it to this notebook
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="note-title" className="text-sm font-medium">
+                Note Title *
+              </label>
+              <Input
+                id="note-title"
+                value={newNote.title}
+                onChange={(e) => setNewNote(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Enter note title..."
+                className="w-full"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="note-content" className="text-sm font-medium">
+                Note Content *
+              </label>
+              <textarea
+                id="note-content"
+                value={newNote.content}
+                onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="Enter your note content..."
+                rows={4}
+                className="w-full p-3 border rounded-md resize-none text-sm"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="video-info" className="text-sm font-medium">
+                Video Information (Optional)
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Input
+                  value={newNote.videoTitle}
+                  onChange={(e) => setNewNote(prev => ({ ...prev, videoTitle: e.target.value }))}
+                  placeholder="Video title..."
+                />
+                <Input
+                  value={newNote.channelName}
+                  onChange={(e) => setNewNote(prev => ({ ...prev, channelName: e.target.value }))}
+                  placeholder="Channel name..."
+                />
+              </div>
+              <Input
+                value={newNote.videoId}
+                onChange={(e) => setNewNote(prev => ({ ...prev, videoId: e.target.value }))}
+                placeholder="Video ID (optional)..."
+              />
+              <Input
+                value={newNote.thumbnail}
+                onChange={(e) => setNewNote(prev => ({ ...prev, thumbnail: e.target.value }))}
+                placeholder="Thumbnail URL (optional)..."
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                onClick={handleAddNote}
+                disabled={!newNote.title.trim() || !newNote.content.trim() || isCreatingNote}
+                className="flex-1"
+              >
+                {isCreatingNote ? (
+                  <div className="w-4 h-4 mr-2 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
+                Add Note to Notebook
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={() => setShowAddNoteDialog(false)}
+                disabled={isCreatingNote}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

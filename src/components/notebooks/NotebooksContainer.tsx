@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { NotebookList } from './NotebookList'
 import { NotebookEditor } from './NotebookEditor'
-import { Notebook, CreateNotebookRequest, UpdateNotebookRequest } from '@/types/notes'
+import { AddToNotebookDialog } from '../notes/AddToNotebookDialog'
+import { Notebook, CreateNotebookRequest, UpdateNotebookRequest, VideoNote } from '@/types/notes'
 import { useNotebooks } from '@/hooks/useNotebooks'
 import { 
   AlertDialog,
@@ -19,12 +20,14 @@ import {
 interface NotebooksContainerProps {
   onNotebookSelect?: (notebook: Notebook) => void
   onAddNoteToNotebook?: (notebook: Notebook) => void
+  notesForSelection?: VideoNote[]
   className?: string
 }
 
 export function NotebooksContainer({ 
   onNotebookSelect, 
   onAddNoteToNotebook,
+  notesForSelection = [],
   className = '' 
 }: NotebooksContainerProps) {
   const {
@@ -46,6 +49,7 @@ export function NotebooksContainer({
   const [sortBy, setSortBy] = useState<'title' | 'createdAt' | 'updatedAt' | 'noteCount'>('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [filterBy, setFilterBy] = useState<'all' | 'public' | 'private'>('all')
+  const [showAddToNotebookDialog, setShowAddToNotebookDialog] = useState(false)
 
   const handleCreateNew = useCallback(() => {
     setEditingNotebook(undefined)
@@ -92,10 +96,21 @@ export function NotebooksContainer({
   }, [updateNotebook, fetchNotebooks])
 
   const handleAddNote = useCallback((notebook: Notebook) => {
-    if (onAddNoteToNotebook) {
+    // If there are notes for selection, open the dialog
+    if (notesForSelection.length > 0) {
+      setShowAddToNotebookDialog(true)
+    } else if (onAddNoteToNotebook) {
+      // Fallback to parent component if no notes to select
       onAddNoteToNotebook(notebook)
     }
-  }, [onAddNoteToNotebook])
+  }, [onAddNoteToNotebook, notesForSelection])
+
+  // Auto-open dialog if there are notes for selection
+  useEffect(() => {
+    if (notesForSelection.length > 0 && !showAddToNotebookDialog) {
+      setShowAddToNotebookDialog(true)
+    }
+  }, [notesForSelection, showAddToNotebookDialog])
 
   const handleSave = useCallback(async (data: CreateNotebookRequest | { id: string; data: UpdateNotebookRequest }) => {
     try {
@@ -129,6 +144,16 @@ export function NotebooksContainer({
   const handleFilterChange = useCallback((newFilter: 'all' | 'public' | 'private') => {
     setFilterBy(newFilter)
   }, [])
+
+  const handleAddToNotebookSuccess = useCallback(() => {
+    setShowAddToNotebookDialog(false)
+    // Clear the notes for selection after successful addition
+    if (notesForSelection.length > 0) {
+      // We would need a callback to clear the parent's notesForSelection
+      // For now, just refresh notebooks to update note counts
+      fetchNotebooks()
+    }
+  }, [fetchNotebooks, notesForSelection.length])
 
   return (
     <div className={`w-full h-full flex flex-col ${className}`}>
@@ -188,6 +213,15 @@ export function NotebooksContainer({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add to Notebook Dialog */}
+      <AddToNotebookDialog
+        open={showAddToNotebookDialog}
+        onOpenChange={setShowAddToNotebookDialog}
+        notes={notesForSelection}
+        mode="batch"
+        onSuccess={handleAddToNotebookSuccess}
+      />
     </div>
   )
 }

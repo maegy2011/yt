@@ -14,10 +14,16 @@ export async function GET() {
       orderBy: { addedAt: 'desc' }
     })
     
-    // Filter out any entries with invalid video IDs
-    const validFavorites = favorites.filter(favorite => 
-      favorite.videoId && isValidYouTubeVideoId(favorite.videoId)
-    )
+    // Filter out any entries with invalid video IDs and convert dates to strings
+    const validFavorites = favorites
+      .filter(favorite => 
+        favorite.videoId && isValidYouTubeVideoId(favorite.videoId)
+      )
+      .map(favorite => ({
+        ...favorite,
+        addedAt: favorite.addedAt.toISOString(),
+        updatedAt: favorite.updatedAt.toISOString()
+      }))
     
     // Clean up invalid entries from database
     const invalidFavorites = favorites.filter(favorite => 
@@ -104,8 +110,15 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      console.log('Favorite created successfully:', favorite)
-      return NextResponse.json(favorite)
+      // Convert Date objects to strings for JSON serialization
+      const formattedFavorite = {
+        ...favorite,
+        addedAt: favorite.addedAt.toISOString(),
+        updatedAt: favorite.updatedAt.toISOString()
+      }
+
+      console.log('Favorite created successfully:', formattedFavorite)
+      return NextResponse.json(formattedFavorite)
     } catch (dbError) {
       console.error('Database error:', dbError)
       return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })

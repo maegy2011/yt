@@ -14,10 +14,11 @@ interface NotesContainerProps {
     thumbnail?: string
   }
   onVideoPlay?: (note: VideoNote) => void
+  onAddToNotebook?: (selectedNotes: VideoNote[]) => void
   className?: string
 }
 
-export function NotesContainer({ videoData, onVideoPlay, className = '' }: NotesContainerProps) {
+export function NotesContainer({ videoData, onVideoPlay, onAddToNotebook, className = '' }: NotesContainerProps) {
   const {
     notes,
     loading,
@@ -119,6 +120,7 @@ export function NotesContainer({ videoData, onVideoPlay, className = '' }: Notes
         onPlay={handlePlay}
         onCreateNew={handleCreateNew}
         onRefresh={handleRefresh}
+        onAddToNotebook={onAddToNotebook}
       />
 
       {/* Note Editor */}

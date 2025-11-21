@@ -46,10 +46,17 @@ export async function POST(
       data: { notebookId: id }
     })
 
+    // Convert Date objects to strings for JSON serialization
+    const formattedNote = {
+      ...updatedNote,
+      createdAt: updatedNote.createdAt.toISOString(),
+      updatedAt: updatedNote.updatedAt.toISOString()
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Note added to notebook successfully',
-      note: updatedNote
+      note: formattedNote
     })
   } catch (error) {
     console.error('Error adding note to notebook:', error)
