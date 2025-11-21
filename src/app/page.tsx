@@ -60,6 +60,9 @@ import { SplashScreen } from '@/components/splash-screen'
 import { VideoNote as VideoNoteComponent } from '@/components/video-note'
 import { NotesContainer } from '@/components/notes/NotesContainer'
 import { NotebooksContainer } from '@/components/notebooks/NotebooksContainer'
+import { NotebookView } from '@/components/notebooks/NotebookView'
+import { ShareNotebookDialog } from '@/components/notebooks/ShareNotebookDialog'
+import { AddToNotebookDialog } from '@/components/notes/AddToNotebookDialog'
 import { FavoritesContainer } from '@/components/favorites/FavoritesContainer'
 import { WatchedHistoryContainer } from '@/components/watched/WatchedHistoryContainer'
 import { EnhancedClearData } from '@/components/enhanced-clear-data'
@@ -155,6 +158,15 @@ export default function MyTubeApp() {
     thumbnail: ''
   })
   const [selectedNotes, setSelectedNotes] = useState<Set<string>>(new Set())
+  
+  // Notebook view states
+  const [selectedNotebook, setSelectedNotebook] = useState<any>(null)
+  const [notebookNotes, setNotebookNotes] = useState<VideoNote[]>([])
+  const [notebookNotesLoading, setNotebookNotesLoading] = useState(false)
+  const [showNotebookView, setShowNotebookView] = useState(false)
+  const [shareNotebookDialogOpen, setShareNotebookDialogOpen] = useState(false)
+  const [addToNotebookDialogOpen, setAddToNotebookDialogOpen] = useState(false)
+  const [notesForNotebook, setNotesForNotebook] = useState<VideoNote[]>([])
   
   // Playlist states
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null)
@@ -1028,6 +1040,26 @@ export default function MyTubeApp() {
     }
   }
 
+  const fetchDataStatistics = async () => {
+    try {
+      const response = await fetch('/api/clear-all-data')
+      const data = await response.json()
+      
+      if (data.statistics) {
+        setDataStatistics(data.statistics)
+      }
+    } catch (error) {
+      console.error('Failed to fetch data statistics:', error)
+    }
+  }
+
+  // Fetch data statistics when settings dialog opens
+  useEffect(() => {
+    if (showSettings) {
+      fetchDataStatistics()
+    }
+  }, [showSettings])
+
   const handleEnhancedClearData = async (options: any): Promise<void> => {
     try {
       setLoading(true)
@@ -1650,16 +1682,43 @@ export default function MyTubeApp() {
     handleVideoPlay(video)
   }
 
-  const handleNotebookSelect = (notebook: any) => {
-    // For now, just log the selection
-    console.log('Selected notebook:', notebook.title)
-    // TODO: Navigate to notebook view or show notebook details
+  const handleNotebookSelect = async (notebook: any) => {
+    try {
+      setSelectedNotebook(notebook)
+      setShowNotebookView(true)
+      
+      // Fetch notebook notes
+      setNotebookNotesLoading(true)
+      const response = await fetch(`/api/notebooks/${notebook.id}/notes`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setNotebookNotes(data.notes)
+      } else {
+        console.error('Failed to fetch notebook notes:', data.error)
+      }
+    } catch (error) {
+      console.error('Error selecting notebook:', error)
+    } finally {
+      setNotebookNotesLoading(false)
+    }
   }
 
   const handleAddNoteToNotebook = (notebook: any) => {
-    // For now, just log the action
-    console.log('Add note to notebook:', notebook.title)
-    // TODO: Open note creation dialog with notebook pre-selected
+    setSelectedNotebook(notebook)
+    // Get all notes for selection
+    setNotesForNotebook(allNotes)
+    setAddToNotebookDialogOpen(true)
+  }
+
+  const handleBackToNotebooks = () => {
+    setShowNotebookView(false)
+    setSelectedNotebook(null)
+    setNotebookNotes([])
+  }
+
+  const handleNotebookShare = () => {
+    setShareNotebookDialogOpen(true)
   }
 
   const handleVideoSelect = (video: Video) => {
@@ -3745,10 +3804,62 @@ export default function MyTubeApp() {
         />
 
       case 'notebooks':
-        return <NotebooksContainer 
-          onNotebookSelect={handleNotebookSelect}
-          onAddNoteToNotebook={handleAddNoteToNotebook}
-        />
+        return showNotebookView && selectedNotebook ? (
+          <>
+            <NotebookView
+              notebook={selectedNotebook}
+              notes={notebookNotes}
+              onBack={handleBackToNotebooks}
+              onNotePlay={handleVideoPlay}
+              onNoteEdit={handleEditNote}
+              onNoteUnlink={async (noteId: string, notebookId: string) => {
+                try {
+                  const response = await fetch(`/api/notes/${noteId}/notebooks/${notebookId}`, {
+                    method: 'DELETE'
+                  })
+                  const data = await response.json()
+                  if (data.success) {
+                    // Refresh notebook notes
+                    const notesResponse = await fetch(`/api/notebooks/${notebookId}/notes`)
+                    const notesData = await notesResponse.json()
+                    if (notesData.success) {
+                      setNotebookNotes(notesData.notes)
+                    }
+                  } else {
+                    alert('Failed to unlink note: ' + data.error)
+                  }
+                } catch (error) {
+                  alert('Error unlinking note: ' + error)
+                }
+              }}
+              onShare={handleNotebookShare}
+            />
+            
+            <ShareNotebookDialog
+              open={shareNotebookDialogOpen}
+              onOpenChange={setShareNotebookDialogOpen}
+              notebook={selectedNotebook}
+              noteCount={notebookNotes.length}
+            />
+            
+            <AddToNotebookDialog
+              open={addToNotebookDialogOpen}
+              onOpenChange={setAddToNotebookDialogOpen}
+              notes={notesForNotebook}
+              mode="batch"
+              onSuccess={() => {
+                setAddToNotebookDialogOpen(false)
+                setNotesForNotebook([])
+                // Refresh notebooks if needed
+              }}
+            />
+          </>
+        ) : (
+          <NotebooksContainer 
+            onNotebookSelect={handleNotebookSelect}
+            onAddNoteToNotebook={handleAddNoteToNotebook}
+          />
+        )
 
       {/* Edit Note Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>

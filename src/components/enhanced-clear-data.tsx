@@ -18,7 +18,8 @@ import {
   CheckCircle,
   Users,
   Search,
-  BookOpen
+  BookOpen,
+  Link
 } from 'lucide-react'
 
 interface DataStatistics {
@@ -28,6 +29,7 @@ interface DataStatistics {
   watchedVideos: number
   notebooks: number
   playbackPositions: number
+  noteLinks: number
   total: number
 }
 
@@ -38,6 +40,7 @@ interface ClearDataOptions {
   watchedVideos: boolean
   notebooks: boolean
   playbackPositions: boolean
+  noteLinks: boolean
   localStorage: boolean
   searchCache: boolean
   userPreferences: boolean
@@ -58,6 +61,7 @@ export function EnhancedClearData({ statistics, onClearData, onCancel, loading }
     watchedVideos: false,
     notebooks: false,
     playbackPositions: false,
+    noteLinks: false,
     localStorage: false,
     searchCache: false,
     userPreferences: false
@@ -80,6 +84,7 @@ export function EnhancedClearData({ statistics, onClearData, onCancel, loading }
       watchedVideos: selectAll,
       notebooks: selectAll,
       playbackPositions: selectAll,
+      noteLinks: selectAll,
       localStorage: selectAll,
       searchCache: selectAll,
       userPreferences: selectAll
@@ -116,6 +121,7 @@ export function EnhancedClearData({ statistics, onClearData, onCancel, loading }
       watchedVideos: History,
       notebooks: BookOpen,
       playbackPositions: PlayCircle,
+      noteLinks: Link,
       localStorage: Database,
       searchCache: Search,
       userPreferences: Settings
@@ -131,6 +137,7 @@ export function EnhancedClearData({ statistics, onClearData, onCancel, loading }
       watchedVideos: 'Watch History',
       notebooks: 'Notebooks',
       playbackPositions: 'Playback Positions',
+      noteLinks: 'Note Links',
       localStorage: 'Local Storage Data',
       searchCache: 'Search Cache',
       userPreferences: 'User Preferences'
@@ -260,7 +267,7 @@ export function EnhancedClearData({ statistics, onClearData, onCancel, loading }
           {showAdvanced && (
             <div className="space-y-3 pt-4 border-t">
               <h4 className="text-sm font-semibold text-muted-foreground mb-3">Advanced Options</h4>
-              {(['notebooks', 'playbackPositions', 'localStorage', 'searchCache', 'userPreferences'] as const).map((key) => {
+              {(['notebooks', 'noteLinks', 'playbackPositions', 'localStorage', 'searchCache', 'userPreferences'] as const).map((key) => {
                 const Icon = getDataIcon(key as keyof ClearDataOptions)
                 const count = getDataCount(key as keyof ClearDataOptions)
                 return (

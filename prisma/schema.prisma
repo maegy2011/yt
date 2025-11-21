@@ -71,6 +71,7 @@ model Notebook {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   notes       VideoNote[]
+  noteLinks   NoteLink[]
 }
 
 model VideoNote {
@@ -88,6 +89,19 @@ model VideoNote {
   updatedAt   DateTime  @updatedAt
   notebookId  String?
   notebook    Notebook? @relation(fields: [notebookId], references: [id])
+  noteLinks   NoteLink[]
+}
+
+model NoteLink {
+  id         String   @id @default(cuid())
+  noteId     String
+  notebookId String
+  createdAt  DateTime @default(now())
+  
+  note     VideoNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  notebook Notebook  @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  
+  @@unique([noteId, notebookId])
 }
 
 model VideoPlaybackPosition {

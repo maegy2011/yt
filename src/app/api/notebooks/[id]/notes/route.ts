@@ -87,24 +87,48 @@ export async function GET(
       )
     }
 
-    // Get all notes in this notebook
-    const notes = await db.videoNote.findMany({
-      where: { notebookId: id },
-      orderBy: [
-        { updatedAt: 'desc' },
-        { createdAt: 'desc' }
-      ]
-    })
+    // Get all notes in this notebook (both legacy and linked)
+    const [legacyNotes, linkedNotes] = await Promise.all([
+      // Get legacy notes (those with notebookId)
+      db.videoNote.findMany({
+        where: { notebookId: id },
+        orderBy: [
+          { updatedAt: 'desc' },
+          { createdAt: 'desc' }
+        ]
+      }),
+      // Get linked notes (those with NoteLink entries)
+      db.noteLink.findMany({
+        where: { notebookId: id },
+        include: {
+          note: true
+        },
+        orderBy: [
+          { createdAt: 'desc' }
+        ]
+      })
+    ])
 
-    const formattedNotes = notes.map(note => ({
-      ...note,
-      createdAt: note.createdAt.toISOString(),
-      updatedAt: note.updatedAt.toISOString(),
-    }))
+    // Combine and format notes
+    const allNotes = [
+      ...legacyNotes.map(note => ({
+        ...note,
+        linkType: 'legacy' as const,
+        createdAt: note.createdAt.toISOString(),
+        updatedAt: note.updatedAt.toISOString(),
+      })),
+      ...linkedNotes.map(link => ({
+        ...link.note,
+        linkType: 'linked' as const,
+        linkId: link.id,
+        createdAt: link.note.createdAt.toISOString(),
+        updatedAt: link.note.updatedAt.toISOString(),
+      }))
+    ].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
 
     return NextResponse.json({
       success: true,
-      notes: formattedNotes
+      notes: allNotes
     })
   } catch (error) {
     console.error('Error fetching notebook notes:', error)

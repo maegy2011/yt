@@ -162,6 +162,155 @@ export function useNotes(): NotesState & NoteOperations {
     }
   }, [])
 
+  const linkNoteToNotebook = useCallback(async (noteId: string, notebookId: string): Promise<void> => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const response = await fetch(`/api/notes/${noteId}/notebooks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notebookId })
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Failed to link note to notebook: ${response.status}`)
+      }
+      
+      // Refresh notes to get updated state
+      await fetchNotes()
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to link note to notebook'
+      setError(errorMessage)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchNotes])
+
+  const unlinkNoteFromNotebook = useCallback(async (noteId: string, notebookId: string): Promise<void> => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const response = await fetch(`/api/notes/${noteId}/notebooks/${notebookId}`, {
+        method: 'DELETE'
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Failed to unlink note from notebook: ${response.status}`)
+      }
+      
+      // Refresh notes to get updated state
+      await fetchNotes()
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to unlink note from notebook'
+      setError(errorMessage)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchNotes])
+
+  const batchLinkNotesToNotebook = useCallback(async (noteIds: string[], notebookId: string): Promise<void> => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const response = await fetch('/api/notes/batch/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ noteIds, notebookId })
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Failed to batch link notes: ${response.status}`)
+      }
+      
+      // Refresh notes to get updated state
+      await fetchNotes()
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to batch link notes'
+      setError(errorMessage)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchNotes])
+
+  const batchUnlinkNotesFromNotebook = useCallback(async (noteIds: string[], notebookId: string): Promise<void> => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const response = await fetch('/api/notes/batch/unlink', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ noteIds, notebookId })
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Failed to batch unlink notes: ${response.status}`)
+      }
+      
+      // Refresh notes to get updated state
+      await fetchNotes()
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to batch unlink notes'
+      setError(errorMessage)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchNotes])
+
+  const batchDeleteNotes = useCallback(async (noteIds: string[]): Promise<void> => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const response = await fetch('/api/notes/batch', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ noteIds })
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Failed to batch delete notes: ${response.status}`)
+      }
+      
+      // Refresh notes to get updated state
+      await fetchNotes()
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to batch delete notes'
+      setError(errorMessage)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchNotes])
+
+  const getNoteNotebooks = useCallback(async (noteId: string): Promise<any[]> => {
+    try {
+      const response = await fetch(`/api/notes/${noteId}/notebooks`)
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch note notebooks: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      return data.notebooks || []
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch note notebooks'
+      throw new Error(errorMessage)
+    }
+  }, [])
+
   const searchNotes = useCallback(async (query: string): Promise<VideoNote[]> => {
     return fetchNotes({ ...filters, searchQuery: query })
   }, [fetchNotes, filters])
@@ -180,6 +329,12 @@ export function useNotes(): NotesState & NoteOperations {
     createNote,
     updateNote,
     deleteNote,
+    linkNoteToNotebook,
+    unlinkNoteFromNotebook,
+    batchLinkNotesToNotebook,
+    batchUnlinkNotesFromNotebook,
+    batchDeleteNotes,
+    getNoteNotebooks,
     fetchNotes,
     searchNotes
   }

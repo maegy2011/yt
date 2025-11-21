@@ -65,13 +65,37 @@ export async function DELETE(
   try {
     const { id } = await params
     
-    // Check if note exists before deleting
+    // Check if note exists and get its notebook relationships
     const existingNote = await db.videoNote.findUnique({
-      where: { id }
+      where: { id },
+      include: {
+        noteLinks: {
+          include: {
+            notebook: true
+          }
+        }
+      }
     })
 
     if (!existingNote) {
       return NextResponse.json({ error: 'Note not found' }, { status: 404 })
+    }
+
+    // Check if note is linked to multiple notebooks
+    const linkCount = existingNote.noteLinks.length + (existingNote.notebookId ? 1 : 0)
+    
+    if (linkCount > 1) {
+      const notebookNames = [
+        ...existingNote.noteLinks.map(link => link.notebook.title),
+        ...(existingNote.notebookId ? ['Legacy Notebook'] : [])
+      ]
+
+      return NextResponse.json({ 
+        error: 'Cannot delete note linked to multiple notebooks',
+        message: 'This note is linked to the following notebooks: ' + notebookNames.join(', ') + '. Please unlink it from all but one notebook before deleting.',
+        notebookCount: linkCount,
+        notebooks: notebookNames
+      }, { status: 409 })
     }
 
     await db.videoNote.delete({

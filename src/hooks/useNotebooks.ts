@@ -209,6 +209,58 @@ export function useNotebooks(): UseNotebooksReturn {
     }
   }, [])
 
+  // Batch add notes to a notebook
+  const batchAddNotesToNotebook = useCallback(async (notebookId: string, noteIds: string[]): Promise<void> => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      await fetchWithRetry('/api/notes/batch/link', {
+        method: 'POST',
+        body: JSON.stringify({ noteIds, notebookId }),
+      })
+
+      // Refresh notebooks to get updated note counts
+      await fetchNotebooks()
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to batch add notes to notebook'
+      setError(errorMessage)
+      console.error('Failed to batch add notes to notebook:', error)
+      throw error
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchNotebooks])
+
+  // Share a notebook
+  const shareNotebook = useCallback(async (notebookId: string, method: string, message?: string) => {
+    try {
+      const response = await fetchWithRetry(`/api/notebooks/${notebookId}/share`, {
+        method: 'POST',
+        body: JSON.stringify({ method, message }),
+      })
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to share notebook'
+      console.error('Failed to share notebook:', error)
+      throw new Error(errorMessage)
+    }
+  }, [])
+
+  // Get share information for a notebook
+  const getNotebookShareInfo = useCallback(async (notebookId: string) => {
+    try {
+      const response = await fetchWithRetry(`/api/notebooks/${notebookId}/share`)
+      const data = await response.json()
+      return data.shareContent
+    } catch (error) {
+      console.error(`Failed to get share info for notebook ${notebookId}:`, error)
+      return null
+    }
+  }, [])
+
   // Load notebooks on mount
   useEffect(() => {
     fetchNotebooks()
@@ -225,6 +277,9 @@ export function useNotebooks(): UseNotebooksReturn {
     fetchNotebook,
     addNoteToNotebook,
     removeNoteFromNotebook,
+    batchAddNotesToNotebook,
     getNotebookNotes,
+    shareNotebook,
+    getNotebookShareInfo,
   }
 }

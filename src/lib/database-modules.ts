@@ -686,6 +686,63 @@ export class PlaybackPositionsModule {
   }
 }
 
+// Note links module for many-to-many relationships between notes and notebooks
+export class NoteLinksModule {
+  static async findAll() {
+    try {
+      return await db.noteLink.findMany({
+        orderBy: { createdAt: 'desc' }
+      })
+    } catch (error) {
+      throw new Error('Failed to fetch note links')
+    }
+  }
+
+  static async count() {
+    try {
+      return await db.noteLink.count()
+    } catch (error) {
+      return 0
+    }
+  }
+
+  static async deleteAll() {
+    try {
+      const count = await db.noteLink.count()
+      await db.noteLink.deleteMany({})
+      return { success: true, count }
+    } catch (error) {
+      throw new Error('Failed to delete all note links')
+    }
+  }
+
+  static async findByNoteId(noteId: string) {
+    try {
+      return await db.noteLink.findMany({
+        where: { noteId },
+        include: {
+          notebook: true
+        }
+      })
+    } catch (error) {
+      throw new Error('Failed to find note links by note ID')
+    }
+  }
+
+  static async findByNotebookId(notebookId: string) {
+    try {
+      return await db.noteLink.findMany({
+        where: { notebookId },
+        include: {
+          note: true
+        }
+      })
+    } catch (error) {
+      throw new Error('Failed to find note links by notebook ID')
+    }
+  }
+}
+
 // Comprehensive data management module
 export class DataManager {
   static async getStatistics() {
@@ -696,14 +753,16 @@ export class DataManager {
         videoNotes,
         watchedVideos,
         notebooks,
-        playbackPositions
+        playbackPositions,
+        noteLinks
       ] = await Promise.all([
         FavoriteChannelsModule.count(),
         FavoriteVideosModule.count(),
         VideoNotesModule.count(),
         WatchedVideosModule.count(),
         NotebooksModule.count(),
-        PlaybackPositionsModule.count()
+        PlaybackPositionsModule.count(),
+        NoteLinksModule.count()
       ])
 
       return {
@@ -713,7 +772,8 @@ export class DataManager {
         watchedVideos,
         notebooks,
         playbackPositions,
-        total: favoriteChannels + favoriteVideos + videoNotes + watchedVideos + notebooks + playbackPositions
+        noteLinks,
+        total: favoriteChannels + favoriteVideos + videoNotes + watchedVideos + notebooks + playbackPositions + noteLinks
       }
     } catch (error) {
 
@@ -729,14 +789,16 @@ export class DataManager {
         videoNotes,
         watchedVideos,
         notebooks,
-        playbackPositions
+        playbackPositions,
+        noteLinks
       ] = await Promise.all([
         FavoriteChannelsModule.deleteAll(),
         FavoriteVideosModule.deleteAll(),
         VideoNotesModule.deleteAll(),
         WatchedVideosModule.deleteAll(),
         NotebooksModule.deleteAll(),
-        PlaybackPositionsModule.deleteAll()
+        PlaybackPositionsModule.deleteAll(),
+        NoteLinksModule.deleteAll()
       ])
 
       return {
@@ -748,7 +810,8 @@ export class DataManager {
           watchedVideos: watchedVideos.count,
           notebooks: notebooks.count,
           playbackPositions: playbackPositions.count,
-          total: favoriteChannels.count + favoriteVideos.count + videoNotes.count + watchedVideos.count + notebooks.count + playbackPositions.count
+          noteLinks: noteLinks.count,
+          total: favoriteChannels.count + favoriteVideos.count + videoNotes.count + watchedVideos.count + notebooks.count + playbackPositions.count + noteLinks.count
         }
       }
     } catch (error) {
@@ -764,6 +827,7 @@ export class DataManager {
     watchedVideos?: boolean
     notebooks?: boolean
     playbackPositions?: boolean
+    noteLinks?: boolean
   }) {
     try {
       const results = await Promise.allSettled([
@@ -772,7 +836,8 @@ export class DataManager {
         options.videoNotes ? VideoNotesModule.deleteAll() : Promise.resolve({ count: 0 }),
         options.watchedVideos ? WatchedVideosModule.deleteAll() : Promise.resolve({ count: 0 }),
         options.notebooks ? NotebooksModule.deleteAll() : Promise.resolve({ count: 0 }),
-        options.playbackPositions ? PlaybackPositionsModule.deleteAll() : Promise.resolve({ count: 0 })
+        options.playbackPositions ? PlaybackPositionsModule.deleteAll() : Promise.resolve({ count: 0 }),
+        options.noteLinks ? NoteLinksModule.deleteAll() : Promise.resolve({ count: 0 })
       ])
 
       const deleted = {
@@ -782,6 +847,7 @@ export class DataManager {
         watchedVideos: results[3].status === 'fulfilled' ? results[3].value.count : 0,
         notebooks: results[4].status === 'fulfilled' ? results[4].value.count : 0,
         playbackPositions: results[5].status === 'fulfilled' ? results[5].value.count : 0,
+        noteLinks: results[6].status === 'fulfilled' ? results[6].value.count : 0,
         total: 0
       }
 
