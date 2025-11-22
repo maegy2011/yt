@@ -13,7 +13,9 @@ import {
   Plus,
   MoreVertical,
   Tag,
-  Calendar
+  Calendar,
+  FileText,
+  Image as ImageIcon
 } from 'lucide-react'
 import { 
   DropdownMenu,
@@ -85,6 +87,24 @@ export function NotebookCard({
     return tagsString.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
   }
 
+  const getCategoryLabel = (category: string): string => {
+    const categoryMap: Record<string, string> = {
+      'general': 'General',
+      'work': 'Work',
+      'personal': 'Personal',
+      'study': 'Study',
+      'research': 'Research',
+      'projects': 'Projects',
+      'ideas': 'Ideas',
+      'meeting': 'Meeting Notes',
+      'travel': 'Travel',
+      'health': 'Health & Fitness',
+      'finance': 'Finance',
+      'other': 'Other'
+    }
+    return categoryMap[category] || category
+  }
+
   const tags = parseTags(notebook.tags)
 
   return (
@@ -97,75 +117,108 @@ export function NotebookCard({
         borderLeft: `4px solid ${notebook.color}`
       }}
     >
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Book 
-              className="h-5 w-5 flex-shrink-0" 
-              style={{ color: notebook.color }}
-            />
-            <CardTitle className="text-lg truncate">{notebook.title}</CardTitle>
-          </div>
-          
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleToggleVisibility}
-              className="h-8 w-8 p-0"
-            >
-              {notebook.isPublic ? (
-                <Eye className="h-4 w-4" />
-              ) : (
-                <EyeOff className="h-4 w-4" />
-              )}
-            </Button>
-            
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleEdit}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleAddNote}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Note
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={handleDelete}
-                  className="text-destructive"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+      {/* Thumbnail */}
+      {notebook.thumbnail && (
+        <div className="relative h-32 sm:h-40 overflow-hidden">
+          <img
+            src={notebook.thumbnail}
+            alt={notebook.title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+          <div className="absolute bottom-2 left-2 right-2">
+            <h3 className="text-white font-semibold text-sm sm:text-base truncate drop-shadow-lg">
+              {notebook.title}
+            </h3>
           </div>
         </div>
+      )}
+
+      <CardHeader className={notebook.thumbnail ? 'pb-3 pt-2' : 'pb-3'}>
+        {!notebook.thumbnail && (
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <Book 
+                className="h-5 w-5 flex-shrink-0" 
+                style={{ color: notebook.color }}
+              />
+              <CardTitle className="text-base sm:text-lg truncate">{notebook.title}</CardTitle>
+            </div>
+            
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleToggleVisibility}
+                className="h-8 w-8 p-0 touch-manipulation-none"
+              >
+                {notebook.isPublic ? (
+                  <Eye className="h-4 w-4" />
+                ) : (
+                  <EyeOff className="h-4 w-4" />
+                )}
+              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 touch-manipulation-none"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={handleEdit} className="touch-manipulation-none">
+                    <Edit className="h-4 w-4 mr-2" />
+                    <span>Edit</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleAddNote} className="touch-manipulation-none">
+                    <Plus className="h-4 w-4 mr-2" />
+                    <span>Add Note</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={handleDelete}
+                    className="text-destructive touch-manipulation-none"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    <span>Delete</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        )}
         
-        {notebook.description && (
+        {notebook.description && !notebook.thumbnail && (
           <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
             {notebook.description}
           </p>
         )}
+
+        {/* Category and Badges */}
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          <Badge variant="outline" className="text-xs">
+            {getCategoryLabel(notebook.category || 'general')}
+          </Badge>
+          {notebook.pdfCount > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              <FileText className="h-3 w-3 mr-1" />
+              {notebook.pdfCount} PDF{notebook.pdfCount !== 1 ? 's' : ''}
+            </Badge>
+          )}
+        </div>
       </CardHeader>
       
       <CardContent className="pt-0">
         <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
           <div className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
-            {formatDistanceToNow(new Date(notebook.createdAt), { addSuffix: true })}
+            <span className="hidden sm:inline">{formatDistanceToNow(new Date(notebook.createdAt), { addSuffix: true })}</span>
+            <span className="sm:hidden">{formatDistanceToNow(new Date(notebook.createdAt), { addSuffix: false })}</span>
           </div>
           <div className="flex items-center gap-1">
             <Book className="h-3 w-3" />

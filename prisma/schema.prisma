@@ -68,10 +68,13 @@ model Notebook {
   color       String      @default("#3b82f6")
   isPublic    Boolean     @default(false)
   tags        String      @default("")
+  category    String      @default("general")
+  thumbnail   String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   notes       VideoNote[]
   noteLinks   NoteLink[]
+  pdfs        PdfFile[]
 }
 
 model VideoNote {
@@ -114,4 +117,20 @@ model VideoPlaybackPosition {
   currentTime Float    @default(0)
   lastWatched DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model PdfFile {
+  id          String   @id @default(cuid())
+  notebookId  String
+  filename    String
+  originalName String
+  size        Int
+  mimeType    String
+  path        String
+  uploadedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  notebook    Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  
+  @@index([notebookId])
 }

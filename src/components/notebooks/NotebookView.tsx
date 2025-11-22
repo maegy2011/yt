@@ -21,7 +21,9 @@ import {
   MoreHorizontal,
   Check,
   Plus,
-  MessageSquare
+  MessageSquare,
+  Upload,
+  FolderOpen
 } from 'lucide-react'
 import { 
   DropdownMenu,
@@ -49,15 +51,20 @@ import {
 } from '@/components/ui/dialog'
 import { VideoNote, Notebook } from '@/types/notes'
 import { formatDistanceToNow } from 'date-fns'
+import { PdfUpload } from '@/components/pdf/PdfUpload'
+import { PdfViewer, PdfCard } from '@/components/pdf/PdfViewer'
 
 interface NotebookViewProps {
   notebook: Notebook
   notes: VideoNote[]
+  pdfs?: any[]
   onBack: () => void
   onNotePlay: (note: VideoNote) => void
   onNoteEdit: (note: VideoNote) => void
   onNoteUnlink: (noteId: string, notebookId: string) => void
   onShare: (notebook: Notebook) => void
+  onPdfUpload?: (files: File[]) => Promise<void>
+  onPdfDelete?: (pdfId: string) => Promise<void>
   onNoteCreate?: (noteData: {
     title: string
     content: string
@@ -72,11 +79,14 @@ interface NotebookViewProps {
 export function NotebookView({ 
   notebook, 
   notes, 
+  pdfs = [],
   onBack, 
   onNotePlay, 
   onNoteEdit,
   onNoteUnlink,
   onShare,
+  onPdfUpload,
+  onPdfDelete,
   onNoteCreate,
   className = '' 
 }: NotebookViewProps) {
@@ -86,6 +96,10 @@ export function NotebookView({
   const [isUnlinking, setIsUnlinking] = useState(false)
   const [showAddNoteDialog, setShowAddNoteDialog] = useState(false)
   const [isCreatingNote, setIsCreatingNote] = useState(false)
+  const [activeTab, setActiveTab] = useState<'notes' | 'pdfs'>('notes')
+  const [showPdfUpload, setShowPdfUpload] = useState(false)
+  const [selectedPdf, setSelectedPdf] = useState<any | null>(null)
+  const [showPdfViewer, setShowPdfViewer] = useState(false)
   const [newNote, setNewNote] = useState({
     title: '',
     content: '',
@@ -202,6 +216,24 @@ export function NotebookView({
     setShowAddNoteDialog(true)
   }
 
+  const handlePdfUpload = async (files: File[]) => {
+    if (onPdfUpload) {
+      await onPdfUpload(files)
+      setShowPdfUpload(false)
+    }
+  }
+
+  const handlePdfDelete = async (pdfId: string) => {
+    if (onPdfDelete) {
+      await onPdfDelete(pdfId)
+    }
+  }
+
+  const handlePdfView = (pdf: any) => {
+    setSelectedPdf(pdf)
+    setShowPdfViewer(true)
+  }
+
   const getNotebookColor = (color: string) => {
     const colorMap: Record<string, string> = {
       '#3b82f6': 'bg-blue-500',
@@ -225,27 +257,20 @@ export function NotebookView({
     <div className={`w-full h-full flex flex-col ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onBack}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
-          
-          <div className="flex items-center gap-2">
-            <div className={`w-4 h-4 rounded-full ${getNotebookColor(notebook.color)}`} />
-            <h1 className="text-xl font-semibold">{notebook.title}</h1>
-          </div>
+        <div className="flex items-center gap-2">
+          <div className={`w-4 h-4 rounded-full ${getNotebookColor(notebook.color)}`} />
+          <h1 className="text-xl font-semibold">{notebook.title}</h1>
         </div>
 
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="flex items-center gap-1">
             <FileText className="w-3 h-3" />
             {notes.length} notes
+          </Badge>
+          
+          <Badge variant="secondary" className="flex items-center gap-1">
+            <FolderOpen className="w-3 h-3" />
+            {pdfs.length} PDF{pdfs.length !== 1 ? 's' : ''}
           </Badge>
           
           {onNoteCreate && (
@@ -257,6 +282,18 @@ export function NotebookView({
             >
               <Plus className="w-4 h-4" />
               Add Note
+            </Button>
+          )}
+          
+          {onPdfUpload && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPdfUpload(true)}
+              className="flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Upload PDF
             </Button>
           )}
           
@@ -291,7 +328,39 @@ export function NotebookView({
         </div>
       )}
 
-      {/* Batch Actions */}
+      {/* Tabs */}
+      <div className="flex border-b">
+        <button
+          className={`flex-1 py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium border-b-2 transition-colors touch-manipulation-none ${
+            activeTab === 'notes'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+          onClick={() => setActiveTab('notes')}
+        >
+          <div className="flex items-center justify-center gap-1 sm:gap-2">
+            <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Notes ({notes.length})</span>
+            <span className="sm:hidden">Notes</span>
+          </div>
+        </button>
+        <button
+          className={`flex-1 py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium border-b-2 transition-colors touch-manipulation-none ${
+            activeTab === 'pdfs'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+          onClick={() => setActiveTab('pdfs')}
+        >
+          <div className="flex items-center justify-center gap-1 sm:gap-2">
+            <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">PDFs ({pdfs.length})</span>
+            <span className="sm:hidden">PDFs</span>
+          </div>
+        </button>
+      </div>
+
+      {/* Batch Actions - Only show for notes tab */}
       {selectedNotes.size > 0 && (
         <div className="flex items-center justify-between p-3 bg-primary/5 border-b">
           <span className="text-sm font-medium">
@@ -316,133 +385,169 @@ export function NotebookView({
         </div>
       )}
 
-      {/* Notes List */}
+      {/* Content Area */}
       <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
-          {notes.length === 0 ? (
-            <div className="text-center py-12">
-              <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">No notes yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Add some notes to this notebook to get started.
-              </p>
-              {onNoteCreate && (
-                <Button onClick={openAddNoteDialog} className="flex items-center gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add Your First Note
-                </Button>
+        <div className="p-3 sm:p-4">
+          {activeTab === 'notes' ? (
+            <div className="space-y-3 sm:space-y-4">
+              {notes.length === 0 ? (
+                <div className="text-center py-8 sm:py-12">
+                  <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No notes yet</h3>
+                  <p className="text-muted-foreground mb-4 text-sm sm:text-base">
+                    Add some notes to this notebook to get started.
+                  </p>
+                  {onNoteCreate && (
+                    <Button onClick={openAddNoteDialog} className="flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      Add Your First Note
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {/* Select All - Desktop Only */}
+                  <div className="hidden sm:flex items-center gap-2 p-2 rounded-lg border">
+                    <input
+                      type="checkbox"
+                      checked={selectedNotes.size === notes.length}
+                      onChange={handleSelectAll}
+                      className="rounded"
+                    />
+                    <span className="text-sm font-medium">Select all notes</span>
+                  </div>
+
+                  {/* Notes */}
+                  {notes.map((note) => (
+                    <Card key={note.id} className="hover:shadow-md transition-shadow">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3 flex-1">
+                            <input
+                              type="checkbox"
+                              checked={selectedNotes.has(note.id)}
+                              onChange={() => handleSelectNote(note.id)}
+                              className="mt-1 rounded touch-manipulation-none"
+                            />
+                            
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className="text-sm sm:text-base line-clamp-2">{note.title}</CardTitle>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {note.channelName}
+                              </p>
+                              
+                              <div className="flex items-center gap-2 mt-2">
+                                {(note.startTime !== undefined || note.endTime !== undefined) && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {note.startTime !== undefined && formatDuration(note.startTime)}
+                                    {note.startTime !== undefined && note.endTime !== undefined && ' - '}
+                                    {note.endTime !== undefined && formatDuration(note.endTime)}
+                                  </Badge>
+                                )}
+                                
+                                {note.isClip && (
+                                  <Badge variant="secondary" className="text-xs">Clip</Badge>
+                                )}
+                                
+                                <Badge variant="outline" className="text-xs">
+                                  {note.linkType === 'linked' ? 'Linked' : 'Legacy'}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 touch-manipulation-none">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem onClick={() => onNotePlay(note)} className="touch-manipulation-none">
+                                <Play className="w-4 h-4 mr-2" />
+                                <span>Play Video</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => onNoteEdit(note)} className="touch-manipulation-none">
+                                <Edit className="w-4 h-4 mr-2" />
+                                <span>Edit Note</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => handleUnlinkNote(note.id, note.title)}
+                                className="text-destructive touch-manipulation-none"
+                              >
+                                <Unlink className="w-4 h-4 mr-2" />
+                                <span>Unlink from Notebook</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </CardHeader>
+                      
+                      <CardContent>
+                        <div className="space-y-3">
+                          <p className="text-sm line-clamp-3">{note.note}</p>
+                          
+                          <Separator />
+                          
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              <span className="hidden sm:inline">{formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}</span>
+                              <span className="sm:hidden">{formatDistanceToNow(new Date(note.updatedAt), { addSuffix: false })}</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <span className="hidden sm:inline">Font size: {note.fontSize}px</span>
+                              <span className="sm:hidden">Font: {note.fontSize}px</span>
+                              {note.thumbnail && (
+                                <div className="w-12 h-8 rounded overflow-hidden bg-muted">
+                                  <img 
+                                    src={note.thumbnail} 
+                                    alt={note.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </>
               )}
             </div>
           ) : (
-            <>
-              {/* Select All */}
-              <div className="flex items-center gap-2 p-2 rounded-lg border">
-                <input
-                  type="checkbox"
-                  checked={selectedNotes.size === notes.length}
-                  onChange={handleSelectAll}
-                  className="rounded"
-                />
-                <span className="text-sm font-medium">Select all notes</span>
-              </div>
-
-              {/* Notes */}
-              {notes.map((note) => (
-                <Card key={note.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3 flex-1">
-                        <input
-                          type="checkbox"
-                          checked={selectedNotes.has(note.id)}
-                          onChange={() => handleSelectNote(note.id)}
-                          className="mt-1 rounded"
-                        />
-                        
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-base line-clamp-2">{note.title}</CardTitle>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {note.channelName}
-                          </p>
-                          
-                          <div className="flex items-center gap-2 mt-2">
-                            {(note.startTime !== undefined || note.endTime !== undefined) && (
-                              <Badge variant="outline" className="text-xs">
-                                {note.startTime !== undefined && formatDuration(note.startTime)}
-                                {note.startTime !== undefined && note.endTime !== undefined && ' - '}
-                                {note.endTime !== undefined && formatDuration(note.endTime)}
-                              </Badge>
-                            )}
-                            
-                            {note.isClip && (
-                              <Badge variant="secondary" className="text-xs">Clip</Badge>
-                            )}
-                            
-                            <Badge variant="outline" className="text-xs">
-                              {note.linkType === 'linked' ? 'Linked' : 'Legacy'}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => onNotePlay(note)}>
-                            <Play className="w-4 h-4 mr-2" />
-                            Play Video
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => onNoteEdit(note)}>
-                            <Edit className="w-4 h-4 mr-2" />
-                            Edit Note
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => handleUnlinkNote(note.id, note.title)}
-                            className="text-destructive"
-                          >
-                            <Unlink className="w-4 h-4 mr-2" />
-                            Unlink from Notebook
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent>
-                    <div className="space-y-3">
-                      <p className="text-sm line-clamp-3">{note.note}</p>
-                      
-                      <Separator />
-                      
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {formatDistanceToNow(new Date(note.updatedAt), { addSuffix: true })}
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <span>Font size: {note.fontSize}px</span>
-                          {note.thumbnail && (
-                            <div className="w-12 h-8 rounded overflow-hidden bg-muted">
-                              <img 
-                                src={note.thumbnail} 
-                                alt={note.title}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </>
+            /* PDFs Tab */
+            <div className="space-y-3 sm:space-y-4">
+              {pdfs.length === 0 ? (
+                <div className="text-center py-8 sm:py-12">
+                  <FolderOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No PDFs yet</h3>
+                  <p className="text-muted-foreground mb-4 text-sm sm:text-base">
+                    Upload PDF files to this notebook to get started.
+                  </p>
+                  {onPdfUpload && (
+                    <Button onClick={() => setShowPdfUpload(true)} className="w-full sm:w-auto">
+                      <Upload className="w-4 h-4" />
+                      Upload Your First PDF
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  {pdfs.map((pdf) => (
+                    <PdfCard
+                      key={pdf.id}
+                      pdf={pdf}
+                      onView={handlePdfView}
+                      onDelete={handlePdfDelete}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </ScrollArea>
@@ -569,6 +674,28 @@ export function NotebookView({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* PDF Upload Dialog */}
+      <Dialog open={showPdfUpload} onOpenChange={setShowPdfUpload}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Upload PDF Files</DialogTitle>
+            <DialogDescription>
+              Add PDF documents to your notebook. You can upload multiple files at once.
+            </DialogDescription>
+          </DialogHeader>
+          <PdfUpload onUpload={handlePdfUpload} />
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF Viewer */}
+      {selectedPdf && (
+        <PdfViewer
+          pdf={selectedPdf}
+          isOpen={showPdfViewer}
+          onClose={() => setShowPdfViewer(false)}
+        />
+      )}
     </div>
   )
 }

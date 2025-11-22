@@ -8,6 +8,7 @@ const createNotebookSchema = z.object({
   color: z.string().optional(),
   isPublic: z.boolean().optional(),
   tags: z.string().optional(),
+  category: z.string().optional(),
 })
 
 const updateNotebookSchema = z.object({
@@ -16,20 +17,41 @@ const updateNotebookSchema = z.object({
   color: z.string().optional(),
   isPublic: z.boolean().optional(),
   tags: z.string().optional(),
+  category: z.string().optional(),
 })
 
 // GET /api/notebooks - Fetch all notebooks
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const category = searchParams.get('category')
+    const sortBy = searchParams.get('sortBy') || 'updatedAt'
+    const sortOrder = searchParams.get('sortOrder') || 'desc'
+    const search = searchParams.get('search')
+
+    // Build where clause
+    const whereClause: any = {}
+    if (category && category !== 'all') {
+      whereClause.category = category
+    }
+    if (search) {
+      whereClause.OR = [
+        { title: { contains: search } },
+        { description: { contains: search } },
+        { tags: { contains: search } }
+      ]
+    }
+
     const notebooks = await db.notebook.findMany({
-      orderBy: [
-        { updatedAt: 'desc' },
-        { createdAt: 'desc' }
-      ],
+      where: whereClause,
+      orderBy: {
+        [sortBy]: sortOrder
+      },
       include: {
         _count: {
           select: {
-            notes: true
+            notes: true,
+            pdfs: true
           }
         },
         noteLinks: {
@@ -43,13 +65,23 @@ export async function GET(request: NextRequest) {
     const formattedNotebooks = notebooks.map(notebook => ({
       ...notebook,
       noteCount: notebook._count.notes + notebook.noteLinks.length,
+      pdfCount: notebook._count.pdfs,
       createdAt: notebook.createdAt.toISOString(),
       updatedAt: notebook.updatedAt.toISOString(),
     }))
 
+    // Get all categories for filtering
+    const categories = await db.notebook.groupBy({
+      by: ['category'],
+      _count: {
+        category: true
+      }
+    })
+
     return NextResponse.json({
       success: true,
-      notebooks: formattedNotebooks
+      notebooks: formattedNotebooks,
+      categories: categories.map(c => ({ name: c.category, count: c._count.category }))
     })
   } catch (error) {
     console.error('Error fetching notebooks:', error)
@@ -73,6 +105,7 @@ export async function POST(request: NextRequest) {
         color: validatedData.color || '#3b82f6',
         isPublic: validatedData.isPublic || false,
         tags: validatedData.tags || '',
+        category: validatedData.category || 'general',
       }
     })
 

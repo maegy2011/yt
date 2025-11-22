@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Badge } from '@/components/ui/badge'
-import { X } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { X, Upload, Image as ImageIcon } from 'lucide-react'
 import { Notebook, CreateNotebookRequest, UpdateNotebookRequest } from '@/types/notes'
 
 interface NotebookEditorProps {
@@ -32,6 +33,21 @@ const PRESET_COLORS = [
   '#84cc16', // lime
 ]
 
+const CATEGORIES = [
+  { value: 'general', label: 'General' },
+  { value: 'work', label: 'Work' },
+  { value: 'personal', label: 'Personal' },
+  { value: 'study', label: 'Study' },
+  { value: 'research', label: 'Research' },
+  { value: 'projects', label: 'Projects' },
+  { value: 'ideas', label: 'Ideas' },
+  { value: 'meeting', label: 'Meeting Notes' },
+  { value: 'travel', label: 'Travel' },
+  { value: 'health', label: 'Health & Fitness' },
+  { value: 'finance', label: 'Finance' },
+  { value: 'other', label: 'Other' }
+]
+
 export function NotebookEditor({
   isOpen,
   onClose,
@@ -45,7 +61,11 @@ export function NotebookEditor({
   const [isPublic, setIsPublic] = useState(false)
   const [tags, setTags] = useState('')
   const [tagInput, setTagInput] = useState('')
+  const [category, setCategory] = useState('general')
+  const [thumbnail, setThumbnail] = useState<string | null>(null)
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false)
 
   useEffect(() => {
     if (mode === 'edit' && notebook) {
@@ -54,6 +74,8 @@ export function NotebookEditor({
       setColor(notebook.color)
       setIsPublic(notebook.isPublic)
       setTags(notebook.tags)
+      setCategory(notebook.category || 'general')
+      setThumbnail(notebook.thumbnail || null)
     } else {
       // Reset form for create mode
       setTitle('')
@@ -62,6 +84,9 @@ export function NotebookEditor({
       setIsPublic(false)
       setTags('')
       setTagInput('')
+      setCategory('general')
+      setThumbnail(null)
+      setThumbnailFile(null)
     }
   }, [mode, notebook, isOpen])
 
@@ -75,13 +100,24 @@ export function NotebookEditor({
         description: description.trim() || undefined,
         color,
         isPublic,
-        tags: tags.trim()
+        tags: tags.trim(),
+        category
       }
 
       if (mode === 'edit' && notebook) {
         await onSave({ id: notebook.id, data })
+        
+        // Upload thumbnail if changed
+        if (thumbnailFile && mode === 'edit') {
+          await uploadThumbnail(notebook.id)
+        }
       } else {
-        await onSave(data)
+        const result = await onSave(data)
+        
+        // Upload thumbnail for new notebook
+        if (thumbnailFile && result && 'id' in result) {
+          await uploadThumbnail((result as any).id)
+        }
       }
       
       onClose()
@@ -90,6 +126,50 @@ export function NotebookEditor({
     } finally {
       setLoading(false)
     }
+  }
+
+  const uploadThumbnail = async (notebookId: string) => {
+    if (!thumbnailFile) return
+
+    setUploadingThumbnail(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', thumbnailFile)
+
+      const response = await fetch(`/api/notebooks/${notebookId}/thumbnail`, {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to upload thumbnail')
+      }
+
+      const result = await response.json()
+      setThumbnail(result.thumbnailPath)
+      setThumbnailFile(null)
+    } catch (error) {
+      console.error('Error uploading thumbnail:', error)
+    } finally {
+      setUploadingThumbnail(false)
+    }
+  }
+
+  const handleThumbnailSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      setThumbnailFile(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setThumbnail(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeThumbnail = () => {
+    setThumbnail(null)
+    setThumbnailFile(null)
   }
 
   const handleAddTag = () => {
@@ -118,7 +198,7 @@ export function NotebookEditor({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[95vw] max-h-[90vh] w-full max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' ? 'Create New Notebook' : 'Edit Notebook'}
@@ -180,6 +260,91 @@ export function NotebookEditor({
             </div>
           </div>
 
+          {/* Category */}
+          <div className="space-y-2">
+            <Label>Category</Label>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((cat) => (
+                  <SelectItem key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Thumbnail Upload */}
+          <div className="space-y-2">
+            <Label>Thumbnail Image</Label>
+            <div className="space-y-3">
+              {thumbnail ? (
+                <div className="relative group">
+                  <img
+                    src={thumbnail}
+                    alt="Notebook thumbnail"
+                    className="w-full h-32 object-cover rounded-lg border"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={removeThumbnail}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+                  <div className="text-center space-y-2">
+                    <ImageIcon className="w-8 h-8 mx-auto text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Upload a thumbnail image for your notebook
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        JPG, PNG, GIF up to 5MB
+                      </p>
+                    </div>
+                    <div className="flex justify-center">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleThumbnailSelect}
+                        className="hidden"
+                        id="thumbnail-upload"
+                        disabled={uploadingThumbnail}
+                      />
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        disabled={uploadingThumbnail}
+                      >
+                        <label htmlFor="thumbnail-upload" className="cursor-pointer flex items-center gap-2">
+                          {uploadingThumbnail ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4" />
+                              Choose Image
+                            </>
+                          )}
+                        </label>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Tags */}
           <div className="space-y-2">
             <Label>Tags</Label>
@@ -233,6 +398,13 @@ export function NotebookEditor({
               className="p-3 rounded-lg border"
               style={{ borderLeft: `4px solid ${color}` }}
             >
+              {thumbnail && (
+                <img
+                  src={thumbnail}
+                  alt="Notebook thumbnail"
+                  className="w-full h-24 object-cover rounded mb-2"
+                />
+              )}
               <div className="flex items-center gap-2 mb-2">
                 <div 
                   className="w-4 h-4 rounded-full"
@@ -241,6 +413,9 @@ export function NotebookEditor({
                 <span className="font-medium">{title || 'Untitled Notebook'}</span>
                 <Badge variant={isPublic ? 'default' : 'secondary'} className="text-xs">
                   {isPublic ? 'Public' : 'Private'}
+                </Badge>
+                <Badge variant="outline" className="text-xs">
+                  {CATEGORIES.find(c => c.value === category)?.label || 'General'}
                 </Badge>
               </div>
               {description && (

@@ -49,6 +49,7 @@ export function NotebooksContainer({
   const [sortBy, setSortBy] = useState<'title' | 'createdAt' | 'updatedAt' | 'noteCount'>('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [filterBy, setFilterBy] = useState<'all' | 'public' | 'private'>('all')
+  const [categoryFilter, setCategoryFilter] = useState('all')
   const [showAddToNotebookDialog, setShowAddToNotebookDialog] = useState(false)
 
   const handleCreateNew = useCallback(() => {
@@ -167,6 +168,7 @@ export function NotebooksContainer({
       {/* Notebooks List */}
       <NotebookList
         notebooks={notebooks}
+        categories={[]} // Will be populated from API response
         loading={loading}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -183,6 +185,8 @@ export function NotebooksContainer({
         onSortChange={handleSortChange}
         filterBy={filterBy}
         onFilterChange={handleFilterChange}
+        categoryFilter={categoryFilter}
+        onCategoryFilterChange={setCategoryFilter}
         className="flex-1"
       />
 
