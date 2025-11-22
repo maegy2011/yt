@@ -19,7 +19,7 @@ const initializeYoutubei = async () => {
 // Initialize immediately
 initializeYoutubei().catch(console.error)
 
-// Helper function to extract thumbnail URL from YouTubei v1.7.0 Thumbnails API
+// Helper function to extract thumbnail URL from YouTubei v1.8.0 Thumbnails API
 function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
   if (!thumbnails) {
     return {
@@ -29,7 +29,7 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
     }
   }
 
-  // Handle YouTubei v1.7.0 Thumbnails object (has .best property)
+  // Handle YouTubei v1.8.0 Thumbnails object (has .best property)
   if (thumbnails.best && typeof thumbnails.best === 'string') {
     return {
       url: thumbnails.best,
@@ -38,7 +38,7 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
     }
   }
 
-  // Handle YouTubei v1.7.0 Thumbnails array
+  // Handle YouTubei v1.8.0 Thumbnails array
   if (Array.isArray(thumbnails) && thumbnails.length > 0) {
     // Use the best thumbnail (highest resolution) - usually the last one
     const bestThumbnail = thumbnails[thumbnails.length - 1]
@@ -118,7 +118,7 @@ function cleanChannelData(channel: any): any {
   return cleaned
 }
 
-// Helper function to extract channel information from YouTubei v1.7.0 BaseChannel/Channel
+// Helper function to extract channel information from YouTubei v1.8.0 BaseChannel/Channel
 function extractChannelData(channel: any): any {
   if (!channel) {
     return null
@@ -133,7 +133,7 @@ function extractChannelData(channel: any): any {
     subscriberCount: channel.subscriberCount,
     videoCount: channel.videoCount,
     viewCount: channel.viewCount,
-    // Channel-specific properties from YouTubei v1.7.0
+    // Channel-specific properties from YouTubei v1.8.0
     banner: channel.banner ? extractThumbnail(channel.banner) : undefined,
     mobileBanner: channel.mobileBanner ? extractThumbnail(channel.mobileBanner) : undefined,
     tvBanner: channel.tvBanner ? extractThumbnail(channel.tvBanner) : undefined,
@@ -201,14 +201,14 @@ export async function GET(request: NextRequest) {
     // Extract and enhance channel data
     let channelItems = results.items
       .filter((item: any) => {
-        // Validate that this looks like a channel using YouTubei v1.7.0 structure
+        // Validate that this looks like a channel using YouTubei v1.8.0 structure
         return item.id && item.name && (item.thumbnails || item.subscriberCount !== undefined)
       })
       .map((item: any) => {
         const channelId = item.id
         const isFavorite = favoriteChannelIds.has(channelId)
         
-        // Extract enhanced channel data using YouTubei v1.7.0 properties
+        // Extract enhanced channel data using YouTubei v1.8.0 properties
         const channelData = extractChannelData(item)
         
         if (!channelData) return null

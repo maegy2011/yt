@@ -36,6 +36,7 @@ interface VideoNoteProps {
   videoId: string
   videoTitle: string
   channelName?: string
+  channelThumbnail?: string
   viewCount?: number
   publishedAt?: string
   thumbnail?: string
@@ -53,6 +54,7 @@ export function VideoNote({
   videoId, 
   videoTitle, 
   channelName, 
+  channelThumbnail,
   viewCount, 
   publishedAt, 
   thumbnail,
@@ -716,14 +718,18 @@ export function VideoNote({
   }
 
   const opts = {
-    height: '390',
-    width: '100%',
+    height: '100vh',
+    width: '100vw',
     playerVars: {
       autoplay: 0,
       controls: 1,
       rel: 0,
       showinfo: 0,
       modestbranding: 1,
+      fs: 0,
+      disablekb: 0,
+      iv_load_policy: 3,
+      cc_load_policy: 0,
     },
   }
 
@@ -842,9 +848,27 @@ export function VideoNote({
             {/* Channel and Stats Row */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                {/* Channel Avatar Placeholder */}
-                <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-muted-foreground" />
+                {/* Channel Logo (Avatar) - Using YouTube Channel Logo */}
+                <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-muted">
+                  <img
+                    src={channelThumbnail}
+                    alt={channelName}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      // Hide broken image and show fallback
+                      target.style.display = 'none'
+                      const parent = target.parentElement
+                      if (parent) {
+                        // Show User icon as fallback
+                        parent.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>'
+                      }
+                    }}
+                    onLoad={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.style.display = 'block'
+                    }}
+                  />
                 </div>
                 
                 {/* Channel Name */}

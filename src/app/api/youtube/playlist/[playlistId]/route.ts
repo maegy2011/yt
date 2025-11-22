@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Helper function to extract thumbnail URL from YouTubei v1.7.0 Thumbnails API
+// Helper function to extract thumbnail URL from YouTubei v1.8.0 Thumbnails API
 function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
   if (!thumbnails) {
     return {
@@ -10,7 +10,7 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
     }
   }
 
-  // Handle YouTubei v1.7.0 Thumbnails object (has .best property)
+  // Handle YouTubei v1.8.0 Thumbnails object (has .best property)
   if (thumbnails.best && typeof thumbnails.best === 'string') {
     return {
       url: thumbnails.best,
@@ -19,7 +19,7 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
     }
   }
 
-  // Handle YouTubei v1.7.0 Thumbnails array
+  // Handle YouTubei v1.8.0 Thumbnails array
   if (Array.isArray(thumbnails) && thumbnails.length > 0) {
     // Use the best thumbnail (highest resolution) - usually the last one
     const bestThumbnail = thumbnails[thumbnails.length - 1]
@@ -58,7 +58,7 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
   }
 }
 
-// Helper function to extract channel information from YouTubei v1.7.0 BaseChannel
+// Helper function to extract channel information from YouTubei v1.8.0 BaseChannel
 function extractChannel(channel: any): { id: string; name: string; thumbnail?: string; subscriberCount?: string; handle?: string } {
   if (!channel) {
     return {

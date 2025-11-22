@@ -19,7 +19,7 @@ const initializeYoutubei = async () => {
 // Initialize immediately
 initializeYoutubei().catch(console.error)
 
-// Helper function to extract thumbnail URL from YouTubei v1.7.0 Thumbnails API
+// Helper function to extract thumbnail URL from YouTubei v1.8.0 Thumbnails API
 function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
   try {
     if (!thumbnails) {
@@ -30,7 +30,7 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
       }
     }
 
-    // Handle YouTubei v1.7.0 Thumbnails object (has .best property)
+    // Handle YouTubei v1.8.0 Thumbnails object (has .best property)
     if (thumbnails && typeof thumbnails === 'object' && thumbnails.best && typeof thumbnails.best === 'string') {
       return {
         url: thumbnails.best,
@@ -39,7 +39,7 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
       }
     }
 
-    // Handle YouTubei v1.7.0 Thumbnails array
+    // Handle YouTubei v1.8.0 Thumbnails array
     if (Array.isArray(thumbnails) && thumbnails.length > 0) {
       const bestThumbnail = thumbnails[thumbnails.length - 1]
       if (bestThumbnail && bestThumbnail.url) {

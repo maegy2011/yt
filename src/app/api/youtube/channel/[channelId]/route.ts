@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 
 const youtube = new Client()
 
-// Helper function to extract thumbnail URL from YouTubei v1.7.0 Thumbnails API
+// Helper function to extract thumbnail URL from YouTubei v1.8.0 Thumbnails API
 function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
   try {
     if (!thumbnails) {
@@ -15,7 +15,7 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
       }
     }
 
-    // Handle YouTubei v1.7.0 Thumbnails object (has .best property)
+    // Handle YouTubei v1.8.0 Thumbnails object (has .best property)
     if (thumbnails && typeof thumbnails === 'object' && thumbnails.best && typeof thumbnails.best === 'string') {
       return {
         url: thumbnails.best,
@@ -24,7 +24,7 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
       }
     }
 
-    // Handle YouTubei v1.7.0 Thumbnails array
+    // Handle YouTubei v1.8.0 Thumbnails array
     if (Array.isArray(thumbnails) && thumbnails.length > 0) {
       // Use the best thumbnail (highest resolution) - usually the last one
       const bestThumbnail = thumbnails[thumbnails.length - 1]
@@ -90,7 +90,7 @@ export async function GET(
       return NextResponse.json({ error: 'Channel not found' }, { status: 404 })
     }
 
-    // Extract comprehensive channel data using YouTubei v1.7.0 properties
+    // Extract comprehensive channel data using YouTubei v1.8.0 properties
     let sanitizedChannel: any = {
       id: channel.id,
       channelId: channel.id,
@@ -154,7 +154,7 @@ export async function GET(
         thumbnail: extractThumbnail(video.thumbnails),
         duration: video.duration,
         viewCount: video.viewCount || 0,
-        publishedAt: video.uploadDate, // YouTubei v1.7.0 API: uploadDate provides human-readable relative dates
+        publishedAt: video.uploadDate, // YouTubei v1.8.0 API: uploadDate provides human-readable relative dates
         isLive: video.isLive || false,
         isUpcoming: video.isUpcoming || false,
         upcomingDate: video.upcomingDate,
