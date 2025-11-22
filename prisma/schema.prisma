@@ -134,3 +134,31 @@ model PdfFile {
   
   @@index([notebookId])
 }
+
+model BlacklistedItem {
+  id          String   @id @default(cuid())
+  itemId      String   @unique
+  title       String
+  type        String   // 'video' | 'playlist' | 'channel'
+  thumbnail   String?
+  channelName String?
+  addedAt     DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([itemId])
+  @@index([type])
+}
+
+model WhitelistedItem {
+  id          String   @id @default(cuid())
+  itemId      String   @unique
+  title       String
+  type        String   // 'video' | 'playlist' | 'channel'
+  thumbnail   String?
+  channelName String?
+  addedAt     DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([itemId])
+  @@index([type])
+}

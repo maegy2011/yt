@@ -3317,7 +3317,21 @@ export default function MyTubeApp() {
                       } else if (item.type === 'channel') {
                         return <ChannelCard key={item.channelId || item.id} channel={item as Channel} />
                       } else {
-                        return <UnifiedVideoCard key={(item as Video).videoId || item.id} video={item as Video} onPlay={handleVideoSelect} />
+                        const isBlacklisted = blacklisted.some(listItem => 
+                          listItem.id === (item as Video).videoId && listItem.type === 'video'
+                        )
+                        const isWhitelisted = whitelisted.some(listItem => 
+                          listItem.id === (item as Video).videoId && listItem.type === 'video'
+                        )
+                        return <UnifiedVideoCard 
+                          key={(item as Video).videoId || item.id} 
+                          video={item as Video} 
+                          onPlay={handleVideoSelect}
+                          onAddToBlacklist={handleAddToBlacklist}
+                          onAddToWhitelist={handleAddToWhitelist}
+                          isBlacklisted={isBlacklisted}
+                          isWhitelisted={isWhitelisted}
+                        />
                       }
                     })}
                   </div>

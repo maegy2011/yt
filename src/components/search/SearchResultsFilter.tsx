@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { 
   Video, 
   List, 
@@ -24,20 +24,24 @@ type FilterType = 'all' | 'video' | 'playlist' | 'channel'
 
 interface BlacklistedItem {
   id: string
+  itemId: string
   title: string
   type: 'video' | 'playlist' | 'channel'
   thumbnail?: string
   channelName?: string
   addedAt: string
+  updatedAt: string
 }
 
 interface WhitelistedItem {
   id: string
+  itemId: string
   title: string
   type: 'video' | 'playlist' | 'channel'
   thumbnail?: string
   channelName?: string
   addedAt: string
+  updatedAt: string
 }
 
 interface SearchResultsFilterProps {
@@ -52,6 +56,81 @@ interface SearchResultsFilterProps {
   onWhitelistChange?: (whitelisted: WhitelistedItem[]) => void
   onAddToBlacklist?: (item: any) => void
   onAddToWhitelist?: (item: any) => void
+}
+
+// Database API functions
+const fetchBlacklistedItems = async (): Promise<BlacklistedItem[]> => {
+  try {
+    const response = await fetch('/api/blacklist')
+    if (!response.ok) throw new Error('Failed to fetch blacklist')
+    return await response.json()
+  } catch (error) {
+    console.error('Error fetching blacklist:', error)
+    return []
+  }
+}
+
+const fetchWhitelistedItems = async (): Promise<WhitelistedItem[]> => {
+  try {
+    const response = await fetch('/api/whitelist')
+    if (!response.ok) throw new Error('Failed to fetch whitelist')
+    return await response.json()
+  } catch (error) {
+    console.error('Error fetching whitelist:', error)
+    return []
+  }
+}
+
+const addToBlacklist = async (item: BlacklistedItem): Promise<boolean> => {
+  try {
+    const response = await fetch('/api/blacklist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item)
+    })
+    return response.ok
+  } catch (error) {
+    console.error('Error adding to blacklist:', error)
+    return false
+  }
+}
+
+const addToWhitelist = async (item: WhitelistedItem): Promise<boolean> => {
+  try {
+    const response = await fetch('/api/whitelist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item)
+    })
+    return response.ok
+  } catch (error) {
+    console.error('Error adding to whitelist:', error)
+    return false
+  }
+}
+
+const removeFromBlacklist = async (itemId: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`/api/blacklist?itemId=${encodeURIComponent(itemId)}`, {
+      method: 'DELETE'
+    })
+    return response.ok
+  } catch (error) {
+    console.error('Error removing from blacklist:', error)
+    return false
+  }
+}
+
+const removeFromWhitelist = async (itemId: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`/api/whitelist?itemId=${encodeURIComponent(itemId)}`, {
+      method: 'DELETE'
+    })
+    return response.ok
+  } catch (error) {
+    console.error('Error removing from whitelist:', error)
+    return false
+  }
 }
 
 export function SearchResultsFilter({ 
@@ -72,41 +151,34 @@ export function SearchResultsFilter({
   const [newBlacklistItem, setNewBlacklistItem] = useState('')
   const [newWhitelistItem, setNewWhitelistItem] = useState('')
 
-  // Load blacklisted/whitelisted items from localStorage on mount
+  // Load blacklisted/whitelisted items from database on mount
   useEffect(() => {
-    try {
-      const savedBlacklisted = localStorage.getItem('blacklisted-items')
-      const savedWhitelisted = localStorage.getItem('whitelisted-items')
-      
-      if (savedBlacklisted) {
-        setBlacklisted(JSON.parse(savedBlacklisted))
+    const loadItems = async () => {
+      try {
+        const [blacklistedData, whitelistedData] = await Promise.all([
+          fetchBlacklistedItems(),
+          fetchWhitelistedItems()
+        ])
+        setBlacklisted(blacklistedData)
+        setWhitelisted(whitelistedData)
+        onBlacklistChange?.(blacklistedData)
+        onWhitelistChange?.(whitelistedData)
+      } catch (error) {
+        console.error('Error loading blacklisted/whitelisted items:', error)
       }
-      if (savedWhitelisted) {
-        setWhitelisted(JSON.parse(savedWhitelisted))
-      }
-    } catch (error) {
-      console.error('Error loading blacklisted/whitelisted items:', error)
     }
+    
+    loadItems()
   }, [])
 
-  // Save to localStorage when blacklisted/whitelisted changes
+  // Update parent when lists change
   useEffect(() => {
-    try {
-      localStorage.setItem('blacklisted-items', JSON.stringify(blacklisted))
-      onBlacklistChange?.(blacklisted)
-    } catch (error) {
-      console.error('Error saving blacklisted items:', error)
-    }
-  }, [blacklisted, onBlacklistChange])
+    onBlacklistChange?.(blacklisted)
+  }, [blacklisted])
 
   useEffect(() => {
-    try {
-      localStorage.setItem('whitelisted-items', JSON.stringify(whitelisted))
-      onWhitelistChange?.(whitelisted)
-    } catch (error) {
-      console.error('Error saving whitelisted items:', error)
-    }
-  }, [whitelisted, onWhitelistChange])
+    onWhitelistChange?.(whitelisted)
+  }, [whitelisted])
 
   // Calculate counts for each type
   const counts = {
@@ -155,86 +227,114 @@ export function SearchResultsFilter({
     }
   }
 
-  const addToBlacklist = () => {
+  const addBlacklistItem = async () => {
     if (newBlacklistItem.trim()) {
       const item: BlacklistedItem = {
         id: Date.now().toString(),
+        itemId: Date.now().toString(),
         title: newBlacklistItem.trim(),
         type: 'video' as any, // Default to video type
-        addedAt: new Date().toISOString()
+        addedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
-      setBlacklisted(prev => [...prev, item])
-      setNewBlacklistItem('')
+      
+      const success = await addToBlacklist(item)
+      if (success) {
+        setBlacklisted(prev => [...prev, item])
+        setNewBlacklistItem('')
+      }
     }
   }
 
-  const addToWhitelist = () => {
+  const addWhitelistItem = async () => {
     if (newWhitelistItem.trim()) {
       const item: WhitelistedItem = {
         id: Date.now().toString(),
+        itemId: Date.now().toString(),
         title: newWhitelistItem.trim(),
         type: 'video' as any, // Default to video type
-        addedAt: new Date().toISOString()
+        addedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
-      setWhitelisted(prev => [...prev, item])
-      setNewWhitelistItem('')
+      
+      const success = await addToWhitelist(item)
+      if (success) {
+        setWhitelisted(prev => [...prev, item])
+        setNewWhitelistItem('')
+      }
     }
   }
 
-  const removeFromBlacklist = (id: string) => {
-    setBlacklisted(prev => prev.filter(item => item.id !== id))
+  const removeBlacklistItem = async (itemId: string) => {
+    const success = await removeFromBlacklist(itemId)
+    if (success) {
+      setBlacklisted(prev => prev.filter(item => item.itemId !== itemId))
+    }
   }
 
-  const removeFromWhitelist = (id: string) => {
-    setWhitelisted(prev => prev.filter(item => item.id !== id))
+  const removeWhitelistItem = async (itemId: string) => {
+    const success = await removeFromWhitelist(itemId)
+    if (success) {
+      setWhitelisted(prev => prev.filter(item => item.itemId !== itemId))
+    }
   }
 
   // Add search result items to blacklist/whitelist
-  const addSearchResultToBlacklist = (item: any) => {
+  const addSearchResultToBlacklist = async (item: any) => {
     const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
     if (itemType === 'unknown') return
     
     const blacklistItem: BlacklistedItem = {
       id: 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId,
+      itemId: 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId,
       title: item.title || item.channelName || 'Unknown',
       type: itemType,
       thumbnail: item.thumbnail,
       channelName: item.channelName,
-      addedAt: new Date().toISOString()
+      addedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
     
-    setBlacklisted(prev => {
-      // Check if already exists
-      if (prev.some(existing => existing.id === blacklistItem.id && existing.type === blacklistItem.type)) {
-        return prev
-      }
-      return [...prev, blacklistItem]
-    })
+    const success = await addToBlacklist(blacklistItem)
+    if (success) {
+      setBlacklisted(prev => {
+        // Check if already exists
+        if (prev.some(existing => existing.itemId === blacklistItem.itemId && existing.type === blacklistItem.type)) {
+          return prev
+        }
+        return [...prev, blacklistItem]
+      })
+    }
     
     // Also call parent callback to update main app state
     onAddToBlacklist?.(item)
   }
 
-  const addSearchResultToWhitelist = (item: any) => {
+  const addSearchResultToWhitelist = async (item: any) => {
     const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
     if (itemType === 'unknown') return
     
     const whitelistItem: WhitelistedItem = {
       id: 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId,
+      itemId: 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId,
       title: item.title || item.channelName || 'Unknown',
       type: itemType,
       thumbnail: item.thumbnail,
       channelName: item.channelName,
-      addedAt: new Date().toISOString()
+      addedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
     
-    setWhitelisted(prev => {
-      // Check if already exists
-      if (prev.some(existing => existing.id === whitelistItem.id && existing.type === whitelistItem.type)) {
-        return prev
-      }
-      return [...prev, whitelistItem]
-    })
+    const success = await addToWhitelist(whitelistItem)
+    if (success) {
+      setWhitelisted(prev => {
+        // Check if already exists
+        if (prev.some(existing => existing.itemId === whitelistItem.itemId && existing.type === whitelistItem.type)) {
+          return prev
+        }
+        return [...prev, whitelistItem]
+      })
+    }
     
     // Also call parent callback to update main app state
     onAddToWhitelist?.(item)
@@ -247,9 +347,9 @@ export function SearchResultsFilter({
       if (blacklistedItem.type !== itemType) return false
       
       // PRIMARY: Check by YouTube ID matching
-      if (blacklistedItem.type === 'video' && 'videoId' in item && blacklistedItem.id === item.videoId) return true
-      if (blacklistedItem.type === 'playlist' && 'playlistId' in item && blacklistedItem.id === item.playlistId) return true
-      if (blacklistedItem.type === 'channel' && 'channelId' in item && blacklistedItem.id === item.channelId) return true
+      if (blacklistedItem.type === 'video' && 'videoId' in item && blacklistedItem.itemId === item.videoId) return true
+      if (blacklistedItem.type === 'playlist' && 'playlistId' in item && blacklistedItem.itemId === item.playlistId) return true
+      if (blacklistedItem.type === 'channel' && 'channelId' in item && blacklistedItem.itemId === item.channelId) return true
       
       // FALLBACK: Check by title match
       return blacklistedItem.title.toLowerCase() === item.title?.toLowerCase()
@@ -263,9 +363,9 @@ export function SearchResultsFilter({
       if (whitelistedItem.type !== itemType) return false
       
       // PRIMARY: Check by YouTube ID matching
-      if (whitelistedItem.type === 'video' && 'videoId' in item && whitelistedItem.id === item.videoId) return true
-      if (whitelistedItem.type === 'playlist' && 'playlistId' in item && whitelistedItem.id === item.playlistId) return true
-      if (whitelistedItem.type === 'channel' && 'channelId' in item && whitelistedItem.id === item.channelId) return true
+      if (whitelistedItem.type === 'video' && 'videoId' in item && whitelistedItem.itemId === item.videoId) return true
+      if (whitelistedItem.type === 'playlist' && 'playlistId' in item && whitelistedItem.itemId === item.playlistId) return true
+      if (whitelistedItem.type === 'channel' && 'channelId' in item && whitelistedItem.itemId === item.channelId) return true
       
       // FALLBACK: Check by title match
       return whitelistedItem.title.toLowerCase() === item.title?.toLowerCase()
@@ -299,8 +399,8 @@ export function SearchResultsFilter({
 
   return (
     <div className={`bg-background border border-border rounded-xl shadow-sm ${className}`}>
-      {/* Status Indicators */}
-      {(blacklisted.length > 0 || whitelisted.length > 0) && (
+      {/* Status Indicators and Controls */}
+      {searchResults?.items && searchResults.items.length > 0 && (
         <div className="flex items-center justify-between p-3 border-b border-border bg-muted/30">
           <div className="flex items-center gap-2">
             {blacklisted.length > 0 && (
@@ -318,6 +418,11 @@ export function SearchResultsFilter({
                   {whitelisted.length} Whitelisted
                 </span>
               </div>
+            )}
+            {blacklisted.length === 0 && whitelisted.length === 0 && (
+              <span className="text-sm text-muted-foreground">
+                Filter search results
+              </span>
             )}
           </div>
           <div className="flex gap-2">
@@ -464,6 +569,9 @@ export function SearchResultsFilter({
               <ShieldOff className="w-5 h-5 text-destructive" />
               Blacklist Management
             </DialogTitle>
+            <DialogDescription>
+              Manage your blacklisted videos, channels, and playlists. Blacklisted items will be hidden from search results.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {/* Add to Blacklist */}
@@ -476,13 +584,13 @@ export function SearchResultsFilter({
                   onChange={(e) => setNewBlacklistItem(e.target.value)}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
-                      addToBlacklist()
+                      addBlacklistItem()
                     }
                   }}
                   className="flex-1 h-11 min-h-[44px] px-3"
                 />
                 <Button
-                  onClick={addToBlacklist}
+                  onClick={addBlacklistItem}
                   disabled={!newBlacklistItem.trim()}
                   className="h-11 min-h-[44px] px-4 touch-manipulation mobile-touch-feedback"
                 >
@@ -510,7 +618,7 @@ export function SearchResultsFilter({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => removeFromBlacklist(item.id)}
+                        onClick={() => removeBlacklistItem(item.itemId)}
                         className="h-8 w-8 min-h-[32px] p-0 touch-manipulation mobile-touch-feedback text-destructive hover:text-destructive hover:bg-destructive/10"
                         title="Remove from blacklist"
                       >
@@ -547,6 +655,9 @@ export function SearchResultsFilter({
               <Shield className="w-5 h-5 text-green-600" />
               Whitelist Management
             </DialogTitle>
+            <DialogDescription>
+              Manage your whitelisted videos, channels, and playlists. When whitelist is active, only whitelisted items will be shown.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {/* Add to Whitelist */}
@@ -559,13 +670,13 @@ export function SearchResultsFilter({
                   onChange={(e) => setNewWhitelistItem(e.target.value)}
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
-                      addToWhitelist()
+                      addWhitelistItem()
                     }
                   }}
                   className="flex-1 h-11 min-h-[44px] px-3"
                 />
                 <Button
-                  onClick={addToWhitelist}
+                  onClick={addWhitelistItem}
                   disabled={!newWhitelistItem.trim()}
                   className="h-11 min-h-[44px] px-4 touch-manipulation mobile-touch-feedback"
                 >
@@ -593,7 +704,7 @@ export function SearchResultsFilter({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => removeFromWhitelist(item.id)}
+                        onClick={() => removeWhitelistItem(item.itemId)}
                         className="h-8 w-8 min-h-[32px] p-0 touch-manipulation mobile-touch-feedback text-destructive hover:text-destructive hover:bg-destructive/10"
                         title="Remove from whitelist"
                       >

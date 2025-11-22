@@ -72,7 +72,7 @@ interface WhitelistedItem {
   addedAt: string
 }
 // Unified VideoCard component with enhanced design
-import { VideoCard as UnifiedVideoCard, toVideoCardData } from '@/components/video'
+import { VideoCard as UnifiedVideoCard, toVideoCardData, PlaylistCard, ChannelCard } from '@/components/video'
 import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleton'
 import { SplashScreen } from '@/components/splash-screen'
 import { VideoNote as VideoNoteComponent } from '@/components/video-note'
@@ -150,21 +150,99 @@ export default function MyTubeApp() {
   const [blacklisted, setBlacklisted] = useState<BlacklistedItem[]>([])
   const [whitelisted, setWhitelisted] = useState<WhitelistedItem[]>([])
   
-  // Load blacklist and whitelist from localStorage on mount
+  // Database API functions
+const fetchBlacklistedItems = async (): Promise<BlacklistedItem[]> => {
+  try {
+    const response = await fetch('/api/blacklist')
+    if (!response.ok) throw new Error('Failed to fetch blacklist')
+    return await response.json()
+  } catch (error) {
+    console.error('Error fetching blacklist:', error)
+    return []
+  }
+}
+
+const fetchWhitelistedItems = async (): Promise<WhitelistedItem[]> => {
+  try {
+    const response = await fetch('/api/whitelist')
+    if (!response.ok) throw new Error('Failed to fetch whitelist')
+    return await response.json()
+  } catch (error) {
+    console.error('Error fetching whitelist:', error)
+    return []
+  }
+}
+
+const addToBlacklist = async (item: any): Promise<boolean> => {
+  try {
+    const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
+    if (itemType === 'unknown') return false
+    
+    const itemId = 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId
+    const title = item.title || item.channelName || 'Unknown'
+    
+    const response = await fetch('/api/blacklist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        itemId,
+        title,
+        type: itemType,
+        thumbnail: item.thumbnail,
+        channelName: item.channelName
+      })
+    })
+    return response.ok
+  } catch (error) {
+    console.error('Error adding to blacklist:', error)
+    return false
+  }
+}
+
+const addToWhitelist = async (item: any): Promise<boolean> => {
+  try {
+    const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
+    if (itemType === 'unknown') return false
+    
+    const itemId = 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId
+    const title = item.title || item.channelName || 'Unknown'
+    
+    const response = await fetch('/api/whitelist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        itemId,
+        title,
+        type: itemType,
+        thumbnail: item.thumbnail,
+        channelName: item.channelName
+      })
+    })
+    return response.ok
+  } catch (error) {
+    console.error('Error adding to whitelist:', error)
+    return false
+  }
+}
+
+// Load blacklist and whitelist from database on mount
   useEffect(() => {
-    try {
-      const savedBlacklisted = localStorage.getItem('blacklisted-items')
-      const savedWhitelisted = localStorage.getItem('whitelisted-items')
-      
-      if (savedBlacklisted) {
-        setBlacklisted(JSON.parse(savedBlacklisted))
+    const loadItems = async () => {
+      try {
+        const [blacklistedData, whitelistedData] = await Promise.all([
+          fetchBlacklistedItems(),
+          fetchWhitelistedItems()
+        ])
+        setBlacklisted(blacklistedData)
+        setWhitelisted(whitelistedData)
+        handleBlacklistChange(blacklistedData)
+        handleWhitelistChange(whitelistedData)
+      } catch (error) {
+        console.error('Error loading blacklist/whitelist from database:', error)
       }
-      if (savedWhitelisted) {
-        setWhitelisted(JSON.parse(savedWhitelisted))
-      }
-    } catch (error) {
-      console.error('Error loading blacklist/whitelist from localStorage:', error)
     }
+    
+    loadItems()
   }, [])
   
   // Data states
@@ -1036,7 +1114,6 @@ export default function MyTubeApp() {
       setSearchCache(new Map())
       
       // Clear all state
-      setWatchedVideos([])
       setFavoriteChannels([])
       setFavoriteVideos([])
       setChannelVideos([])
@@ -1140,10 +1217,6 @@ export default function MyTubeApp() {
       
       if (options.favoriteVideos) {
         setFavoriteVideos([])
-      }
-      
-      if (options.watchedVideos) {
-        setWatchedVideos([])
       }
       
       // Reload fresh data
@@ -1820,15 +1893,15 @@ export default function MyTubeApp() {
       if (listItem.type !== itemType) return false
       
       // PRIMARY: Check by YouTube ID matching (most accurate)
-      if (listItem.type === 'video' && 'videoId' in item && listItem.id === item.videoId) {
+      if (listItem.type === 'video' && 'videoId' in item && listItem.itemId === item.videoId) {
         console.log(`✅ ID Match: ${listItem.type} "${item.title}" (${item.videoId})`)
         return true
       }
-      if (listItem.type === 'playlist' && 'playlistId' in item && listItem.id === item.playlistId) {
+      if (listItem.type === 'playlist' && 'playlistId' in item && listItem.itemId === item.playlistId) {
         console.log(`✅ ID Match: ${listItem.type} "${item.title}" (${item.playlistId})`)
         return true
       }
-      if (listItem.type === 'channel' && 'channelId' in item && listItem.id === item.channelId) {
+      if (listItem.type === 'channel' && 'channelId' in item && listItem.itemId === item.channelId) {
         console.log(`✅ ID Match: ${listItem.type} "${item.channelName}" (${item.channelId})`)
         return true
       }
@@ -1875,79 +1948,34 @@ export default function MyTubeApp() {
   }, [searchResults, blacklisted, whitelisted])
 
   // Handlers for adding items to blacklist/whitelist
-  const handleAddToBlacklist = useCallback((item: any) => {
-    const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
-    if (itemType === 'unknown') return
-    
-    const youtubeId = 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId
-    const title = item.title || item.channelName || 'Unknown'
-    
-    console.log(`🚫 Adding to Blacklist: ${itemType} "${title}" (ID: ${youtubeId})`)
-    
-    const blacklistItem: BlacklistedItem = {
-      id: youtubeId,
-      title: title,
-      type: itemType,
-      thumbnail: item.thumbnail,
-      channelName: item.channelName,
-      addedAt: new Date().toISOString()
+  const handleAddToBlacklist = useCallback(async (item: any) => {
+    const success = await addToBlacklist(item)
+    if (success) {
+      // Refresh the blacklist from database
+      const updatedBlacklist = await fetchBlacklistedItems()
+      setBlacklisted(updatedBlacklist)
+      handleBlacklistChange(updatedBlacklist)
     }
-    
-    setBlacklisted(prev => {
-      // Check if already exists
-      if (prev.some(existing => existing.id === blacklistItem.id && existing.type === blacklistItem.type)) {
-        console.log(`⚠️ Item already in blacklist: ${itemType} "${title}"`)
-        return prev
-      }
-      return [...prev, blacklistItem]
-    })
-    
-    // Save to localStorage
-    try {
-      const updated = [...blacklisted, blacklistItem]
-      localStorage.setItem('blacklisted-items', JSON.stringify(updated))
-      console.log(`✅ Saved to blacklist: ${itemType} "${title}"`)
-    } catch (error) {
-      console.error('Error saving to localStorage:', error)
-    }
-  }, [blacklisted])
+  }, [])
 
-  const handleAddToWhitelist = useCallback((item: any) => {
-    const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
-    if (itemType === 'unknown') return
-    
-    const youtubeId = 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId
-    const title = item.title || item.channelName || 'Unknown'
-    
-    console.log(`✅ Adding to Whitelist: ${itemType} "${title}" (ID: ${youtubeId})`)
-    
-    const whitelistItem: WhitelistedItem = {
-      id: youtubeId,
-      title: title,
-      type: itemType,
-      thumbnail: item.thumbnail,
-      channelName: item.channelName,
-      addedAt: new Date().toISOString()
+  const handleAddToWhitelist = useCallback(async (item: any) => {
+    const success = await addToWhitelist(item)
+    if (success) {
+      // Refresh the whitelist from database
+      const updatedWhitelist = await fetchWhitelistedItems()
+      setWhitelisted(updatedWhitelist)
+      handleWhitelistChange(updatedWhitelist)
     }
-    
-    setWhitelisted(prev => {
-      // Check if already exists
-      if (prev.some(existing => existing.id === whitelistItem.id && existing.type === whitelistItem.type)) {
-        console.log(`⚠️ Item already in whitelist: ${itemType} "${title}"`)
-        return prev
-      }
-      return [...prev, whitelistItem]
-    })
-    
-    // Save to localStorage
-    try {
-      const updated = [...whitelisted, whitelistItem]
-      localStorage.setItem('whitelisted-items', JSON.stringify(updated))
-      console.log(`✅ Saved to whitelist: ${itemType} "${title}"`)
-    } catch (error) {
-      console.error('Error saving to localStorage:', error)
-    }
-  }, [whitelisted])
+  }, [])
+
+  // Memoized callbacks for SearchResultsFilter to prevent infinite loops
+  const handleBlacklistChange = useCallback((blacklisted: BlacklistedItem[]) => {
+    console.log('Blacklist updated:', blacklisted)
+  }, [])
+
+  const handleWhitelistChange = useCallback((whitelisted: WhitelistedItem[]) => {
+    console.log('Whitelist updated:', whitelisted)
+  }, [])
 
   const handleVideoSelect = (video: Video) => {
     console.log('handleVideoSelect called:', video.title) // Debug log
@@ -3448,12 +3476,8 @@ export default function MyTubeApp() {
                   searchType={searchType}
                   onSearchTypeChange={setSearchType}
                   searchResults={getFilteredSearchResults()}
-                  onBlacklistChange={(blacklisted) => {
-                    console.log('Blacklist updated:', blacklisted)
-                  }}
-                  onWhitelistChange={(whitelisted) => {
-                    console.log('Whitelist updated:', whitelisted)
-                  }}
+                  onBlacklistChange={handleBlacklistChange}
+                  onWhitelistChange={handleWhitelistChange}
                   onAddToBlacklist={handleAddToBlacklist}
                   onAddToWhitelist={handleAddToWhitelist}
                   className="mb-4"
@@ -3615,18 +3639,14 @@ export default function MyTubeApp() {
                           )
                           return (
                             <div key={(item as Video).videoId || item.id} className="relative group">
-                              <UnifiedVideoCard video={item as Video} onPlay={handleVideoSelect} />
-                              {/* Status indicator */}
-                              {isBlacklisted && (
-                                <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded-full">
-                                  Blacklisted
-                                </div>
-                              )}
-                              {isWhitelisted && (
-                                <div className="absolute top-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full">
-                                  Whitelisted
-                                </div>
-                              )}
+                              <UnifiedVideoCard 
+                                video={item as Video} 
+                                onPlay={handleVideoSelect}
+                                onAddToBlacklist={handleAddToBlacklist}
+                                onAddToWhitelist={handleAddToWhitelist}
+                                isBlacklisted={isBlacklisted}
+                                isWhitelisted={isWhitelisted}
+                              />
                               {/* Blacklist/Whitelist overlay buttons */}
                               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
                                 <Button

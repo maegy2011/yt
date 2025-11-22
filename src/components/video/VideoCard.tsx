@@ -18,7 +18,9 @@ import {
   Check,
   Sparkles,
   TrendingUp,
-  Calendar
+  Calendar,
+  Shield,
+  ShieldOff
 } from 'lucide-react'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
 import { formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
@@ -63,6 +65,10 @@ export interface VideoCardProps {
   onRemove?: (videoId: string) => void
   onSelect?: (videoId: string, selected: boolean) => void
   onExternalLink?: (video: VideoCardData) => void
+  onAddToBlacklist?: (video: VideoCardData) => void
+  onAddToWhitelist?: (video: VideoCardData) => void
+  isBlacklisted?: boolean
+  isWhitelisted?: boolean
   className?: string
   size?: 'sm' | 'md' | 'lg'
 }
@@ -82,6 +88,10 @@ export function VideoCard({
   onRemove,
   onSelect,
   onExternalLink,
+  onAddToBlacklist,
+  onAddToWhitelist,
+  isBlacklisted = false,
+  isWhitelisted = false,
   className = '',
   size = 'md'
 }: VideoCardProps) {
@@ -157,6 +167,24 @@ export function VideoCard({
       window.open(`https://youtube.com/watch?v=${videoId}`, '_blank')
     }
   }, [onExternalLink, video, videoId])
+
+  // Handle add to blacklist
+  const handleAddToBlacklist = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (onAddToBlacklist) {
+      onAddToBlacklist(video)
+    }
+    setIsMenuOpen(false)
+  }, [onAddToBlacklist, video])
+
+  // Handle add to whitelist
+  const handleAddToWhitelist = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (onAddToWhitelist) {
+      onAddToWhitelist(video)
+    }
+    setIsMenuOpen(false)
+  }, [onAddToWhitelist, video])
 
   // Get thumbnail URL with fallbacks
   const getThumbnailUrl = useCallback(() => {
@@ -312,6 +340,26 @@ export function VideoCard({
             </div>
           )}
           
+          {/* Blacklist Badge */}
+          {isBlacklisted && (
+            <div className="absolute top-2 left-2">
+              <div className="bg-gradient-to-r from-red-600 to-red-700 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
+                <ShieldOff className="w-3 h-3" />
+                Blacklisted
+              </div>
+            </div>
+          )}
+          
+          {/* Whitelist Badge */}
+          {isWhitelisted && (
+            <div className="absolute top-2 left-2">
+              <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
+                <Shield className="w-3 h-3" />
+                Whitelisted
+              </div>
+            </div>
+          )}
+          
           {/* Enhanced Play Overlay - Mobile Optimized */}
           <div 
             className={`absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent transition-all duration-300 flex items-center justify-center ${
@@ -343,6 +391,36 @@ export function VideoCard({
               </div>
             </div>
           )}
+
+          {/* Quick Add Buttons - Always Visible on Hover */}
+          {(onAddToBlacklist || onAddToWhitelist) && (
+            <div className={`absolute top-2 right-2 flex flex-col gap-2 transition-all duration-300 ${
+              isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+            }`}>
+              {onAddToWhitelist && !isWhitelisted && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 min-h-[32px] min-w-[32px] p-0 touch-manipulation mobile-touch-feedback bg-green-500/90 hover:bg-green-600 text-white shadow-lg border border-green-400/30 transition-all duration-300 hover:scale-110"
+                  onClick={handleAddToWhitelist}
+                  title="Add to Whitelist"
+                >
+                  <Shield className="w-4 h-4" />
+                </Button>
+              )}
+              {onAddToBlacklist && !isBlacklisted && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 min-h-[32px] min-w-[32px] p-0 touch-manipulation mobile-touch-feedback bg-red-500/90 hover:bg-red-600 text-white shadow-lg border border-red-400/30 transition-all duration-300 hover:scale-110"
+                  onClick={handleAddToBlacklist}
+                  title="Add to Blacklist"
+                >
+                  <ShieldOff className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Enhanced Content Section */}
@@ -358,7 +436,7 @@ export function VideoCard({
               {getChannelLogoUrl() && (
                 <div className="relative flex-shrink-0">
                   <img 
-                    src={getChannelLogoUrl()} 
+                    src={getChannelLogoUrl()!} 
                     alt={video.channelName}
                     className="w-8 h-8 rounded-full object-cover ring-2 ring-background hover:ring-primary/50 transition-all duration-300"
                     onError={(e) => {
