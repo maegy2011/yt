@@ -135,7 +135,7 @@ export function NoteList({
 
   const getGridClasses = () => {
     if (viewMode === 'grid') {
-      return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'
+      return 'grid-mobile-1' // Single column on mobile, more on larger screens
     }
     return 'space-y-4'
   }
@@ -155,11 +155,11 @@ export function NoteList({
 
   return (
     <div className={getContainerClasses()}>
-      {/* Batch Selection Header */}
+      {/* Batch Selection Header - Mobile Optimized */}
       {isSelectionMode && selectedNotes.size > 0 && (
         <Card className="mb-4 border-primary bg-primary/5">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <span className="text-sm font-medium">
                 {selectedNotes.size} note{selectedNotes.size !== 1 ? 's' : ''} selected
               </span>
@@ -168,18 +168,20 @@ export function NoteList({
                   <Button
                     size="sm"
                     onClick={handleAddSelectedToNotebook}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 h-11 min-h-[44px] touch-manipulation mobile-touch-feedback"
                   >
                     <BookOpen className="w-4 h-4" />
-                    Add to Notebook
+                    <span className="hidden sm:inline">Add to Notebook</span>
+                    <span className="sm:hidden">Add</span>
                   </Button>
                 )}
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setSelectedNotes(new Set())}
+                  className="h-11 min-h-[44px] touch-manipulation mobile-touch-feedback"
                 >
-                  Clear Selection
+                  Clear
                 </Button>
               </div>
             </div>
@@ -193,66 +195,71 @@ export function NoteList({
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
                   <FileText className="w-5 h-5" />
                   Video Notes
                 </CardTitle>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge variant="secondary">
+                  <Badge variant="secondary" className="text-xs">
                     {stats.total} total
                   </Badge>
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="text-xs">
                     {stats.clips} clips
                   </Badge>
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="text-xs">
                     {stats.regularNotes} notes
                   </Badge>
                 </div>
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button onClick={onCreateNew} className="w-full sm:w-auto">
+            <div className="flex flex-col gap-2">
+              <Button onClick={onCreateNew} className="w-full h-11 min-h-[44px] touch-manipulation mobile-touch-feedback">
                 <Plus className="w-4 h-4 mr-2" />
                 New Note
               </Button>
               
-              {onAddToNotebook && (
-                <Button
-                  variant="outline"
-                  onClick={toggleSelectionMode}
-                  className={`w-full sm:w-auto ${isSelectionMode ? 'bg-primary text-primary-foreground' : ''}`}
-                >
-                  {isSelectionMode ? (
-                    <>
-                      <Square className="w-4 h-4 mr-2" />
-                      Exit Selection
-                    </>
-                  ) : (
-                    <>
-                      <CheckSquare className="w-4 h-4 mr-2" />
-                      Select Notes
-                    </>
-                  )}
-                </Button>
-              )}
-              
-              {onRefresh && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onRefresh}
-                  disabled={loading}
-                  className="w-full sm:w-auto"
-                >
-                  {loading ? (
-                    <div className="w-4 h-4 mr-2 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                  )}
-                  Refresh
-                </Button>
-              )}
+              <div className="flex gap-2">
+                {onAddToNotebook && (
+                  <Button
+                    variant="outline"
+                    onClick={toggleSelectionMode}
+                    className={`flex-1 h-11 min-h-[44px] touch-manipulation mobile-touch-feedback ${
+                      isSelectionMode ? 'bg-primary text-primary-foreground' : ''
+                    }`}
+                  >
+                    {isSelectionMode ? (
+                      <>
+                        <Square className="w-4 h-4 mr-2" />
+                        <span className="hidden sm:inline">Exit Selection</span>
+                        <span className="sm:hidden">Exit</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckSquare className="w-4 h-4 mr-2" />
+                        <span className="hidden sm:inline">Select Notes</span>
+                        <span className="sm:hidden">Select</span>
+                      </>
+                    )}
+                  </Button>
+                )}
+                
+                {onRefresh && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onRefresh}
+                    disabled={loading}
+                    className="h-11 min-h-[44px] min-w-[44px] touch-manipulation mobile-touch-feedback"
+                  >
+                    {loading ? (
+                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4" />
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -260,14 +267,14 @@ export function NoteList({
         <CardContent>
           {/* Search and Filters */}
           <div className="space-y-4">
-            {/* Search Bar */}
+            {/* Search Bar - Mobile Optimized */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search notes by title, content, or channel..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 h-11 min-h-[44px] text-base"
               />
             </div>
 
@@ -279,7 +286,7 @@ export function NoteList({
                   variant={filterType === 'all' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setFilterType('all')}
-                  className="text-xs flex-1 justify-start"
+                  className="text-xs flex-1 justify-start h-10 min-h-[40px] touch-manipulation mobile-touch-feedback"
                 >
                   All ({stats.total})
                 </Button>
@@ -287,19 +294,21 @@ export function NoteList({
                   variant={filterType === 'clips' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setFilterType('clips')}
-                  className="text-xs flex-1 justify-start"
+                  className="text-xs flex-1 justify-start h-10 min-h-[40px] touch-manipulation mobile-touch-feedback"
                 >
                   <Scissors className="w-3 h-3 mr-2" />
-                  Clips ({stats.clips})
+                  <span className="hidden sm:inline">Clips ({stats.clips})</span>
+                  <span className="sm:hidden">Clips</span>
                 </Button>
                 <Button
                   variant={filterType === 'notes' ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setFilterType('notes')}
-                  className="text-xs flex-1 justify-start"
+                  className="text-xs flex-1 justify-start h-10 min-h-[40px] touch-manipulation mobile-touch-feedback"
                 >
                   <FileText className="w-3 h-3 mr-2" />
-                  Notes ({stats.regularNotes})
+                  <span className="hidden sm:inline">Notes ({stats.regularNotes})</span>
+                  <span className="sm:hidden">Notes</span>
                 </Button>
               </div>
 

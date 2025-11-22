@@ -177,28 +177,28 @@ export function VideoCard({
     return null
   }, [video.channelThumbnail, video.channelName])
 
-  // Enhanced size configurations with better spacing
+  // Enhanced size configurations with better mobile spacing
   const sizeConfig = {
     sm: {
-      card: 'max-w-xs',
-      thumbnail: 'max-h-32',
-      title: 'text-sm font-semibold line-clamp-2',
+      card: 'max-w-xs w-full',
+      thumbnail: 'max-h-32 sm:max-h-36',
+      title: 'text-sm font-semibold line-clamp-2 leading-tight',
       channel: 'text-xs font-medium',
       stats: 'text-xs',
       description: 'text-xs line-clamp-2'
     },
     md: {
-      card: 'max-w-sm',
-      thumbnail: 'max-h-44',
-      title: 'text-sm sm:text-base font-semibold line-clamp-2',
+      card: 'max-w-sm w-full',
+      thumbnail: 'max-h-40 sm:max-h-44',
+      title: 'text-sm sm:text-base font-semibold line-clamp-2 leading-tight',
       channel: 'text-xs sm:text-sm font-medium',
       stats: 'text-xs sm:text-sm',
       description: 'text-xs sm:text-sm line-clamp-2'
     },
     lg: {
-      card: 'max-w-md',
-      thumbnail: 'max-h-52',
-      title: 'text-base sm:text-lg font-semibold line-clamp-3',
+      card: 'max-w-md w-full',
+      thumbnail: 'max-h-48 sm:max-h-52',
+      title: 'text-base sm:text-lg font-semibold line-clamp-3 leading-tight',
       channel: 'text-sm sm:text-base font-medium',
       stats: 'text-sm sm:text-base',
       description: 'text-sm sm:text-base line-clamp-3'
@@ -312,29 +312,29 @@ export function VideoCard({
             </div>
           )}
           
-          {/* Enhanced Play Overlay */}
+          {/* Enhanced Play Overlay - Mobile Optimized */}
           <div 
             className={`absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent transition-all duration-300 flex items-center justify-center ${
               isHovered ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            <div className={`bg-white/95 backdrop-blur-md rounded-full p-4 transition-all duration-300 ${
+            <div className={`bg-white/95 backdrop-blur-md rounded-full p-3 sm:p-4 transition-all duration-300 min-h-[44px] min-w-[44px] flex items-center justify-center ${
               isHovered ? 'scale-110' : 'scale-100'
-            }`}>
+            } mobile-touch-feedback`}>
               {isCurrentVideo && isBackgroundPlaying ? (
-                <Pause className="w-8 h-8 text-gray-800" />
+                <Pause className="w-6 h-6 sm:w-8 sm:h-8 text-gray-800" />
               ) : (
-                <Play className="w-8 h-8 text-gray-800 ml-1" />
+                <Play className="w-6 h-6 sm:w-8 sm:h-8 text-gray-800 ml-1" />
               )}
             </div>
           </div>
           
-          {/* Enhanced Selection Checkbox */}
+          {/* Enhanced Selection Checkbox - Mobile Optimized */}
           {isSelectable && (
             <div className={`absolute top-2 left-2 transition-all duration-300 ${
               isHovered ? 'opacity-100 scale-110' : 'opacity-0 scale-100'
             }`}>
-              <div className="bg-white/95 backdrop-blur-md rounded-lg p-2 shadow-lg border border-white/50">
+              <div className="bg-white/95 backdrop-blur-md rounded-lg p-2 shadow-lg border border-white/50 min-h-[44px] min-w-[44px] flex items-center justify-center">
                 <Checkbox
                   checked={isSelected}
                   onCheckedChange={handleSelection}
@@ -379,13 +379,13 @@ export function VideoCard({
                 )}
               </div>
               
-              {/* Enhanced Menu Button */}
+              {/* Enhanced Menu Button - Mobile Optimized */}
               {showActions && (variant === 'favorite' || variant === 'watched') && (
                 <div className="relative flex-shrink-0">
                   <Button
                     size="sm"
                     variant="ghost"
-                    className={`h-8 w-8 p-0 transition-all duration-300 ${
+                    className={`h-11 w-11 min-h-[44px] min-w-[44px] p-0 transition-all duration-300 touch-manipulation mobile-touch-feedback ${
                       isHovered ? 'opacity-100 scale-110' : 'opacity-0 scale-100'
                     }`}
                     onClick={(e) => {
@@ -393,16 +393,16 @@ export function VideoCard({
                       setIsMenuOpen(!isMenuOpen)
                     }}
                   >
-                    <MoreVertical className="w-4 h-4" />
+                    <MoreVertical className="w-5 h-5" />
                   </Button>
                   
-                  {/* Enhanced Dropdown Menu */}
+                  {/* Enhanced Dropdown Menu - Mobile Optimized */}
                   {isMenuOpen && (
-                    <div className="absolute right-0 top-full mt-2 z-50 bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl min-w-[140px] py-2 animate-in slide-in-from-top-2">
+                    <div className="absolute right-0 top-full mt-2 z-50 bg-background/95 backdrop-blur-xl border border-border/50 rounded-xl shadow-2xl min-w-[160px] py-1 animate-in slide-in-from-top-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="w-full justify-start text-sm h-9 px-3 hover:bg-muted/50 transition-colors"
+                        className="w-full justify-start text-sm h-11 min-h-[44px] px-3 hover:bg-muted/50 transition-colors touch-manipulation mobile-touch-feedback"
                         onClick={(e) => {
                           e.stopPropagation()
                           handleCardClick(e)
@@ -415,7 +415,7 @@ export function VideoCard({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="w-full justify-start text-sm h-9 px-3 hover:bg-muted/50 transition-colors"
+                          className="w-full justify-start text-sm h-11 min-h-[44px] px-3 hover:bg-muted/50 transition-colors touch-manipulation mobile-touch-feedback"
                           onClick={handleExternalLink}
                         >
                           <ExternalLink className="w-4 h-4 mr-3" />
@@ -426,7 +426,7 @@ export function VideoCard({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="w-full justify-start text-sm h-9 px-3 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
+                          className="w-full justify-start text-sm h-11 min-h-[44px] px-3 text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors touch-manipulation mobile-touch-feedback"
                           onClick={handleRemove}
                         >
                           <Trash2 className="w-4 h-4 mr-3" />

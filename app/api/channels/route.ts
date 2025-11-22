@@ -1,0 +1,123 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+
+export async function GET() {
+  try {
+    console.log('Fetching favorite channels...')
+    
+    const channels = await db.favoriteChannel.findMany({
+      orderBy: { addedAt: 'desc' }
+    })
+    
+    // Convert Date objects to strings for JSON serialization
+    const formattedChannels = channels.map(channel => ({
+      ...channel,
+      addedAt: channel.addedAt.toISOString(),
+      updatedAt: channel.updatedAt.toISOString()
+    }))
+    
+    console.log(`Found ${formattedChannels.length} favorite channels`)
+    
+    return NextResponse.json(formattedChannels)
+  } catch (error) {
+    console.error('Failed to fetch channels - Full error:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : 'Unknown',
+      constructor: error instanceof Error ? error.constructor.name : 'Unknown'
+    })
+    
+    return NextResponse.json({ 
+      error: 'Failed to fetch channels',
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
+    }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { channelId, name, thumbnail, subscriberCount, viewCount, videoCount } = body
+
+    console.log('Follow channel request:', { channelId, name, subscriberCount, viewCount })
+
+    // Validate required fields
+    if (!channelId || !name) {
+      console.error('Missing required fields:', { channelId, name })
+      return NextResponse.json({ 
+        error: 'Missing required fields: channelId and name are required' 
+      }, { status: 400 })
+    }
+
+    // Check if channel already exists
+    const existing = await db.favoriteChannel.findUnique({
+      where: { channelId }
+    })
+
+    if (existing) {
+      console.log('Channel already exists:', { channelId, name })
+      // Convert Date objects to strings for JSON serialization
+      const formattedExisting = {
+        ...existing,
+        addedAt: existing.addedAt.toISOString(),
+        updatedAt: existing.updatedAt.toISOString()
+      }
+      return NextResponse.json({ 
+        error: 'Channel already followed',
+        channel: formattedExisting
+      }, { status: 409 })
+    }
+
+    // Create new favorite channel
+    const channel = await db.favoriteChannel.create({
+      data: {
+        channelId,
+        name,
+        thumbnail: thumbnail || null,
+        subscriberCount: subscriberCount ? parseInt(subscriberCount.toString()) : null,
+        viewCount: viewCount ? parseInt(viewCount.toString()) : null
+      }
+    })
+
+    // Convert Date objects to strings for JSON serialization
+    const formattedChannel = {
+      ...channel,
+      addedAt: channel.addedAt.toISOString(),
+      updatedAt: channel.updatedAt.toISOString()
+    }
+
+    console.log('Channel followed successfully:', { 
+      id: formattedChannel.id, 
+      channelId: formattedChannel.channelId, 
+      name: formattedChannel.name,
+      viewCount: formattedChannel.viewCount
+    })
+
+    return NextResponse.json(formattedChannel)
+  } catch (error) {
+    console.error('Failed to add channel - Full error:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : 'Unknown',
+      constructor: error instanceof Error ? error.constructor.name : 'Unknown'
+    })
+    
+    // Handle specific database errors
+    if (error instanceof Error && 'code' in error && error.code === 'P2002') {
+      return NextResponse.json({ 
+        error: 'Channel already followed' 
+      }, { status: 409 })
+    }
+    
+    if (error instanceof Error && 'code' in error && error.code === 'P2025') {
+      return NextResponse.json({ 
+        error: 'Database record not found' 
+      }, { status: 404 })
+    }
+
+    return NextResponse.json({ 
+      error: 'Failed to add channel',
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
+    }, { status: 500 })
+  }
+}

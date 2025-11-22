@@ -205,7 +205,7 @@ export function ScrollingChannelBar({ channels, className = '' }: ScrollingChann
       >
         <div
           ref={scrollContentRef}
-          className="flex gap-4 p-4 overflow-x-hidden scrollbar-hide"
+          className="flex gap-4 p-4 overflow-x-hidden mobile-scroll"
           style={{
             scrollbarWidth: 'none',
             msOverflowStyle: 'none'

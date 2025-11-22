@@ -122,10 +122,11 @@ export function BottomNavigation({
     const baseClasses = cn(
       'flex flex-col items-center justify-center',
       'transition-all duration-200 ease-in-out',
-      'rounded-lg px-2 py-1 sm:px-3 sm:py-2',
-      'min-w-[36px] sm:min-w-[40px] md:min-w-[44px] touch-manipulation', // Responsive min width
+      'rounded-lg px-3 py-2 sm:px-3 sm:py-2',
+      'min-w-[44px] sm:min-w-[44px] md:min-w-[44px] min-h-[44px] touch-manipulation', // Ensure 44px minimum
       'hover:bg-accent hover:text-accent-foreground',
-      'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2'
+      'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+      'mobile-touch-feedback' // Add mobile touch feedback
     )
     
     const activeClasses = isActive 
@@ -139,7 +140,7 @@ export function BottomNavigation({
     const baseClasses = 'transition-all duration-200'
     const sizeClasses = isExpanded 
       ? 'w-5 h-5 sm:w-6 sm:h-6' 
-      : 'w-5 h-5 sm:w-5 sm:h-5' // Increased icon sizes
+      : 'w-5 h-5 sm:w-5 sm:h-5' // Consistent icon sizes
     
     return cn(baseClasses, sizeClasses, isActive ? 'scale-110' : 'scale-100')
   }
@@ -188,13 +189,13 @@ export function BottomNavigation({
           variant="ghost"
           size="sm"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 h-7 w-7" // Smaller button
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 h-11 w-11 min-h-[44px] min-w-[44px] touch-manipulation mobile-touch-feedback"
           aria-label={isExpanded ? 'Collapse navigation' : 'Expand navigation'}
         >
           {isExpanded ? (
-            <X className="w-3 h-3" />
+            <X className="w-4 h-4" />
           ) : (
-            <Menu className="w-3 h-3" />
+            <Menu className="w-4 h-4" />
           )}
         </Button>
       </div>
