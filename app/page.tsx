@@ -90,7 +90,7 @@ import { useBackgroundPlayer } from '@/contexts/background-player-context'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { ChannelsContainer } from '@/components/channels/ChannelsContainer'
 import { useChannelAvatar } from '@/hooks/useChannelAvatar'
-import { SearchResultsFilter } from '@/components/search/SearchResultsFilter'
+import { SearchResultsFilter } from '@/components/search/SearchResultsFilterEnhanced'
 
 
 // Enhanced types with better safety

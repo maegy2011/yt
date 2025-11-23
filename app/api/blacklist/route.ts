@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     // Check if database is available
     if (!db) {
@@ -9,13 +9,60 @@ export async function GET() {
       return NextResponse.json({ error: 'Database connection not available' }, { status: 500 })
     }
 
-    console.log('Database available, fetching blacklist items...')
+    const { searchParams } = new URL(request.url)
+    const type = searchParams.get('type') // 'video' | 'playlist' | 'channel'
+    const search = searchParams.get('search')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '50')
+    const sortBy = searchParams.get('sortBy') || 'addedAt' // 'addedAt' | 'title' | 'type'
+    const sortOrder = searchParams.get('sortOrder') || 'desc' // 'asc' | 'desc'
+
+    console.log('Database available, fetching blacklist items with filters...')
+    
+    // Build where clause
+    const where: any = {}
+    if (type && type !== 'all') {
+      where.type = type
+    }
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { channelName: { contains: search, mode: 'insensitive' } }
+      ]
+    }
+
+    // Build order clause
+    const order: any = {}
+    order[sortBy] = sortOrder
+
+    // Get total count for pagination
+    const totalCount = await db.blacklistedItem.count({ where })
+
+    // Fetch items with pagination
     const blacklistedItems = await db.blacklistedItem.findMany({
-      orderBy: { addedAt: 'desc' }
+      where,
+      orderBy: order,
+      skip: (page - 1) * limit,
+      take: limit
     })
     
     console.log('Found blacklist items:', blacklistedItems.length)
-    return NextResponse.json(blacklistedItems)
+    
+    return NextResponse.json({
+      items: blacklistedItems,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        pages: Math.ceil(totalCount / limit)
+      },
+      filters: {
+        type,
+        search,
+        sortBy,
+        sortOrder
+      }
+    })
   } catch (error) {
     console.error('Failed to fetch blacklist:', error)
     return NextResponse.json({ error: 'Failed to fetch blacklist' }, { status: 500 })
@@ -62,11 +109,57 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const itemId = searchParams.get('itemId')
+    const batch = searchParams.get('batch') === 'true'
 
-    if (!itemId) {
-      return NextResponse.json({ error: 'itemId is required' }, { status: 400 })
+    if (!itemId && !batch) {
+      return NextResponse.json({ error: 'itemId or batch=true is required' }, { status: 400 })
     }
 
+    if (batch) {
+      // Batch delete - clear all blacklist items
+      const body = await request.json().catch(() => ({}))
+      const { itemIds, type, confirm } = body
+
+      if (confirm === 'clear-all') {
+        // Clear all blacklist items
+        const result = await db.blacklistedItem.deleteMany({})
+        return NextResponse.json({ 
+          success: true, 
+          deleted: result.count,
+          message: `Cleared ${result.count} items from blacklist`
+        })
+      }
+
+      if (itemIds && Array.isArray(itemIds)) {
+        // Delete specific items by IDs
+        const result = await db.blacklistedItem.deleteMany({
+          where: {
+            itemId: { in: itemIds }
+          }
+        })
+        return NextResponse.json({ 
+          success: true, 
+          deleted: result.count,
+          message: `Deleted ${result.count} items from blacklist`
+        })
+      }
+
+      if (type) {
+        // Delete all items of a specific type
+        const result = await db.blacklistedItem.deleteMany({
+          where: { type }
+        })
+        return NextResponse.json({ 
+          success: true, 
+          deleted: result.count,
+          message: `Deleted ${result.count} ${type} items from blacklist`
+        })
+      }
+
+      return NextResponse.json({ error: 'Invalid batch operation' }, { status: 400 })
+    }
+
+    // Single item delete
     await db.blacklistedItem.delete({
       where: { itemId }
     })
@@ -75,5 +168,103 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error('Failed to remove from blacklist:', error)
     return NextResponse.json({ error: 'Failed to remove from blacklist' }, { status: 500 })
+  }
+}
+
+// New POST endpoint for batch operations
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { operation, items } = body
+
+    if (!operation || !Array.isArray(items)) {
+      return NextResponse.json({ error: 'operation and items array are required' }, { status: 400 })
+    }
+
+    if (operation === 'bulk-add') {
+      // Bulk add items to blacklist
+      const results = await Promise.allSettled(
+        items.map(async (item: any) => {
+          const { itemId, title, type, thumbnail, channelName } = item
+          
+          if (!itemId || !title || !type) {
+            throw new Error('Missing required fields')
+          }
+
+          return await db.blacklistedItem.upsert({
+            where: { itemId },
+            update: {
+              title: title.trim(),
+              type,
+              thumbnail: thumbnail?.trim() || null,
+              channelName: channelName?.trim() || null,
+              updatedAt: new Date()
+            },
+            create: {
+              itemId,
+              title: title.trim(),
+              type,
+              thumbnail: thumbnail?.trim() || null,
+              channelName: channelName?.trim() || null
+            }
+          })
+        })
+      )
+
+      const successful = results.filter(r => r.status === 'fulfilled').length
+      const failed = results.filter(r => r.status === 'rejected').length
+
+      return NextResponse.json({
+        success: true,
+        added: successful,
+        failed,
+        message: `Added ${successful} items to blacklist${failed > 0 ? ` (${failed} failed)` : ''}`
+      })
+    }
+
+    return NextResponse.json({ error: 'Invalid operation' }, { status: 400 })
+  } catch (error) {
+    console.error('Failed to perform batch blacklist operation:', error)
+    return NextResponse.json({ error: 'Failed to perform batch operation' }, { status: 500 })
+  }
+}
+
+// New endpoint for blacklist statistics
+export async function PUT(request: NextRequest) {
+  try {
+    // Get blacklist statistics
+    const stats = await db.blacklistedItem.groupBy({
+      by: ['type'],
+      _count: {
+        id: true
+      }
+    })
+
+    const totalItems = await db.blacklistedItem.count()
+    const recentItems = await db.blacklistedItem.count({
+      where: {
+        addedAt: {
+          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
+        }
+      }
+    })
+
+    const typeStats = stats.reduce((acc, stat) => {
+      acc[stat.type] = stat._count.id
+      return acc
+    }, {} as Record<string, number>)
+
+    return NextResponse.json({
+      total: totalItems,
+      recent: recentItems,
+      byType: typeStats,
+      types: ['video', 'playlist', 'channel'].map(type => ({
+        type,
+        count: typeStats[type] || 0
+      }))
+    })
+  } catch (error) {
+    console.error('Failed to get blacklist statistics:', error)
+    return NextResponse.json({ error: 'Failed to get statistics' }, { status: 500 })
   }
 }
