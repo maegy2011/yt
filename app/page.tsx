@@ -91,6 +91,17 @@ import { ThemeSwitch } from '@/components/theme-switch'
 import { ChannelsContainer } from '@/components/channels/ChannelsContainer'
 import { useChannelAvatar } from '@/hooks/useChannelAvatar'
 import { SearchResultsFilter } from '@/components/search/SearchResultsFilterEnhanced'
+import { useToast } from '@/hooks/use-toast'
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from '@/components/ui/alert-dialog'
 
 
 // Enhanced types with better safety
@@ -125,6 +136,9 @@ export default function MyTubeApp() {
   // Channel avatar hook
   const { getChannelAvatarUrl } = useChannelAvatar()
 
+  // Toast hook
+  const { toast } = useToast()
+
   // Core state
   const [activeTab, setActiveTab] = useState<Tab>('home')
   const [previousTab, setPreviousTab] = useState<Tab>('home')
@@ -150,12 +164,28 @@ export default function MyTubeApp() {
   const [blacklisted, setBlacklisted] = useState<BlacklistedItem[]>([])
   const [whitelisted, setWhitelisted] = useState<WhitelistedItem[]>([])
   
+  // Confirmation dialog states
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean
+    type: 'blacklist' | 'whitelist'
+    item: any
+    itemType: string
+    itemTitle: string
+  }>({
+    isOpen: false,
+    type: 'blacklist',
+    item: null,
+    itemType: '',
+    itemTitle: ''
+  })
+  
   // Database API functions
 const fetchBlacklistedItems = async (): Promise<BlacklistedItem[]> => {
   try {
     const response = await fetch('/api/blacklist')
     if (!response.ok) throw new Error('Failed to fetch blacklist')
-    return await response.json()
+    const data = await response.json()
+    return data.items || []
   } catch (error) {
     console.error('Error fetching blacklist:', error)
     return []
@@ -166,7 +196,8 @@ const fetchWhitelistedItems = async (): Promise<WhitelistedItem[]> => {
   try {
     const response = await fetch('/api/whitelist')
     if (!response.ok) throw new Error('Failed to fetch whitelist')
-    return await response.json()
+    const data = await response.json()
+    return data.items || []
   } catch (error) {
     console.error('Error fetching whitelist:', error)
     return []
@@ -1949,24 +1980,110 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
 
   // Handlers for adding items to blacklist/whitelist
   const handleAddToBlacklist = useCallback(async (item: any) => {
-    const success = await addToBlacklist(item)
-    if (success) {
-      // Refresh the blacklist from database
-      const updatedBlacklist = await fetchBlacklistedItems()
-      setBlacklisted(updatedBlacklist)
-      handleBlacklistChange(updatedBlacklist)
-    }
+    const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
+    const itemTitle = item.title || item.channelName || 'Unknown'
+    
+    // Show confirmation dialog
+    setConfirmDialog({
+      isOpen: true,
+      type: 'blacklist',
+      item,
+      itemType,
+      itemTitle
+    })
   }, [])
 
   const handleAddToWhitelist = useCallback(async (item: any) => {
-    const success = await addToWhitelist(item)
-    if (success) {
-      // Refresh the whitelist from database
-      const updatedWhitelist = await fetchWhitelistedItems()
-      setWhitelisted(updatedWhitelist)
-      handleWhitelistChange(updatedWhitelist)
-    }
+    const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
+    const itemTitle = item.title || item.channelName || 'Unknown'
+    
+    // Show confirmation dialog
+    setConfirmDialog({
+      isOpen: true,
+      type: 'whitelist',
+      item,
+      itemType,
+      itemTitle
+    })
   }, [])
+
+  // Confirm action handler
+  const handleConfirmAction = useCallback(async () => {
+    const { type, item, itemType, itemTitle } = confirmDialog
+    
+    try {
+      let success = false
+      let actionText = ''
+      
+      if (type === 'blacklist') {
+        success = await addToBlacklist(item)
+        actionText = 'blocked'
+        if (success) {
+          // Refresh blacklist from database
+          const updatedBlacklist = await fetchBlacklistedItems()
+          setBlacklisted(updatedBlacklist)
+          handleBlacklistChange(updatedBlacklist)
+        }
+      } else if (type === 'whitelist') {
+        success = await addToWhitelist(item)
+        actionText = 'allowed'
+        if (success) {
+          // Refresh whitelist from database
+          const updatedWhitelist = await fetchWhitelistedItems()
+          setWhitelisted(updatedWhitelist)
+          handleWhitelistChange(updatedWhitelist)
+        }
+      }
+      
+      // Show toast notification
+      if (success) {
+        toast({
+          title: `Success!`,
+          description: `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} "${itemTitle}" has been ${actionText}.`,
+          variant: 'default',
+        })
+      } else {
+        toast({
+          title: `Error!`,
+          description: `Failed to ${actionText} ${itemType} "${itemTitle}". Please try again.`,
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      console.error(`Error in handleConfirmAction:`, error)
+      toast({
+        title: `Error!`,
+        description: `An unexpected error occurred. Please try again.`,
+        variant: 'destructive',
+      })
+    } finally {
+      // Close confirmation dialog
+      setConfirmDialog({
+        isOpen: false,
+        type: 'blacklist',
+        item: null,
+        itemType: '',
+        itemTitle: ''
+      })
+    }
+  }, [confirmDialog, toast])
+
+  // Cancel action handler
+  const handleCancelAction = useCallback(() => {
+    setConfirmDialog({
+      isOpen: false,
+      type: 'blacklist',
+      item: null,
+      itemType: '',
+      itemTitle: ''
+    })
+    
+    toast({
+      title: `Cancelled`,
+      description: `Action has been cancelled.`,
+      variant: 'default',
+    })
+  }, [toast])
 
   // Memoized callbacks for SearchResultsFilter to prevent infinite loops
   const handleBlacklistChange = useCallback((blacklisted: BlacklistedItem[]) => {
@@ -3534,9 +3651,9 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                 </div>
                 
                 {/* Filtered Search Results */}
-                {searchResults.items.length > 0 && (
+                {getFilteredSearchResults().items.length > 0 && (
                   <div className="grid-mobile-2 mobile-content">
-                    {searchResults.items
+                    {getFilteredSearchResults().items
                       .filter((item) => {
                         if (searchType === 'all') return true
                         return (item as any).type === searchType
@@ -4637,6 +4754,51 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Dialog for Blacklist/Whitelist Actions */}
+      <AlertDialog open={confirmDialog.isOpen} onOpenChange={(open) => !open && handleCancelAction()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              {confirmDialog.type === 'blacklist' ? (
+                <>
+                  <X className="w-5 h-5 text-destructive" />
+                  Block {confirmDialog.itemType.charAt(0).toUpperCase() + confirmDialog.itemType.slice(1)}
+                </>
+              ) : (
+                <>
+                  <Check className="w-5 h-5 text-green-600" />
+                  Allow {confirmDialog.itemType.charAt(0).toUpperCase() + confirmDialog.itemType.slice(1)}
+                </>
+              )}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to {confirmDialog.type === 'blacklist' ? 'block' : 'allow'} the {confirmDialog.itemType} "{confirmDialog.itemTitle}"?
+              {confirmDialog.type === 'blacklist' && (
+                <span className="block mt-2 text-sm text-amber-600 dark:text-amber-400">
+                  ⚠️ Blocked items will be hidden from search results and recommendations.
+                </span>
+              )}
+              {confirmDialog.type === 'whitelist' && (
+                <span className="block mt-2 text-sm text-green-600 dark:text-green-400">
+                  ✓ Whitelisted items will always appear in search results.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelAction}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmAction}
+              className={confirmDialog.type === 'blacklist' ? 'bg-destructive hover:bg-destructive/90' : 'bg-green-600 hover:bg-green-700'}
+            >
+              {confirmDialog.type === 'blacklist' ? 'Block' : 'Allow'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
