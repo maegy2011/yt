@@ -99,6 +99,60 @@ export function VideoCard({
   const [isHovered, setIsHovered] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const [forceShowButtons, setForceShowButtons] = useState(true) // Always show buttons for debugging
+  
+  // Debug logging
+  console.log('VideoCard render:', {
+    videoId: video.videoId || video.id,
+    title: video.title,
+    hasBlacklistButton: !!(onAddToBlacklist || onAddToWhitelist),
+    hasWhitelistButton: !!(onAddToBlacklist || onAddToWhitelist),
+    isBlacklisted,
+    isWhitelisted,
+    forceShowButtons // Always true for debugging
+  })
+  
+  // Debug logging
+  console.log('VideoCard render:', {
+    videoId: video.videoId || video.id,
+    title: video.title,
+    hasBlacklistButton: !!(onAddToBlacklist || onAddToWhitelist),
+    hasWhitelistButton: !!(onAddToBlacklist || onAddToWhitelist),
+    isBlacklisted,
+    isWhitelisted
+  })
+  
+  // Debug logging
+  console.log('VideoCard render:', {
+    videoId: video.videoId || video.id,
+    title: video.title,
+    hasBlacklistButton: !!(onAddToBlacklist || onAddToWhitelist),
+    hasWhitelistButton: !!(onAddToBlacklist || onAddToWhitelist),
+    isBlacklisted,
+    isWhitelisted,
+    buttonsVisible: (onAddToBlacklist || onAddToWhitelist) ? 'opacity-100' : 'opacity-0'
+  })
+  
+  // Debug logging for button visibility
+  console.log('VideoCard render:', {
+    videoId: video.videoId || video.id,
+    title: video.title,
+    hasBlacklistButton: !!(onAddToBlacklist || onAddToWhitelist),
+    hasWhitelistButton: !!(onAddToBlacklist || onAddToWhitelist),
+    isBlacklisted,
+    isWhitelisted,
+    showActions
+  })
+  
+  // Debug logging
+  console.log('VideoCard render:', {
+    videoId: video.videoId || video.id,
+    title: video.title,
+    hasBlacklistButton: !!(onAddToBlacklist || onAddToWhitelist),
+    hasWhitelistButton: !!(onAddToBlacklist || onAddToWhitelist),
+    isBlacklisted,
+    isWhitelisted
+  })
   
   const {
     backgroundVideo,
@@ -392,11 +446,9 @@ export function VideoCard({
             </div>
           )}
 
-          {/* Quick Add Buttons - Always Visible on Hover */}
-          {(onAddToBlacklist || onAddToWhitelist) && (
-            <div className={`absolute top-2 right-2 flex flex-col gap-2 transition-all duration-300 ${
-              isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-            }`}>
+          {/* Quick Add Buttons - Always Visible */}
+          {(onAddToBlacklist || onAddToWhitelist || forceShowButtons) && (
+            <div className="absolute top-2 right-2 flex flex-col gap-2 transition-all duration-300 opacity-100 scale-100">
               {onAddToWhitelist && !isWhitelisted && (
                 <Button
                   variant="ghost"

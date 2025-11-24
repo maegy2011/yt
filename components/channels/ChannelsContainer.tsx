@@ -16,7 +16,9 @@ import {
   TrendingUp,
   Settings,
   RefreshCw,
-  Trash2
+  Trash2,
+  Shield,
+  ShieldOff
 } from 'lucide-react'
 import { ScrollingChannelBar } from './ScrollingChannelBar'
 import type { FavoriteChannel } from '@/types/favorites'
@@ -24,15 +26,41 @@ import type { FavoriteChannel } from '@/types/favorites'
 interface ChannelsContainerProps {
   className?: string
   onChannelSelect?: (channel: FavoriteChannel) => void
+  onAddToBlacklist?: (channel: FavoriteChannel) => void
+  onAddToWhitelist?: (channel: FavoriteChannel) => void
+  isBlacklisted?: (channelId: string) => boolean
+  isWhitelisted?: (channelId: string) => boolean
 }
 
-export function ChannelsContainer({ className = '', onChannelSelect }: ChannelsContainerProps) {
+export function ChannelsContainer({ 
+  className = '', 
+  onChannelSelect,
+  onAddToBlacklist,
+  onAddToWhitelist,
+  isBlacklisted = () => false,
+  isWhitelisted = () => false
+}: ChannelsContainerProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [viewMode, setViewMode] = useState<'scroll' | 'grid' | 'list'>('scroll')
   const [favoriteChannels, setFavoriteChannels] = useState<FavoriteChannel[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+  
+  // Detect mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile)
+    }
+  }, [])
 
   // Fetch channels from API
   const fetchChannels = useCallback(async () => {
@@ -53,6 +81,20 @@ export function ChannelsContainer({ className = '', onChannelSelect }: ChannelsC
       setLoading(false)
     }
   }, [])
+
+  // Handle blacklist
+  const handleAddToBlacklist = useCallback((channel: FavoriteChannel) => {
+    if (onAddToBlacklist) {
+      onAddToBlacklist(channel)
+    }
+  }, [onAddToBlacklist])
+
+  // Handle whitelist
+  const handleAddToWhitelist = useCallback((channel: FavoriteChannel) => {
+    if (onAddToWhitelist) {
+      onAddToWhitelist(channel)
+    }
+  }, [onAddToWhitelist])
 
   // Remove channel
   const removeChannel = useCallback(async (channelId: string) => {
@@ -232,7 +274,38 @@ export function ChannelsContainer({ className = '', onChannelSelect }: ChannelsC
                             e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(channel.name)}&background=3b82f6&color=ffffff&size=64`
                           }}
                         />
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-background" />
+                        
+                        {/* Blacklist/Whitelist Buttons - Always Visible */}
+                        <div className="absolute top-1 right-1 flex gap-1 transition-all duration-300 opacity-100 scale-100">
+                          {onAddToWhitelist && !isWhitelisted(channel.channelId) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 min-h-[24px] min-w-[24px] p-0 touch-manipulation mobile-touch-feedback bg-green-500/90 hover:bg-green-600 text-white shadow-lg border border-green-400/30 transition-all duration-300 hover:scale-110"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleAddToWhitelist(channel)
+                              }}
+                              title="Add to Whitelist"
+                            >
+                              <Shield className="w-3 h-3" />
+                            </Button>
+                          )}
+                          {onAddToBlacklist && !isBlacklisted(channel.channelId) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 min-h-[24px] min-w-[24px] p-0 touch-manipulation mobile-touch-feedback bg-red-500/90 hover:bg-red-600 text-white shadow-lg border border-red-400/30 transition-all duration-300 hover:scale-110"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleAddToBlacklist(channel)
+                              }}
+                              title="Add to Blacklist"
+                            >
+                              <ShieldOff className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="text-center min-w-0">
@@ -279,7 +352,39 @@ export function ChannelsContainer({ className = '', onChannelSelect }: ChannelsC
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* Blacklist/Whitelist Buttons - Always Visible on Mobile */}
+                        <div className="flex items-center gap-2 opacity-100 transition-opacity">
+                          {onAddToWhitelist && !isWhitelisted(channel.channelId) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 min-h-[24px] min-w-[24px] p-0 touch-manipulation mobile-touch-feedback bg-green-500/90 hover:bg-green-600 text-white shadow-lg border border-green-400/30 transition-all duration-300 hover:scale-110"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleAddToWhitelist(channel)
+                              }}
+                              title="Add to Whitelist"
+                            >
+                              <Shield className="w-3 h-3" />
+                            </Button>
+                          )}
+                          {onAddToBlacklist && !isBlacklisted(channel.channelId) && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 min-h-[24px] min-w-[24px] p-0 touch-manipulation mobile-touch-feedback bg-red-500/90 hover:bg-red-600 text-white shadow-lg border border-red-400/30 transition-all duration-300 hover:scale-110"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleAddToBlacklist(channel)
+                              }}
+                              title="Add to Blacklist"
+                            >
+                              <ShieldOff className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2 opacity-100 transition-opacity">
                           <Button
                             size="sm"
                             variant="outline"

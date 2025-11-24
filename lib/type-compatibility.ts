@@ -135,7 +135,8 @@ export function convertYouTubeVideo(video: YouTubeVideo): SimpleVideo {
     viewCount: video.viewCount,
     publishedAt: video.publishedAt,
     isLive: video.isLive,
-    description: video.description
+    description: video.description,
+    type: 'video'
   }
 }
 

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { 
   List, 
   Play, 
@@ -70,6 +71,7 @@ export function PlaylistCard({
   const [isHovered, setIsHovered] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const isMobile = useIsMobile()
 
   // Get playlist ID
   const playlistId = playlist.playlistId || playlist.id
@@ -229,11 +231,9 @@ export function PlaylistCard({
             </div>
           </div>
 
-          {/* Quick Add Buttons - Always Visible on Hover */}
+          {/* Quick Add Buttons - Always Visible */}
           {(onAddToBlacklist || onAddToWhitelist) && (
-            <div className={`absolute top-2 right-2 flex flex-col gap-2 transition-all duration-300 z-10 ${
-              isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-            }`}>
+            <div className="absolute top-2 right-2 flex flex-col gap-2 transition-all duration-300 opacity-100 scale-100">
               {onAddToWhitelist && !isWhitelisted && (
                 <Button
                   variant="ghost"
@@ -279,10 +279,7 @@ export function PlaylistCard({
 
           {/* Play Overlay */}
           <div 
-            className={`absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent transition-all duration-300 flex items-center justify-center ${
-              isHovered ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
+            className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent transition-all duration-300 flex items-center justify-center opacity-100">
             <div className={`bg-white/95 backdrop-blur-md rounded-full p-3 sm:p-4 transition-all duration-300 min-h-[44px] min-w-[44px] flex items-center justify-center ${
               isHovered ? 'scale-110' : 'scale-100'
             }`}>
@@ -331,9 +328,7 @@ export function PlaylistCard({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className={`h-11 w-11 min-h-[44px] p-0 transition-all duration-300 touch-manipulation mobile-touch-feedback ${
-                      isHovered ? 'opacity-100 scale-110' : 'opacity-0 scale-100'
-                    }`}
+                    className="h-11 w-11 min-h-[44px] p-0 transition-all duration-300 touch-manipulation mobile-touch-feedback"
                     onClick={(e) => {
                       e.stopPropagation()
                       setIsMenuOpen(!isMenuOpen)
@@ -357,30 +352,6 @@ export function PlaylistCard({
                         <Play className="w-4 h-4 mr-3" />
                         Play Now
                       </Button>
-                      
-                      {onAddToWhitelist && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full justify-start text-sm h-11 min-h-[44px] px-3 hover:bg-green-50 dark:hover:bg-green-950/20 text-green-700 dark:text-green-300 transition-colors touch-manipulation mobile-touch-feedback"
-                          onClick={handleAddToWhitelist}
-                          title="Add to Whitelist"
-                        >
-                          <Shield className="w-4 h-4 mr-3" />
-                        </Button>
-                      )}
-                      
-                      {onAddToBlacklist && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full justify-start text-sm h-11 min-h-[44px] px-3 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-700 dark:text-red-300 transition-colors touch-manipulation mobile-touch-feedback"
-                          onClick={handleAddToBlacklist}
-                          title="Add to Blacklist"
-                        >
-                          <ShieldOff className="w-4 h-4 mr-3" />
-                        </Button>
-                      )}
                       
                       {onRemove && (
                         <Button

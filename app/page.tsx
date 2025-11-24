@@ -1496,7 +1496,8 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
           } else if (item.type === 'channel') {
             return convertYouTubeChannel(item)
           } else {
-            return convertYouTubeVideo(item)
+            const convertedVideo = convertYouTubeVideo(item)
+            return convertedVideo
           }
         })
       }
@@ -2597,6 +2598,10 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         onPlay={handleVideoSelect}
         onFavorite={toggleFavorite}
         onSelect={(videoId, selected) => toggleItemSelection(videoId)}
+        onAddToBlacklist={handleAddToBlacklist}
+        onAddToWhitelist={handleAddToWhitelist}
+        isBlacklisted={isBlacklisted}
+        isWhitelisted={isWhitelisted}
         size="md"
       />
     )
@@ -3865,7 +3870,13 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         )
 
       case 'channels':
-        return <ChannelsContainer onChannelSelect={handleChannelSelect} />
+        return <ChannelsContainer 
+          onChannelSelect={handleChannelSelect}
+          onAddToBlacklist={handleAddToBlacklist}
+          onAddToWhitelist={handleAddToWhitelist}
+          isBlacklisted={(channelId) => blacklisted.some(item => item.itemId === channelId && item.type === 'channel')}
+          isWhitelisted={(channelId) => whitelisted.some(item => item.itemId === channelId && item.type === 'channel')}
+        />
 
       case 'favorites':
         return <FavoritesContainer onVideoPlay={handleFavoritesVideoPlay} />

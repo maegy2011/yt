@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { 
   Users,
   Play, 
@@ -67,6 +68,7 @@ export function ChannelCard({
   const [isHovered, setIsHovered] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const isMobile = useIsMobile()
 
   // Get channel ID
   const channelId = channel.channelId || channel.id
@@ -222,16 +224,18 @@ export function ChannelCard({
             </div>
           </div>
 
-          {/* Quick Add Buttons - Always Visible on Hover */}
+          {/* Quick Add Buttons - Always Visible on Hover and Mobile */}
           {(onAddToBlacklist || onAddToWhitelist) && (
             <div className={`absolute top-2 right-2 flex flex-col gap-2 transition-all duration-300 z-10 ${
-              isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+              isHovered || isMobile ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
             }`}>
               {onAddToWhitelist && !isWhitelisted && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 min-h-[32px] min-w-[32px] p-0 touch-manipulation mobile-touch-feedback bg-green-500/90 hover:bg-green-600 text-white shadow-lg border border-green-400/30 transition-all duration-300 hover:scale-110"
+                  className={`h-8 w-8 min-h-[32px] min-w-[32px] p-0 touch-manipulation mobile-touch-feedback bg-green-500/90 hover:bg-green-600 text-white shadow-lg border border-green-400/30 transition-all duration-300 hover:scale-110 ${
+                    isMobile ? 'h-10 w-10 min-h-[40px] min-w-[40px]' : ''
+                  }`}
                   onClick={handleAddToWhitelist}
                   title="Add to Whitelist"
                 >
@@ -242,7 +246,9 @@ export function ChannelCard({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 min-h-[32px] min-w-[32px] p-0 touch-manipulation mobile-touch-feedback bg-red-500/90 hover:bg-red-600 text-white shadow-lg border border-red-400/30 transition-all duration-300 hover:scale-110"
+                  className={`h-8 w-8 min-h-[32px] min-w-[32px] p-0 touch-manipulation mobile-touch-feedback bg-red-500/90 hover:bg-red-600 text-white shadow-lg border border-red-400/30 transition-all duration-300 hover:scale-110 ${
+                    isMobile ? 'h-10 w-10 min-h-[40px] min-w-[40px]' : ''
+                  }`}
                   onClick={handleAddToBlacklist}
                   title="Add to Blacklist"
                 >
@@ -356,30 +362,6 @@ export function ChannelCard({
                   <Play className="w-4 h-4 mr-3" />
                   View Channel
                 </Button>
-                
-                {onAddToWhitelist && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start text-sm h-11 min-h-[44px] px-3 hover:bg-green-50 dark:hover:bg-green-950/20 text-green-700 dark:text-green-300 transition-colors touch-manipulation mobile-touch-feedback"
-                    onClick={handleAddToWhitelist}
-                    title="Add to Whitelist"
-                  >
-                    <Shield className="w-4 h-4 mr-3" />
-                  </Button>
-                )}
-                
-                {onAddToBlacklist && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start text-sm h-11 min-h-[44px] px-3 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-700 dark:text-red-300 transition-colors touch-manipulation mobile-touch-feedback"
-                    onClick={handleAddToBlacklist}
-                    title="Add to Blacklist"
-                  >
-                    <ShieldOff className="w-4 h-4 mr-3" />
-                  </Button>
-                )}
                 
                 {onRemove && (
                   <Button
