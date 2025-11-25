@@ -83,6 +83,7 @@ import { ShareNotebookDialog } from '@/components/notebooks/ShareNotebookDialog'
 import { FavoritesContainer } from '@/components/favorites/FavoritesContainer'
 import { WatchedHistoryContainer } from '@/components/watched/WatchedHistoryContainer'
 import { EnhancedClearData } from '@/components/enhanced-clear-data'
+import { SettingsContainer } from '@/components/settings'
 import { useWatchedHistory } from '@/hooks/useWatchedHistory'
 import { BottomNavigation } from '@/components/navigation/BottomNavigation'
 import { NavigationSpacer } from '@/components/navigation/NavigationSpacer'
@@ -105,7 +106,7 @@ import {
 
 
 // Enhanced types with better safety
-type Tab = 'home' | 'search' | 'player' | 'channels' | 'favorites' | 'notes' | 'notebooks' | 'watched'
+type Tab = 'home' | 'search' | 'player' | 'channels' | 'favorites' | 'notes' | 'notebooks' | 'watched' | 'settings'
 
 // Use SimpleVideo for internal state
 type Video = SimpleVideo
@@ -361,7 +362,6 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes cache
   
   // Settings states
-  const [showSettings, setShowSettings] = useState(false)
   const [showClearDataConfirmation, setShowClearDataConfirmation] = useState(false)
   const [showEnhancedClearData, setShowEnhancedClearData] = useState(false)
   const [dataStatistics, setDataStatistics] = useState<any>(null)
@@ -597,6 +597,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       { id: 'favorites' as Tab, icon: Heart, label: 'Favorites' },
       { id: 'channels' as Tab, icon: User, label: 'Channels' },
       { id: 'watched' as Tab, icon: History, label: 'Watch History' },
+      { id: 'settings' as Tab, icon: Settings, label: 'Settings' },
     ]
     
     // Remove favorites tab if disabled
@@ -700,8 +701,8 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       
       if (Math.abs(swipeDistance) > minSwipeDistance && verticalDistance < maxVerticalDistance) {
         const tabs: Tab[] = favoritesEnabled 
-          ? ['home', 'search', 'player', 'notes', 'notebooks', 'favorites', 'channels', 'watched']
-          : ['home', 'search', 'player', 'notes', 'notebooks', 'channels', 'watched']
+          ? ['home', 'search', 'player', 'notes', 'notebooks', 'favorites', 'channels', 'watched', 'settings']
+          : ['home', 'search', 'player', 'notes', 'notebooks', 'channels', 'watched', 'settings']
         const currentIndex = tabs.indexOf(activeTab)
         
         if (swipeDistance > 0) {
@@ -735,8 +736,8 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       }
 
       const tabs: Tab[] = favoritesEnabled 
-        ? ['home', 'search', 'player', 'notes', 'notebooks', 'favorites', 'channels', 'watched']
-        : ['home', 'search', 'player', 'notes', 'notebooks', 'channels', 'watched']
+        ? ['home', 'search', 'player', 'notes', 'notebooks', 'favorites', 'channels', 'watched', 'settings']
+        : ['home', 'search', 'player', 'notes', 'notebooks', 'channels', 'watched', 'settings']
       const currentIndex = tabs.indexOf(activeTab)
 
       switch (e.key) {
@@ -1160,8 +1161,6 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         loadFavoriteVideos()
       ])
       
-      setShowSettings(false)
-      
     } catch (error) {
       console.error('Failed to clear all data:', error)
       
@@ -1182,13 +1181,6 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       console.error('Failed to fetch data statistics:', error)
     }
   }
-
-  // Fetch data statistics when settings dialog opens
-  useEffect(() => {
-    if (showSettings) {
-      fetchDataStatistics()
-    }
-  }, [showSettings])
 
   const handleEnhancedClearData = async (options: any): Promise<void> => {
     try {
@@ -4136,6 +4128,26 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         </DialogContent>
       </Dialog>
 
+      case 'settings':
+        return (
+          <SettingsContainer
+            autoLoadMore={autoLoadMore}
+            setAutoLoadMore={setAutoLoadMore}
+            favoritesEnabled={favoritesEnabled}
+            setFavoritesEnabled={setFavoritesEnabled}
+            favoritesPaused={favoritesPaused}
+            setFavoritesPaused={setFavoritesPaused}
+            favoriteChannels={favoriteChannels}
+            favoriteVideos={favoriteVideos}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            loading={loading}
+            onClearAllData={clearAllData}
+            dataStatistics={dataStatistics}
+            fetchDataStatistics={fetchDataStatistics}
+          />
+        )
+
       default:
         return null
     }
@@ -4235,15 +4247,6 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
               
               
               <ThemeSwitch />
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowSettings(true)}
-                className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-105 touch-manipulation mobile-touch-feedback"
-              >
-                <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
-              </Button>
             </div>
           </div>
         </div>
@@ -4512,155 +4515,6 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         
         {renderContent()}
       </main>
-
-      {/* Settings Dialog */}
-      <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="max-w-[95vw] sm:max-w-[90vw] md:max-w-[425px] mx-auto">
-          <DialogHeader className="pb-4">
-            <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl">
-              <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
-              Settings & Privacy
-            </DialogTitle>
-            <DialogDescription className="text-sm sm:text-base">
-              Configure your app preferences and privacy settings
-            </DialogDescription>
-          </DialogHeader>
-          
-          <ScrollArea className="max-h-[50vh] sm:max-h-[60vh] md:max-h-[60vh] pr-2 sm:pr-4">
-            <div className="space-y-4 sm:space-y-6">
-              {/* Auto Load More Setting */}
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <label className="text-sm font-medium">Auto Load More</label>
-                  <p className="text-xs text-muted-foreground">
-                    Automatically load more videos when scrolling
-                  </p>
-                </div>
-                <Switch
-                  checked={autoLoadMore}
-                  onCheckedChange={setAutoLoadMore}
-                  disabled={loading}
-                />
-              </div>
-
-              {/* Favorites Module Settings */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium">Favorites Module</h3>
-                
-                {/* Enable/Disable Favorites */}
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <label className="text-sm font-medium">Enable Favorites</label>
-                    <p className="text-xs text-muted-foreground">
-                      Turn the favorites module on or off
-                    </p>
-                  </div>
-                  <Switch
-                    checked={favoritesEnabled}
-                    onCheckedChange={(checked) => {
-                      setFavoritesEnabled(checked)
-                      localStorage.setItem('mytube-favorites-enabled', checked.toString())
-                      if (!checked && activeTab === 'favorites') {
-                        setActiveTab('home')
-                      }
-                    }}
-                    disabled={loading}
-                  />
-                </div>
-
-                {/* Pause/Resume Favorites */}
-                {favoritesEnabled && (
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <label className="text-sm font-medium">Pause Favorites</label>
-                      <p className="text-xs text-muted-foreground">
-                        Temporarily pause adding/removing favorites
-                      </p>
-                    </div>
-                    <Switch
-                      checked={favoritesPaused}
-                      onCheckedChange={(checked) => {
-                        setFavoritesPaused(checked)
-                        localStorage.setItem('mytube-favorites-paused', checked.toString())
-                      }}
-                      disabled={loading}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Data Statistics */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Data Statistics</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span>Favorite Channels</span>
-                    <span className="font-mono">{favoriteChannels.length}</span>
-                  </div>
-                  {favoritesEnabled && (
-                    <div className="flex justify-between text-xs">
-                      <span>Favorite Videos</span>
-                      <span className="font-mono">{favoriteVideos.length}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-xs font-medium pt-2 border-t">
-                    <span>Total Items</span>
-                    <span className="font-mono">
-                      {favoriteChannels.length + (favoritesEnabled ? favoriteVideos.length : 0)}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Privacy Section */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium">Privacy</h3>
-                
-                <Alert>
-                  <AlertDescription className="text-xs">
-                    This will permanently delete all your data including 
-                    favorite channels, favorite videos, and all local settings.
-                  </AlertDescription>
-                </Alert>
-
-                <Button
-                  variant="destructive"
-                  onClick={clearAllData}
-                  disabled={loading || (
-                    favoriteChannels.length === 0 && 
-                    (favoritesEnabled ? favoriteVideos.length : 0) === 0
-                  )}
-                  className="w-full"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Clearing Data...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Clear All Data
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </ScrollArea>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowSettings(false)}
-              disabled={loading}
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Enhanced Clear Data Dialog */}
       <Dialog open={showEnhancedClearData} onOpenChange={setShowEnhancedClearData}>

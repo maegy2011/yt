@@ -17,7 +17,7 @@ import {
   X
 } from 'lucide-react'
 
-type Tab = 'home' | 'search' | 'player' | 'channels' | 'favorites' | 'notes'
+type Tab = 'home' | 'search' | 'player' | 'channels' | 'favorites' | 'notes' | 'settings'
 
 interface BottomNavigationProps {
   activeTab: Tab
@@ -87,6 +87,7 @@ export function BottomNavigation({
     { id: 'channels', icon: Users, label: 'Channels', showAlways: true },
     { id: 'favorites', icon: Heart, label: 'Favorites', showAlways: false },
     { id: 'notes', icon: FileText, label: 'Notes', showAlways: true },
+    { id: 'settings', icon: Settings, label: 'Settings', showAlways: true },
   ]
 
   // Filter items based on favorites enabled
