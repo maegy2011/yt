@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -509,7 +509,7 @@ export function EnhancedBlacklistManager({ isOpen, onClose, type }: BlacklistMan
       <DialogContent className="max-w-6xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <icon className={`w-5 h-5 ${color}`} />
+            {React.createElement(icon, { className: `w-5 h-5 ${color}` })}
             {title}
             <Badge variant="outline" className="ml-2">
               <Zap className="w-3 h-3 mr-1" />
@@ -664,7 +664,7 @@ export function EnhancedBlacklistManager({ isOpen, onClose, type }: BlacklistMan
                       </div>
                     ) : items.length === 0 ? (
                       <div className="text-center py-8 text-muted-foreground">
-                        <icon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        {React.createElement(icon, { className: "w-12 h-12 mx-auto mb-2 opacity-50" })}
                         <p>No items found</p>
                       </div>
                     ) : (

@@ -1560,11 +1560,49 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         }
       }).filter((video): video is Video => video !== null)
       
-      if (convertedVideos.length === 0) {
+      // Apply blacklist/whitelist filtering to playlist videos
+      const filteredPlaylistVideos = convertedVideos.filter(video => {
+        // Check if video is explicitly blacklisted
+        const isExplicitlyBlacklisted = blacklisted.some(listItem => 
+          listItem.type === 'video' && listItem.itemId === video.videoId
+        )
         
+        // Check if video is from a blocked channel
+        const isFromBlockedChannel = blacklisted.some(listItem => 
+          listItem.type === 'channel' && listItem.itemId === video.channelId
+        )
+        
+        // Check if video is explicitly whitelisted
+        const isExplicitlyWhitelisted = whitelisted.some(listItem => 
+          listItem.type === 'video' && listItem.itemId === video.videoId
+        )
+        
+        // Check if video is from a whitelisted channel
+        const isFromWhitelistedChannel = whitelisted.some(listItem => 
+          listItem.type === 'channel' && listItem.itemId === video.channelId
+        )
+        
+        // Apply whitelist rules first (whitelist takes precedence)
+        if (whitelisted.length > 0) {
+          // Show if explicitly whitelisted or from whitelisted channel
+          return isExplicitlyWhitelisted || isFromWhitelistedChannel
+        }
+        
+        // Apply blacklist rules
+        if (blacklisted.length > 0) {
+          // Hide if explicitly blacklisted or from blocked channel
+          return !isExplicitlyBlacklisted && !isFromBlockedChannel
+        }
+        
+        // No filtering rules, show all videos
+        return true
+      })
+      
+      if (filteredPlaylistVideos.length === 0) {
+        console.log('All playlist videos were filtered out by blacklist/whitelist rules')
       } else {
-        setPlaylistVideos(convertedVideos)
-        showDynamicConfirmation('playlistLoaded', [playlist.title, convertedVideos.length])
+        setPlaylistVideos(filteredPlaylistVideos)
+        showDynamicConfirmation('playlistLoaded', [playlist.title, filteredPlaylistVideos.length])
       }
       
       // Switch to search tab to show playlist videos
@@ -1633,7 +1671,45 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
           })
           .filter((video): video is Video => video !== null)
         
-        setExpandedPlaylistVideos(prev => new Map(prev).set(playlistId, convertedVideos))
+        // Apply blacklist/whitelist filtering to playlist videos
+        const filteredPlaylistVideos = convertedVideos.filter(video => {
+          // Check if video is explicitly blacklisted
+          const isExplicitlyBlacklisted = blacklisted.some(listItem => 
+            listItem.type === 'video' && listItem.itemId === video.videoId
+          )
+          
+          // Check if video is from a blocked channel
+          const isFromBlockedChannel = blacklisted.some(listItem => 
+            listItem.type === 'channel' && listItem.itemId === video.channelId
+          )
+          
+          // Check if video is explicitly whitelisted
+          const isExplicitlyWhitelisted = whitelisted.some(listItem => 
+            listItem.type === 'video' && listItem.itemId === video.videoId
+          )
+          
+          // Check if video is from a whitelisted channel
+          const isFromWhitelistedChannel = whitelisted.some(listItem => 
+            listItem.type === 'channel' && listItem.itemId === video.channelId
+          )
+          
+          // Apply whitelist rules first (whitelist takes precedence)
+          if (whitelisted.length > 0) {
+            // Show if explicitly whitelisted or from whitelisted channel
+            return isExplicitlyWhitelisted || isFromWhitelistedChannel
+          }
+          
+          // Apply blacklist rules
+          if (blacklisted.length > 0) {
+            // Hide if explicitly blacklisted or from blocked channel
+            return !isExplicitlyBlacklisted && !isFromBlockedChannel
+          }
+          
+          // No filtering rules, show all videos
+          return true
+        })
+        
+        setExpandedPlaylistVideos(prev => new Map(prev).set(playlistId, filteredPlaylistVideos))
         setExpandedPlaylists(prev => new Set(prev).add(playlistId))
         
         if (convertedVideos.length > 0) {
@@ -1914,10 +1990,6 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   const getFilteredSearchResults = useCallback(() => {
     if (!searchResults?.items) return searchResults
     
-    // Check if we have blacklisted or whitelisted items
-    const hasBlacklisted = blacklisted.length > 0
-    const hasWhitelisted = whitelisted.length > 0
-    
     // Helper function to check if an item matches a blacklist/whitelist entry
     const itemMatches = (item: any, listItem: BlacklistedItem | WhitelistedItem) => {
       // Check by type match
@@ -1926,57 +1998,119 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       
       // PRIMARY: Check by YouTube ID matching (most accurate)
       if (listItem.type === 'video' && 'videoId' in item && listItem.itemId === item.videoId) {
-        console.log(`✅ ID Match: ${listItem.type} "${item.title}" (${item.videoId})`)
         return true
       }
       if (listItem.type === 'playlist' && 'playlistId' in item && listItem.itemId === item.playlistId) {
-        console.log(`✅ ID Match: ${listItem.type} "${item.title}" (${item.playlistId})`)
         return true
       }
       if (listItem.type === 'channel' && 'channelId' in item && listItem.itemId === item.channelId) {
-        console.log(`✅ ID Match: ${listItem.type} "${item.channelName}" (${item.channelId})`)
         return true
       }
       
       // FALLBACK: Check by exact title match (less accurate)
       if (listItem.title.toLowerCase() === item.title?.toLowerCase()) {
-        console.log(`⚠️ Title Fallback: ${listItem.type} "${item.title}"`)
         return true
       }
       
       // FALLBACK: Check by channel name match (for channels)
       if (listItem.channelName && listItem.channelName.toLowerCase() === item.channelName?.toLowerCase()) {
-        console.log(`⚠️ Channel Name Fallback: ${listItem.type} "${item.channelName}"`)
         return true
       }
       
       return false
     }
-    
-    // If whitelist has items, only show whitelisted content
-    if (hasWhitelisted) {
-      const whitelistedItems = searchResults.items.filter(item => 
-        whitelisted.some(whitelistedItem => itemMatches(item, whitelistedItem))
+
+    // Helper function to check if a video is from a blocked channel
+    const isFromBlockedChannel = (item: any) => {
+      if (!('channelId' in item)) return false
+      
+      return blacklisted.some(listItem => 
+        listItem.type === 'channel' && listItem.itemId === item.channelId
       )
-      return {
-        ...searchResults,
-        items: whitelistedItems
-      }
     }
-    
-    // If blacklist has items, exclude blacklisted content
-    if (hasBlacklisted) {
-      const filteredItems = searchResults.items.filter(item => 
-        !blacklisted.some(blacklistedItem => itemMatches(item, blacklistedItem))
+
+    // Helper function to check if a video is from a whitelisted channel
+    const isFromWhitelistedChannel = (item: any) => {
+      if (!('channelId' in item)) return false
+      
+      return whitelisted.some(listItem => 
+        listItem.type === 'channel' && listItem.itemId === item.channelId
       )
-      return {
-        ...searchResults,
-        items: filteredItems
-      }
     }
+
+    // Helper function to check if item is explicitly blacklisted/whitelisted
+    const isExplicitlyBlacklisted = (item: any) => {
+      return blacklisted.some(listItem => itemMatches(item, listItem))
+    }
+
+    const isExplicitlyWhitelisted = (item: any) => {
+      return whitelisted.some(listItem => itemMatches(item, listItem))
+    }
+
+    // Filter items based on blacklist/whitelist rules
+    const filteredItems = searchResults.items.filter(item => {
+      const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
+      
+      // RULE 1: If whitelist has items, only show whitelisted content
+      if (whitelisted.length > 0) {
+        // Allow if explicitly whitelisted
+        if (isExplicitlyWhitelisted(item)) {
+          return true
+        }
+        
+        // For videos, also allow if from whitelisted channel
+        if (itemType === 'video' && isFromWhitelistedChannel(item)) {
+          return true
+        }
+        
+        // For playlists, check if playlist is whitelisted
+        if (itemType === 'playlist' && isExplicitlyWhitelisted(item)) {
+          return true
+        }
+        
+        // For channels, check if channel is whitelisted
+        if (itemType === 'channel' && isExplicitlyWhitelisted(item)) {
+          return true
+        }
+        
+        // Not whitelisted, hide it
+        return false
+      }
+      
+      // RULE 2: If blacklist has items, exclude blacklisted content
+      if (blacklisted.length > 0) {
+        // Hide if explicitly blacklisted
+        if (isExplicitlyBlacklisted(item)) {
+          return false
+        }
+        
+        // For videos, also hide if from blocked channel
+        if (itemType === 'video' && isFromBlockedChannel(item)) {
+          return false
+        }
+        
+        // For playlists, hide if playlist is blacklisted
+        if (itemType === 'playlist' && isExplicitlyBlacklisted(item)) {
+          return false
+        }
+        
+        // For channels, hide if channel is blacklisted
+        if (itemType === 'channel' && isExplicitlyBlacklisted(item)) {
+          return false
+        }
+        
+        // Not blacklisted, show it
+        return true
+      }
+      
+      // No filtering rules, show everything
+      return true
+    })
     
-    // No filtering, return original results
-    return searchResults
+    return {
+      ...searchResults,
+      items: filteredItems
+    }
   }, [searchResults, blacklisted, whitelisted])
 
   // Handlers for adding items to blacklist/whitelist

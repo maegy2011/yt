@@ -292,7 +292,8 @@ export async function POST(request: NextRequest) {
                   }
                 })
               } catch (error) {
-                // Ignore metric update errors
+                console.warn('Failed to update pattern metrics:', error)
+                // Ignore metric update errors to not break filtering
               }
               
               break // Stop at first pattern match

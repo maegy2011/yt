@@ -85,6 +85,49 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
   }
 }
 
+// Helper function to check if content should be filtered
+function shouldFilterContent(content: any, blacklistedItems: any[], whitelistedItems: any[]) {
+  const contentType = content.videoId ? 'video' : content.id ? 'playlist' : 'channel'
+  const contentId = content.videoId || content.id || content.channelId
+  
+  // Check whitelist first (whitelist takes precedence)
+  if (whitelistedItems.length > 0) {
+    const isWhitelisted = whitelistedItems.some(item => {
+      if (item.type === contentType && item.itemId === contentId) {
+        return true
+      }
+      // For videos, also check if from whitelisted channel
+      if (contentType === 'video' && item.type === 'channel' && item.itemId === content.channelId) {
+        return true
+      }
+      return false
+    })
+    
+    // If whitelist exists but content is not whitelisted, filter it out
+    return !isWhitelisted
+  }
+  
+  // Check blacklist
+  if (blacklistedItems.length > 0) {
+    const isBlacklisted = blacklistedItems.some(item => {
+      if (item.type === contentType && item.itemId === contentId) {
+        return true
+      }
+      // For videos, also check if from blocked channel
+      if (contentType === 'video' && item.type === 'channel' && item.itemId === content.channelId) {
+        return true
+      }
+      return false
+    })
+    
+    // Filter out blacklisted content
+    return isBlacklisted
+  }
+  
+  // No filtering needed
+  return false
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -109,6 +152,17 @@ export async function GET(request: NextRequest) {
     // Get all favorite channels from database
     const favoriteChannels = await db.favoriteChannel.findMany({
       orderBy: { addedAt: 'desc' }
+    })
+
+    // Get blacklist and whitelist items for filtering
+    const [blacklistedItems, whitelistedItems] = await Promise.all([
+      db.blacklistedItem.findMany(),
+      db.whitelistedItem.findMany()
+    ])
+
+    console.log('Loaded blacklist/whitelist items:', {
+      blacklisted: blacklistedItems.length,
+      whitelisted: whitelistedItems.length
     })
 
     if (favoriteChannels.length === 0) {
@@ -262,8 +316,11 @@ export async function GET(request: NextRequest) {
                 }
               }).filter(video => video !== null) // Remove null entries
               
-              allVideos.push(...videos)
-              console.log(`Found ${videos.length} videos from ${channel.name}`)
+              // Apply blacklist/whitelist filtering to videos
+              const filteredVideos = videos.filter(video => !shouldFilterContent(video, blacklistedItems, whitelistedItems))
+              
+              allVideos.push(...filteredVideos)
+              console.log(`Found ${videos.length} videos (${filteredVideos.length} after filtering) from ${channel.name}`)
             }
           } catch (videoError) {
             console.error(`Error searching for videos from ${channel.name}:`, videoError)
@@ -339,8 +396,11 @@ export async function GET(request: NextRequest) {
                   }
                 }).filter(playlist => playlist !== null) // Remove null entries
                 
-                allPlaylists.push(...playlists)
-                console.log(`Found ${playlists.length} playlists from ${channel.name}`)
+                // Apply blacklist/whitelist filtering to playlists
+                const filteredPlaylists = playlists.filter(playlist => !shouldFilterContent(playlist, blacklistedItems, whitelistedItems))
+                
+                allPlaylists.push(...filteredPlaylists)
+                console.log(`Found ${playlists.length} playlists (${filteredPlaylists.length} after filtering) from ${channel.name}`)
               }
             } catch (playlistError) {
               console.error(`Error searching for playlists from ${channel.name}:`, playlistError)

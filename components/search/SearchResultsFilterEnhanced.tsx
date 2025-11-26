@@ -143,6 +143,22 @@ export function SearchResultsFilter({
     loadItems()
   }, [])
 
+  // Refresh function to reload data from database
+  const refreshLists = useCallback(async () => {
+    try {
+      const [blacklistedData, whitelistedData] = await Promise.all([
+        fetchBlacklistedItems(),
+        fetchWhitelistedItems()
+      ])
+      setBlacklisted(blacklistedData)
+      setWhitelisted(whitelistedData)
+      onBlacklistChange?.(blacklistedData)
+      onWhitelistChange?.(whitelistedData)
+    } catch (error) {
+      console.error('Error refreshing blacklisted/whitelisted items:', error)
+    }
+  }, [onBlacklistChange, onWhitelistChange])
+
   // Update parent when lists change
   useEffect(() => {
     onBlacklistChange?.(blacklisted)
@@ -204,26 +220,20 @@ export function SearchResultsFilter({
     const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
     if (itemType === 'unknown') return
     
-    const blacklistItem: BlacklistedItem = {
-      id: 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId,
-      itemId: 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId,
+    const itemId = 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId
+    
+    const blacklistItem = {
+      itemId,
       title: item.title || item.channelName || 'Unknown',
       type: itemType,
       thumbnail: item.thumbnail,
-      channelName: item.channelName,
-      addedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      channelName: item.channelName
     }
     
     const success = await addToBlacklist(blacklistItem)
     if (success) {
-      setBlacklisted(prev => {
-        // Check if already exists
-        if (prev.some(existing => existing.itemId === blacklistItem.itemId && existing.type === blacklistItem.type)) {
-          return prev
-        }
-        return [...prev, blacklistItem]
-      })
+      // Refresh lists from database to get server-generated data
+      await refreshLists()
     }
     
     // Also call parent callback to update main app state
@@ -234,26 +244,20 @@ export function SearchResultsFilter({
     const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
     if (itemType === 'unknown') return
     
-    const whitelistItem: WhitelistedItem = {
-      id: 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId,
-      itemId: 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId,
+    const itemId = 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId
+    
+    const whitelistItem = {
+      itemId,
       title: item.title || item.channelName || 'Unknown',
       type: itemType,
       thumbnail: item.thumbnail,
-      channelName: item.channelName,
-      addedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      channelName: item.channelName
     }
     
     const success = await addToWhitelist(whitelistItem)
     if (success) {
-      setWhitelisted(prev => {
-        // Check if already exists
-        if (prev.some(existing => existing.itemId === whitelistItem.itemId && existing.type === whitelistItem.type)) {
-          return prev
-        }
-        return [...prev, whitelistItem]
-      })
+      // Refresh lists from database to get server-generated data
+      await refreshLists()
     }
     
     // Also call parent callback to update main app state

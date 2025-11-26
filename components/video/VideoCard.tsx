@@ -445,34 +445,6 @@ export function VideoCard({
               </div>
             </div>
           )}
-
-          {/* Quick Add Buttons - Always Visible */}
-          {(onAddToBlacklist || onAddToWhitelist || forceShowButtons) && (
-            <div className="absolute top-2 right-2 flex flex-col gap-2 transition-all duration-300 opacity-100 scale-100">
-              {onAddToWhitelist && !isWhitelisted && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 min-h-[32px] min-w-[32px] p-0 touch-manipulation mobile-touch-feedback bg-green-500/90 hover:bg-green-600 text-white shadow-lg border border-green-400/30 transition-all duration-300 hover:scale-110"
-                  onClick={handleAddToWhitelist}
-                  title="Add to Whitelist"
-                >
-                  <Shield className="w-4 h-4" />
-                </Button>
-              )}
-              {onAddToBlacklist && !isBlacklisted && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 min-h-[32px] min-w-[32px] p-0 touch-manipulation mobile-touch-feedback bg-red-500/90 hover:bg-red-600 text-white shadow-lg border border-red-400/30 transition-all duration-300 hover:scale-110"
-                  onClick={handleAddToBlacklist}
-                  title="Add to Blacklist"
-                >
-                  <ShieldOff className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Enhanced Content Section */}

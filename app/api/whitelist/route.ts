@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { createHash } from 'crypto'
+
+// Helper function to create MD5 hash
+function createMD5Hash(input: string): string {
+  return createHash('md5').update(input).digest('hex')
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -94,7 +100,10 @@ export async function POST(request: NextRequest) {
         title: title.trim(),
         type,
         thumbnail: thumbnail?.trim() || null,
-        channelName: channelName?.trim() || null
+        channelName: channelName?.trim() || null,
+        videoHash: type === 'video' ? createMD5Hash(itemId) : null,
+        channelHash: type === 'channel' ? createMD5Hash(itemId) : null,
+        isChannelWhitelist: type === 'channel'
       }
     })
 
@@ -198,14 +207,20 @@ export async function PATCH(request: NextRequest) {
               type,
               thumbnail: thumbnail?.trim() || null,
               channelName: channelName?.trim() || null,
-              updatedAt: new Date()
+              updatedAt: new Date(),
+              videoHash: type === 'video' ? createMD5Hash(itemId) : null,
+              channelHash: type === 'channel' ? createMD5Hash(itemId) : null,
+              isChannelWhitelist: type === 'channel'
             },
             create: {
               itemId,
               title: title.trim(),
               type,
               thumbnail: thumbnail?.trim() || null,
-              channelName: channelName?.trim() || null
+              channelName: channelName?.trim() || null,
+              videoHash: type === 'video' ? createMD5Hash(itemId) : null,
+              channelHash: type === 'channel' ? createMD5Hash(itemId) : null,
+              isChannelWhitelist: type === 'channel'
             }
           })
         })
