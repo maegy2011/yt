@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { WatchedVideo, WatchedVideoInput } from '@/types/watched'
+import { useIncognito } from '@/contexts/incognito-context'
+import { addIncognitoHeaders } from '@/lib/incognito-utils'
 
 interface UseWatchedHistoryReturn {
   watchedVideos: WatchedVideo[]
@@ -18,6 +20,7 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
   const [watchedVideos, setWatchedVideos] = useState<WatchedVideo[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const { isIncognito } = useIncognito()
 
   const fetchWatchedVideos = useCallback(async () => {
     setIsLoading(true)
@@ -47,9 +50,9 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
       
       const response = await fetch('/api/watched', {
         method: 'POST',
-        headers: {
+        headers: addIncognitoHeaders({
           'Content-Type': 'application/json',
-        },
+        }, isIncognito),
         body: JSON.stringify(video),
       })
       
@@ -58,31 +61,36 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
         throw new Error(errorData?.error || 'Failed to add to watched history')
       }
       
-      // Don't immediately refresh - let the server respond first
-      console.log('Successfully added to watched history:', video.title)
+      const result = await response.json()
       
-      // Optimistically update local state for better UX
-      setWatchedVideos(prev => {
-        const exists = prev.find(v => v.videoId === video.videoId)
-        if (exists) {
-          // Update existing video with latest data
-          return prev.map(v => 
-            v.videoId === video.videoId 
-              ? { ...v, ...video, watchedAt: new Date(), updatedAt: new Date() }
-              : v
-          )
-        } else {
-          // Add new video
-          return [...prev, { ...video, watchedAt: new Date(), updatedAt: new Date() }]
-        }
-      })
+      // Don't immediately refresh - let the server respond first
+      console.log('Successfully added to watched history:', video.title, result.incognito ? '(incognito)' : '')
+      
+      // Only update local state if not in incognito mode
+      if (!result.incognito) {
+        // Optimistically update local state for better UX
+        setWatchedVideos(prev => {
+          const exists = prev.find(v => v.videoId === video.videoId)
+          if (exists) {
+            // Update existing video with latest data
+            return prev.map(v => 
+              v.videoId === video.videoId 
+                ? { ...v, ...video, watchedAt: new Date(), updatedAt: new Date() }
+                : v
+            )
+          } else {
+            // Add new video
+            return [...prev, { ...video, watchedAt: new Date(), updatedAt: new Date() }]
+          }
+        })
+      }
     } catch (err) {
       console.error('Failed to add to watched history:', err)
       setError(err as Error)
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [isIncognito])
 
   const removeFromWatchedHistory = useCallback(async (videoId: string) => {
     try {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { sanitizeVideoId, isValidYouTubeVideoId } from '@/lib/youtube-utils'
+import { isIncognitoRequest, shouldSkipInIncognito, createIncognitoResponse } from '@/lib/incognito-utils'
 
 export async function GET() {
   try {
@@ -48,6 +49,21 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const isIncognito = isIncognitoRequest(request)
+    
+    // Skip saving favorites in incognito mode
+    if (shouldSkipInIncognito(isIncognito)) {
+      const body = await request.json()
+      const { videoId, title, channelName, thumbnail, duration, viewCount } = body
+      
+      // Return error response for favorites in incognito mode
+      return NextResponse.json({
+        error: 'Favorites are disabled in incognito mode',
+        incognito: true,
+        message: 'Cannot add favorites while in incognito mode'
+      }, { status: 403 })
+    }
+    
     const body = await request.json()
     const { videoId, title, channelName, thumbnail, duration, viewCount } = body
 

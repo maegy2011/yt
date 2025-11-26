@@ -420,13 +420,13 @@ export function VideoCard({
               isHovered ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            <div className={`bg-white/95 backdrop-blur-md rounded-full p-3 sm:p-4 transition-all duration-300 min-h-[44px] min-w-[44px] flex items-center justify-center ${
+            <div className={`bg-white/95 backdrop-blur-md rounded-full p-2 sm:p-2.5 transition-all duration-300 min-h-[40px] min-w-[40px] flex items-center justify-center ${
               isHovered ? 'scale-110' : 'scale-100'
             } mobile-touch-feedback`}>
               {isCurrentVideo && isBackgroundPlaying ? (
-                <Pause className="w-6 h-6 sm:w-8 sm:h-8 text-gray-800" />
+                <Pause className="w-4 h-4 sm:w-5 sm:h-5 text-gray-800" />
               ) : (
-                <Play className="w-6 h-6 sm:w-8 sm:h-8 text-gray-800 ml-1" />
+                <Play className="w-4 h-4 sm:w-5 sm:h-5 text-gray-800 ml-0.5" />
               )}
             </div>
           </div>

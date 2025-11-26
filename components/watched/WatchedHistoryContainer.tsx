@@ -7,6 +7,7 @@ import { useWatchedHistory } from '@/hooks/useWatchedHistory'
 import { useState, useCallback, useMemo } from 'react'
 import { Eye, Clock, TrendingUp, Search, Filter, Grid, List, Calendar, BarChart3, RefreshCw } from 'lucide-react'
 import type { WatchedVideo } from '@/types/watched'
+import { IncognitoWrapper } from '@/components/incognito-wrapper-enhanced'
 
 interface WatchedHistoryContainerProps {
   onVideoPlay: (video: WatchedVideo) => void
@@ -162,7 +163,7 @@ export function WatchedHistoryContainer({ onVideoPlay }: WatchedHistoryContainer
   }, [clearWatchedHistory])
 
   return (
-    <div className="space-y-6">
+    <IncognitoWrapper feature="watch-history" className="space-y-6">
       {/* Header */}
       <Card>
         <CardHeader>
@@ -284,6 +285,6 @@ export function WatchedHistoryContainer({ onVideoPlay }: WatchedHistoryContainer
           />
         </CardContent>
       </Card>
-    </div>
+    </IncognitoWrapper>
   )
 }

@@ -5,6 +5,7 @@ import { NoteList } from './NoteList'
 import { NoteEditor } from './NoteEditor'
 import { VideoNote, CreateNoteRequest, UpdateNoteRequest } from '@/types/notes'
 import { useNotes } from '@/hooks/useNotes'
+import { IncognitoWrapper } from '@/components/incognito-wrapper-enhanced'
 
 interface NotesContainerProps {
   videoData?: {
@@ -103,7 +104,7 @@ export function NotesContainer({ videoData, onVideoPlay, onAddToNotebook, classN
   }
 
   return (
-    <div className={getContainerClasses()}>
+    <IncognitoWrapper feature="notes" className={getContainerClasses()}>
       {/* Error Display */}
       {error && (
         <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
@@ -137,6 +138,6 @@ export function NotesContainer({ videoData, onVideoPlay, onAddToNotebook, classN
         }}
         mode={editorMode}
       />
-    </div>
+    </IncognitoWrapper>
   )
 }

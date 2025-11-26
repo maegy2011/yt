@@ -25,15 +25,40 @@ export function useServiceWorker(): ServiceWorkerHook {
       // Register service worker
       navigator.serviceWorker.register('/sw.js')
         .then((reg) => {
-          console.log('Service Worker registered successfully')
+          console.log('Service Worker registered successfully:', reg.scope)
           setRegistration(reg)
           setIsRegistered(true)
+          
+          // Listen for updates
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing
+            if (newWorker) {
+              console.log('Service Worker update found')
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New worker is available, show update notification if needed
+                  console.log('New Service Worker available - refresh to update')
+                }
+              })
+            }
+          })
+          
+          // Check if service worker is already controlling the page
+          if (navigator.serviceWorker.controller) {
+            console.log('Service Worker is already controlling the page')
+          }
         })
         .catch((error) => {
-          console.error('Service Worker registration failed:', error)
+          console.warn('Service Worker registration failed:', error.message)
           setIsRegistered(false)
+          
+          // Don't treat this as a critical error - app can work without service worker
+          if (error.name === 'TypeError' && (error.message.includes('404') || error.message.includes('Failed to fetch'))) {
+            console.info('Service worker script not found - app will work without it')
+          }
         })
     } else {
+      console.info('Service Worker not supported in this browser')
       setIsSupported(false)
     }
   }, [])

@@ -16,6 +16,7 @@ interface BackgroundPlayerContextType {
   showMiniPlayer: boolean
   playerRef: any
   savedPosition: number | null
+  settingsTitle: string | null
   
   // Actions
   playBackgroundVideo: (video: SimpleVideo) => void
@@ -29,6 +30,8 @@ interface BackgroundPlayerContextType {
   updateDuration: (duration: number) => void
   updatePlayingState: (isPlaying: boolean) => void
   resumeFromSavedPosition: () => void
+  setSettingsTitle: (title: string) => void
+  setSettingsTitle: (title: string) => void
 }
 
 const BackgroundPlayerContext = createContext<BackgroundPlayerContextType | undefined>(undefined)
@@ -186,6 +189,10 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
     }
   }, [])
 
+  const setSettingsTitle = useCallback((title: string) => {
+    setSettingsTitle(title)
+  }, [])
+
   const toggleBackgroundMode = useCallback(() => {
     setIsBackgroundMode(prev => !prev)
   }, [])
@@ -306,6 +313,7 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
         updateDuration,
         updatePlayingState,
         resumeFromSavedPosition,
+        setSettingsTitle,
       }}
     >
       {children}

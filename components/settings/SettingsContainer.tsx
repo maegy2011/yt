@@ -12,9 +12,12 @@ import {
   Trash2, 
   Database,
   Shield,
-  Sliders
+  Sliders,
+  Eye,
+  EyeOff
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { IncognitoToggle } from '@/components/incognito-toggle'
 
 interface SettingsContainerProps {
   autoLoadMore: boolean
@@ -93,16 +96,16 @@ export function SettingsContainer({
 
   return (
     <div className="h-full bg-background">
-      {/* Header */}
-      <div className="bg-card/95 backdrop-blur-lg border-b border-border sticky top-0 z-40 px-4 py-6">
+      {/* Mobile-First Header */}
+      <div className="bg-card/95 backdrop-blur-lg border-b border-border px-4 py-4">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
-              <Settings className="w-6 h-6 text-primary" />
+              <Settings className="w-5 h-5 text-primary" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold">Settings & Privacy</h1>
-              <p className="text-muted-foreground">Configure your app preferences and privacy settings</p>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-lg sm:text-xl font-bold">Settings</h1>
+              <p className="text-sm text-muted-foreground mt-1">Configure your app preferences and privacy settings</p>
             </div>
           </div>
         </div>
@@ -110,18 +113,18 @@ export function SettingsContainer({
 
       {/* Content */}
       <ScrollArea className="flex-1">
-        <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+        <div className="w-full px-3 sm:px-4 lg:px-6 py-4 space-y-6">
           
           {/* General Settings */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Sliders className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold">General Settings</h2>
+          <div className="space-y-4 sm:space-y-6">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <Sliders className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              <h2 className="text-base sm:text-lg font-semibold">General Settings</h2>
             </div>
 
             {/* Auto Load More Setting */}
             <Card>
-              <CardContent className="pt-6">
+              <CardContent className="pt-4 sm:pt-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <label className="text-sm font-medium">Auto Load More</label>
@@ -140,16 +143,16 @@ export function SettingsContainer({
           </div>
 
           {/* Favorites Module Settings */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Database className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold">Favorites Module</h2>
+          <div className="space-y-4 sm:space-y-6">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <Database className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              <h2 className="text-base sm:text-lg font-semibold">Favorites Module</h2>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {/* Enable/Disable Favorites */}
               <Card>
-                <CardContent className="pt-6">
+                <CardContent className="pt-3 sm:pt-6">
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
                       <label className="text-sm font-medium">Enable Favorites</label>
@@ -169,7 +172,7 @@ export function SettingsContainer({
               {/* Pause/Resume Favorites */}
               {favoritesEnabled && (
                 <Card>
-                  <CardContent className="pt-6">
+                  <CardContent className="pt-3 sm:pt-6">
                     <div className="flex items-center justify-between">
                       <div className="space-y-0.5">
                         <label className="text-sm font-medium">Pause Favorites</label>
@@ -190,41 +193,41 @@ export function SettingsContainer({
           </div>
 
           {/* Data Statistics */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Database className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold">Data Statistics</h2>
+          <div className="space-y-4 sm:space-y-6">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <Database className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              <h2 className="text-base sm:text-lg font-semibold">Data Statistics</h2>
             </div>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Storage Overview</CardTitle>
+                <CardTitle className="text-sm sm:text-base">Storage Overview</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 bg-muted/50 rounded-lg">
-                    <div className="text-2xl font-bold text-primary">{favoriteChannels.length}</div>
-                    <div className="text-sm text-muted-foreground">Favorite Channels</div>
+              <CardContent className="space-y-3 sm:space-y-4">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
+                    <div className="text-xl sm:text-2xl font-bold text-primary">{favoriteChannels.length}</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground">Favorite Channels</div>
                   </div>
                   {favoritesEnabled && (
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <div className="text-2xl font-bold text-primary">{favoriteVideos.length}</div>
-                      <div className="text-sm text-muted-foreground">Favorite Videos</div>
+                    <div className="p-3 sm:p-4 bg-muted/50 rounded-lg">
+                      <div className="text-xl sm:text-2xl font-bold text-primary">{favoriteVideos.length}</div>
+                      <div className="text-xs sm:text-sm text-muted-foreground">Favorite Videos</div>
                     </div>
                   )}
                 </div>
                 
-                <div className="pt-4 border-t">
+                <div className="pt-3 sm:pt-4 border-t">
                   <div className="flex justify-between items-center">
-                    <span className="font-medium">Total Items</span>
-                    <span className="text-xl font-bold text-primary">
+                    <span className="text-sm sm:text-base font-medium">Total Items</span>
+                    <span className="text-lg sm:text-xl font-bold text-primary">
                       {favoriteChannels.length + (favoritesEnabled ? favoriteVideos.length : 0)}
                     </span>
                   </div>
                 </div>
 
                 {dataStatistics && (
-                  <div className="pt-4 border-t space-y-2">
+                  <div className="pt-3 sm:pt-4 border-t space-y-2">
                     <h4 className="text-sm font-medium">Detailed Statistics</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       {Object.entries(dataStatistics).map(([key, value]) => (
@@ -243,11 +246,47 @@ export function SettingsContainer({
           </div>
 
           {/* Privacy Section */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold">Privacy & Data Management</h2>
+          <div className="space-y-4 sm:space-y-6">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              <h2 className="text-base sm:text-lg font-semibold">Privacy & Data Management</h2>
             </div>
+
+            {/* Incognito Mode */}
+            <Card>
+              <CardContent className="pt-3 sm:pt-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <EyeOff className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
+                      <label className="text-sm font-medium">Incognito Mode</label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Browse privately without saving your activity
+                    </p>
+                    <div className="text-xs text-muted-foreground mt-2 space-y-1">
+                      <div className="flex items-center gap-1">
+                        <div className="w-1 h-1 bg-muted-foreground rounded-full" />
+                        <span>Watch history not saved</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-1 h-1 bg-muted-foreground rounded-full" />
+                        <span>Favorites disabled</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-1 h-1 bg-muted-foreground rounded-full" />
+                        <span>Search history not saved</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-1 h-1 bg-muted-foreground rounded-full" />
+                        <span>Notes disabled</span>
+                      </div>
+                    </div>
+                  </div>
+                  <IncognitoToggle />
+                </div>
+              </CardContent>
+            </Card>
 
             <Card className="border-destructive/20">
               <CardHeader>
@@ -279,7 +318,7 @@ export function SettingsContainer({
                     </>
                   ) : (
                     <>
-                      <Trash2 className="w-4 h-4 mr-2" />
+                      <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                       Clear All Data
                     </>
                   )}
@@ -289,15 +328,15 @@ export function SettingsContainer({
           </div>
 
           {/* About Section */}
-          <div className="space-y-6 pb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <Settings className="w-5 h-5 text-primary" />
-              <h2 className="text-lg font-semibold">About</h2>
+          <div className="space-y-4 sm:space-y-6 pb-6 sm:pb-8">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+              <h2 className="text-base sm:text-lg font-semibold">About</h2>
             </div>
 
             <Card>
-              <CardContent className="pt-6">
-                <div className="space-y-4 text-sm">
+              <CardContent className="pt-3 sm:pt-6">
+                <div className="space-y-3 sm:space-y-4 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Application</span>
                     <span className="font-medium">MyTube</span>
@@ -315,7 +354,7 @@ export function SettingsContainer({
                     <span className="font-medium">100% Local</span>
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
+                <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t text-xs text-muted-foreground">
                   Your data never leaves your device. All favorites, settings, and history are stored locally in your browser.
                 </div>
               </CardContent>

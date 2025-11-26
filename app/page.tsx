@@ -83,12 +83,16 @@ import { ShareNotebookDialog } from '@/components/notebooks/ShareNotebookDialog'
 import { FavoritesContainer } from '@/components/favorites/FavoritesContainer'
 import { WatchedHistoryContainer } from '@/components/watched/WatchedHistoryContainer'
 import { EnhancedClearData } from '@/components/enhanced-clear-data'
-import { SettingsContainer } from '@/components/settings'
+import { SettingsContainerEnhanced } from '@/components/settings/SettingsContainerEnhanced'
 import { useWatchedHistory } from '@/hooks/useWatchedHistory'
 import { BottomNavigation } from '@/components/navigation/BottomNavigation'
 import { NavigationSpacer } from '@/components/navigation/NavigationSpacer'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
+import { useIncognito } from '@/contexts/incognito-context'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { IncognitoBannerEnhanced } from '@/components/incognito-banner-enhanced'
+import { IncognitoToggleEnhanced } from '@/components/incognito-toggle-enhanced'
+import { QuickSettings } from '@/components/settings/QuickSettings'
 import { ChannelsContainer } from '@/components/channels/ChannelsContainer'
 import { useChannelAvatar } from '@/hooks/useChannelAvatar'
 import { SearchResultsFilter } from '@/components/search/SearchResultsFilterEnhanced'
@@ -129,7 +133,11 @@ export default function MyTubeApp() {
     showMiniPlayer,
     pauseBackgroundVideo,
     stopBackgroundVideo,
+    settingsTitle
   } = useBackgroundPlayer()
+
+  // Incognito mode context
+  const { isIncognito } = useIncognito()
 
   // Watch history hook
   const { addToWatchedHistory, isVideoWatched } = useWatchedHistory()
@@ -4130,7 +4138,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
 
       case 'settings':
         return (
-          <SettingsContainer
+          <SettingsContainerEnhanced
             autoLoadMore={autoLoadMore}
             setAutoLoadMore={setAutoLoadMore}
             favoritesEnabled={favoritesEnabled}
@@ -4158,7 +4166,12 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   }
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden touch-manipulation">
+    <div className={`h-screen bg-background flex flex-col overflow-hidden touch-manipulation ${
+      isIncognito ? 'incognito-mode' : ''
+    }`}>
+      {/* Incognito Banner */}
+      <IncognitoBannerEnhanced />
+      
       {/* Header - Always Visible */}
       <header className="bg-card/95 backdrop-blur-lg border-b border-border sticky top-0 z-50 shadow-sm flex-shrink-0 sticky-support">
         <div className="w-full px-3 sm:px-4 lg:px-6">
@@ -4245,8 +4258,9 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                 )}
               </Button>
               
-              
               <ThemeSwitch />
+              <QuickSettings />
+              <IncognitoToggleEnhanced />
             </div>
           </div>
         </div>
@@ -4449,7 +4463,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
             }}
           /> */}
           
-          <nav className="flex items-center justify-around py-2 overflow-x-auto" role="navigation" aria-label="Main navigation">
+          <nav className="flex items-center justify-around py-2 w-full" role="navigation" aria-label="Main navigation">
             {tabs.map((tab, index) => {
               const isActive = activeTab === tab.id
               return (
@@ -4503,8 +4517,9 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       </div>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto scroll-smooth touch-pan-y w-full px-3 sm:px-4 lg:px-6 pt-4 sm:pt-6 pb-20 sm:pb-24 md:pt-16 md:pb-8 lg:pb-8">
-        {dynamicLoadingMessage && (
+      <main className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-y-auto scroll-smooth touch-pan-y w-full px-3 sm:px-4 lg:px-6 pt-4 sm:pt-6 pb-20 sm:pb-24 md:pt-16 md:pb-8 lg:pb-8">
+          {dynamicLoadingMessage && (
           <div className="mb-6 p-3 sm:p-4 bg-muted border border-border rounded-lg">
             <div className="flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin text-primary" />
@@ -4514,6 +4529,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         )}
         
         {renderContent()}
+        </div>
       </main>
 
       {/* Enhanced Clear Data Dialog */}

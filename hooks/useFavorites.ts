@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { FavoriteVideo, CreateFavoriteRequest, FavoritesState, FavoriteOperations, FavoriteFilters, FavoriteSortOptions } from '@/types/favorites'
+import { useIncognito } from '@/contexts/incognito-context'
+import { addIncognitoHeaders } from '@/lib/incognito-utils'
 
 const defaultFilters: FavoriteFilters = {}
 const defaultSort: FavoriteSortOptions = { field: 'addedAt', direction: 'desc' }
@@ -14,6 +16,7 @@ export function useFavorites(): FavoritesState & FavoriteOperations {
   const [sort, setSort] = useState<FavoriteSortOptions>(defaultSort)
   const [enabled, setEnabled] = useState(true)
   const [paused, setPaused] = useState(false)
+  const { isIncognito } = useIncognito()
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -103,13 +106,17 @@ export function useFavorites(): FavoritesState & FavoriteOperations {
       throw new Error('Favorites functionality is paused')
     }
     
+    if (isIncognito) {
+      throw new Error('Favorites are disabled in incognito mode')
+    }
+    
     setLoading(true)
     setError(null)
     
     try {
       const response = await fetch('/api/favorites', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: addIncognitoHeaders({ 'Content-Type': 'application/json' }, isIncognito),
         body: JSON.stringify(data)
       })
       
@@ -128,7 +135,7 @@ export function useFavorites(): FavoritesState & FavoriteOperations {
     } finally {
       setLoading(false)
     }
-  }, [enabled, paused])
+  }, [enabled, paused, isIncognito])
 
   const removeFavorite = useCallback(async (videoId: string): Promise<void> => {
     if (!enabled) {

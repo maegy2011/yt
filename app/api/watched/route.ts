@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { sanitizeVideoId, isValidYouTubeVideoId } from '@/lib/youtube-utils'
+import { isIncognitoRequest, shouldSkipInIncognito, createIncognitoResponse } from '@/lib/incognito-utils'
 
 export async function GET() {
   try {
@@ -52,6 +53,28 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const db = getDb()
+    const isIncognito = isIncognitoRequest(request)
+    
+    // Skip saving watch history in incognito mode
+    if (shouldSkipInIncognito(isIncognito)) {
+      const body = await request.json()
+      const { videoId, title, channelName, thumbnail, duration, viewCount } = body
+      
+      // Return success response but don't actually save
+      const mockResponse = {
+        id: 'incognito-' + Date.now(),
+        videoId: sanitizeVideoId(videoId),
+        title: title || 'Unknown Video',
+        channelName: channelName || 'Unknown Channel',
+        thumbnail: thumbnail || '',
+        duration,
+        viewCount: viewCount?.toString() || null,
+        watchedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+      
+      return NextResponse.json(createIncognitoResponse(mockResponse, isIncognito))
+    }
     
     const body = await request.json()
     const { videoId, title, channelName, thumbnail, duration, viewCount } = body
