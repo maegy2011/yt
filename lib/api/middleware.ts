@@ -1,0 +1,281 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { RateLimitConfig, RateLimitResult, ApiContext, ApiError, ApiResponse } from './types'
+import { AppError, ErrorUtils } from '@/lib/errors'
+
+// In-memory rate limiting store (for production, consider Redis)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
+
+// Generate a unique request ID
+function generateRequestId(): string {
+  return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+}
+
+// Extract client IP from request
+function getClientIP(request: NextRequest): string {
+  // Try various headers for IP
+  const forwardedFor = request.headers.get('x-forwarded-for')
+  const realIP = request.headers.get('x-real-ip')
+  const cfConnectingIP = request.headers.get('cf-connecting-ip')
+  
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0].trim()
+  }
+  
+  if (realIP) {
+    return realIP
+  }
+  
+  if (cfConnectingIP) {
+    return cfConnectingIP
+  }
+  
+  // Fallback to request IP
+  return request.ip || 'unknown'
+}
+
+// Rate limiting middleware
+export function createRateLimit(config: RateLimitConfig) {
+  return function rateLimit(request: NextRequest): RateLimitResult {
+    const ip = getClientIP(request)
+    const now = Date.now()
+    const windowMs = config.windowMs
+    const max = config.max
+    
+    // Get or create rate limit entry
+    let entry = rateLimitStore.get(ip)
+    
+    if (!entry || now > entry.resetTime) {
+      // Create new entry
+      entry = {
+        count: 1,
+        resetTime: now + windowMs
+      }
+      rateLimitStore.set(ip, entry)
+      
+      return {
+        success: true,
+        limit: max,
+        remaining: max - 1,
+        resetTime: new Date(entry.resetTime)
+      }
+    }
+    
+    // Increment count
+    entry.count++
+    
+    // Calculate remaining requests
+    const remaining = Math.max(0, max - entry.count)
+    const success = entry.count <= max
+    const retryAfter = success ? undefined : Math.ceil((entry.resetTime - now) / 1000)
+    
+    return {
+      success,
+      limit: max,
+      remaining,
+      resetTime: new Date(entry.resetTime),
+      retryAfter
+    }
+  }
+}
+
+// Clean up expired rate limit entries
+function cleanupRateLimit() {
+  const now = Date.now()
+  for (const [ip, entry] of rateLimitStore.entries()) {
+    if (now > entry.resetTime) {
+      rateLimitStore.delete(ip)
+    }
+  }
+}
+
+// Run cleanup every 5 minutes
+setInterval(cleanupRateLimit, 5 * 60 * 1000)
+
+// Create API context from request
+export function createApiContext(request: NextRequest): ApiContext {
+  const url = new URL(request.url)
+  const startTime = Date.now()
+  
+  return {
+    request,
+    response: new Response(),
+    startTime,
+    requestId: generateRequestId(),
+    ip: getClientIP(request),
+    userAgent: request.headers.get('user-agent') || undefined,
+    method: request.method,
+    url: request.url,
+    path: url.pathname,
+    query: Object.fromEntries(url.searchParams.entries()),
+    headers: Object.fromEntries(request.headers.entries())
+  }
+}
+
+// Create consistent error response
+export function createErrorResponse(
+  context: ApiContext,
+  code: string,
+  message: string,
+  statusCode: number = 500,
+  details?: any
+): NextResponse<ApiResponse> {
+  // Create AppError for consistent handling
+  const appError = new AppError(message, statusCode, code, true, details)
+  
+  // Log the error
+  ErrorUtils.logError(appError, {
+    requestId: context.requestId,
+    method: context.method,
+    path: context.path,
+    ip: context.ip,
+    userAgent: context.userAgent
+  })
+  
+  const error: ApiError = {
+    code: appError.code,
+    message: appError.message,
+    details: appError.context,
+    timestamp: appError.timestamp,
+    requestId: context.requestId,
+    path: context.path,
+    method: context.method
+  }
+  
+  return NextResponse.json({
+    success: false,
+    error,
+    meta: {
+      requestId: context.requestId,
+      timestamp: new Date().toISOString(),
+      version: '1.0.0'
+    }
+  }, { 
+    status: appError.statusCode,
+    headers: {
+      'X-Error-Code': appError.code,
+      'X-Request-ID': context.requestId,
+      'Cache-Control': 'no-cache, no-store, must-revalidate'
+    }
+  })
+}
+
+// Create success response
+export function createSuccessResponse<T>(
+  context: ApiContext,
+  data: T,
+  meta?: {
+    pagination?: {
+      page: number
+      limit: number
+      total: number
+      hasMore: boolean
+    }
+  }
+): NextResponse<ApiResponse<T>> {
+  return NextResponse.json({
+    success: true,
+    data,
+    meta: {
+      requestId: context.requestId,
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      ...meta
+    }
+  })
+}
+
+// Rate limit exceeded response
+export function createRateLimitResponse(
+  context: ApiContext,
+  rateLimitResult: RateLimitResult
+): NextResponse<ApiResponse> {
+  return NextResponse.json({
+    success: false,
+    error: {
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: 'Too many requests. Please try again later.',
+      timestamp: new Date().toISOString(),
+      requestId: context.requestId,
+      path: context.path,
+      method: context.method
+    },
+    meta: {
+      requestId: context.requestId,
+      timestamp: new Date().toISOString(),
+      version: '1.0.0'
+    }
+  }, {
+    status: 429,
+    headers: {
+      'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+      'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+      'X-RateLimit-Reset': rateLimitResult.resetTime.toUTCString(),
+      ...(rateLimitResult.retryAfter && {
+        'Retry-After': rateLimitResult.retryAfter.toString()
+      })
+    }
+  })
+}
+
+// CORS middleware
+export function addCORSHeaders(
+  response: NextResponse,
+  origin: string[] | '*',
+  credentials: boolean = false,
+  methods: string[] = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  headers: string[] = ['Content-Type', 'Authorization']
+): NextResponse {
+  if (origin === '*') {
+    response.headers.set('Access-Control-Allow-Origin', '*')
+  } else {
+    const requestOrigin = response.headers.get('Origin')
+    if (requestOrigin && origin.includes(requestOrigin)) {
+      response.headers.set('Access-Control-Allow-Origin', requestOrigin)
+    }
+  }
+  
+  response.headers.set('Access-Control-Allow-Methods', methods.join(', '))
+  response.headers.set('Access-Control-Allow-Headers', headers.join(', '))
+  
+  if (credentials) {
+    response.headers.set('Access-Control-Allow-Credentials', 'true')
+  }
+  
+  response.headers.set('Access-Control-Max-Age', '86400') // 24 hours
+  
+  return response
+}
+
+// Security headers middleware
+export function addSecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('X-XSS-Protection', '1; mode=block')
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  
+  return response
+}
+
+// Request logging middleware
+export function logRequest(context: ApiContext, statusCode: number, duration: number, error?: any): void {
+  const logData = {
+    requestId: context.requestId,
+    method: context.method,
+    path: context.path,
+    ip: context.ip,
+    userAgent: context.userAgent,
+    statusCode,
+    duration: `${duration}ms`,
+    timestamp: new Date().toISOString(),
+    ...(error && { error: error.message || error })
+  }
+  
+  if (statusCode >= 500) {
+    console.error('[API ERROR]', logData)
+  } else if (statusCode >= 400) {
+    console.warn('[API WARNING]', logData)
+  } else {
+    console.info('[API INFO]', logData)
+  }
+}

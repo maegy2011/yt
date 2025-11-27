@@ -3,7 +3,7 @@
 /**
  * Sanitizes a string by removing potentially dangerous characters
  */
-export function sanitizeString(input: any, maxLength: number = 1000): string {
+export function sanitizeString(input: unknown, maxLength: number = 1000): string {
   if (input === null || input === undefined) return ''
   
   const str = String(input)
@@ -19,7 +19,7 @@ export function sanitizeString(input: any, maxLength: number = 1000): string {
 /**
  * Validates and sanitizes a search query
  */
-export function validateSearchQuery(query: any): { isValid: boolean; sanitized: string; error?: string } {
+export function validateSearchQuery(query: unknown): { isValid: boolean; sanitized: string; error?: string } {
   if (!query || typeof query !== 'string') {
     return { isValid: false, sanitized: '', error: 'Search query is required' }
   }
@@ -54,7 +54,7 @@ export function validateSearchQuery(query: any): { isValid: boolean; sanitized: 
 /**
  * Validates video ID format
  */
-export function validateVideoId(videoId: any): { isValid: boolean; sanitized: string; error?: string } {
+export function validateVideoId(videoId: unknown): { isValid: boolean; sanitized: string; error?: string } {
   if (!videoId || typeof videoId !== 'string') {
     return { isValid: false, sanitized: '', error: 'Video ID is required' }
   }
@@ -80,7 +80,7 @@ export function validateVideoId(videoId: any): { isValid: boolean; sanitized: st
 /**
  * Validates channel ID format
  */
-export function validateChannelId(channelId: any): { isValid: boolean; sanitized: string; error?: string } {
+export function validateChannelId(channelId: unknown): { isValid: boolean; sanitized: string; error?: string } {
   if (!channelId || typeof channelId !== 'string') {
     return { isValid: false, sanitized: '', error: 'Channel ID is required' }
   }
@@ -106,7 +106,7 @@ export function validateChannelId(channelId: any): { isValid: boolean; sanitized
 /**
  * Validates and sanitizes note content
  */
-export function validateNoteContent(title: any, comment: any): { 
+export function validateNoteContent(title: unknown, comment: unknown): { 
   isValid: boolean; 
   sanitized: { title: string; comment: string }; 
   error?: string 
@@ -131,7 +131,7 @@ export function validateNoteContent(title: any, comment: any): {
 /**
  * Validates numeric input (view count, subscriber count, etc.)
  */
-export function validateNumericInput(value: any, fieldName: string = 'Value'): { 
+export function validateNumericInput(value: unknown, fieldName: string = 'Value'): { 
   isValid: boolean; 
   sanitized: number | null; 
   error?: string 
@@ -172,7 +172,7 @@ export function validateNumericInput(value: any, fieldName: string = 'Value'): {
 /**
  * Validates time input for video notes (in seconds)
  */
-export function validateTimeInput(value: any, fieldName: string = 'Time'): { 
+export function validateTimeInput(value: unknown, fieldName: string = 'Time'): { 
   isValid: boolean; 
   sanitized: number; 
   error?: string 
@@ -210,7 +210,7 @@ export function validateTimeInput(value: any, fieldName: string = 'Time'): {
 /**
  * Generic validation for API request bodies
  */
-export function validateRequestBody(body: any, requiredFields: string[]): { 
+export function validateRequestBody(body: unknown, requiredFields: string[]): { 
   isValid: boolean; 
   error?: string 
 } {
@@ -218,8 +218,10 @@ export function validateRequestBody(body: any, requiredFields: string[]): {
     return { isValid: false, error: 'Invalid request body' }
   }
   
+  const bodyObj = body as Record<string, unknown>
+  
   for (const field of requiredFields) {
-    if (!(field in body) || body[field] === null || body[field] === undefined) {
+    if (!(field in bodyObj) || bodyObj[field] === null || bodyObj[field] === undefined) {
       return { isValid: false, error: `Missing required field: ${field}` }
     }
   }

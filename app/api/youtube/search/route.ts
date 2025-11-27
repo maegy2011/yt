@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { YouTubeClient, YouTubeiModule, YouTubeSearchResponse, YouTubeSearchResult, YouTubeThumbnails, YouTubeChannel } from '@/types/youtube-api'
 
 // Use dynamic import for youtubei to avoid module resolution issues
-let Client: any
-let youtubei: any
+let Client: (new () => YouTubeClient) | null = null
+let youtubei: YouTubeiModule | null = null
 
-const initializeYoutubei = async () => {
+const initializeYoutubei = async (): Promise<void> => {
   try {
-    const youtubeiModule = await import('youtubei')
-    youtubei = youtubeiModule.default || youtubeiModule
-    Client = youtubei.Client || youtubeiModule.Client
+    const youtubeiModule = await import('youtubei') as unknown as YouTubeiModule
+    youtubei = youtubeiModule
+    Client = youtubeiModule.default?.Client || youtubeiModule.Client
     console.log('YouTubei initialized successfully')
   } catch (error) {
     console.error('Failed to initialize YouTubei:', error)
@@ -19,7 +20,7 @@ const initializeYoutubei = async () => {
 initializeYoutubei().catch(console.error)
 
 // Helper function to extract thumbnail URL from YouTubei v1.8.0 Thumbnails API
-function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
+function extractThumbnail(thumbnails: YouTubeThumbnails | string | undefined): { url: string; width: number; height: number } {
   try {
     if (!thumbnails) {
       return {
@@ -30,7 +31,7 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
     }
 
     // Handle YouTubei v1.8.0 Thumbnails object (has .best property)
-    if (thumbnails && typeof thumbnails === 'object' && thumbnails.best && typeof thumbnails.best === 'string') {
+    if (typeof thumbnails === 'object' && thumbnails.best && typeof thumbnails.best === 'string') {
       return {
         url: thumbnails.best,
         width: 1280,
@@ -39,9 +40,9 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
     }
 
     // Handle YouTubei v1.8.0 Thumbnails array
-    if (Array.isArray(thumbnails) && thumbnails.length > 0) {
-      // Use the best thumbnail (highest resolution) - usually the last one
-      const bestThumbnail = thumbnails[thumbnails.length - 1]
+    if (thumbnails.thumbnails && Array.isArray(thumbnails.thumbnails) && thumbnails.thumbnails.length > 0) {
+      // Use best thumbnail (highest resolution) - usually the last one
+      const bestThumbnail = thumbnails.thumbnails[thumbnails.thumbnails.length - 1]
       if (bestThumbnail && bestThumbnail.url) {
         return {
           url: bestThumbnail.url,
@@ -52,11 +53,12 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
     }
 
     // Handle single thumbnail object
-    if (thumbnails && thumbnails.url) {
+    if (typeof thumbnails === 'object' && (thumbnails as any).url) {
+      const thumb = thumbnails as any
       return {
-        url: thumbnails.url,
-        width: thumbnails.width || 320,
-        height: thumbnails.height || 180
+        url: thumb.url,
+        width: thumb.width || 320,
+        height: thumb.height || 180
       }
     }
 
@@ -86,7 +88,7 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
 }
 
 // Helper function to extract channel information from YouTubei v1.8.0 BaseChannel
-function extractChannel(channel: any): { id: string; name: string; thumbnail?: string; subscriberCount?: string; handle?: string } {
+function extractChannel(channel: YouTubeChannel | undefined | null): { id: string; name: string; thumbnail?: string; subscriberCount?: string | number; handle?: string } {
   if (!channel) {
     return {
       id: '',
@@ -104,7 +106,7 @@ function extractChannel(channel: any): { id: string; name: string; thumbnail?: s
   return {
     id: channel.id || '',
     name: channel.name || 'Unknown Channel',
-    thumbnail: channelThumbnail,
+    thumbnail: channelThumbnail || channel.thumbnail,
     subscriberCount: channel.subscriberCount,
     handle: channel.handle
   }
@@ -147,7 +149,7 @@ export async function GET(request: NextRequest) {
     }
     const youtube = new Client()
     
-    let results
+    let results: YouTubeSearchResponse
     if (continuation) {
       // For pagination, use the continuation token properly
       try {
@@ -159,7 +161,7 @@ export async function GET(request: NextRequest) {
         }
         const continuationClient = new Client()
         const continuationResults = await continuationClient.search(query, { 
-          type: type as any,
+          type: type as 'video' | 'playlist' | 'channel',
           continuation: continuation 
         })
         
@@ -242,25 +244,41 @@ export async function GET(request: NextRequest) {
         const channelData = await channelResponse.json()
         
         // Convert channel data to match expected format
-        const channelItems = channelData.items.map((channel: any) => ({
-          id: channel.channelId || channel.id,
-          type: 'channel',
-          title: channel.name,
-          description: channel.description,
-          thumbnail: channel.thumbnail,
-          subscriberCount: channel.subscriberCount,
-          videoCount: channel.videoCount,
-          viewCount: channel.viewCount,
-          channel: {
-            id: channel.channelId || channel.id,
-            name: channel.name,
-            thumbnail: channel.thumbnail,
-            subscriberCount: channel.subscriberCount,
-            handle: channel.handle
-          },
-          isFavorite: channel.isFavorite,
-          stats: channel.stats
-        }))
+        const channelItems = channelData.items.map((channel: Record<string, unknown>): YouTubeSearchResult => {
+          const channelRecord = channel as {
+            channelId?: string
+            id?: string
+            name?: string
+            description?: string
+            thumbnail?: string
+            subscriberCount?: string | number
+            videoCount?: number
+            viewCount?: string | number
+            handle?: string
+            isFavorite?: boolean
+            stats?: unknown
+          }
+          
+          return {
+            id: channelRecord.channelId || channelRecord.id || '',
+            type: 'channel',
+            title: channelRecord.name || '',
+            description: channelRecord.description,
+            thumbnail: channelRecord.thumbnail,
+            subscriberCount: channelRecord.subscriberCount,
+            videoCount: channelRecord.videoCount,
+            viewCount: channelRecord.viewCount,
+            channel: {
+              id: channelRecord.channelId || channelRecord.id || '',
+              name: channelRecord.name || '',
+              thumbnail: channelRecord.thumbnail,
+              subscriberCount: channelRecord.subscriberCount,
+              handle: channelRecord.handle
+            },
+            isFavorite: channelRecord.isFavorite,
+            stats: channelRecord.stats
+          }
+        })
         
         results = {
           items: channelItems,
@@ -270,52 +288,58 @@ export async function GET(request: NextRequest) {
         console.log('Channel search completed, items count:', channelItems.length)
       } else {
         // For specific types (video, playlist), use normal search
-        results = await youtube.search(query, { type: type as any })
+        results = await youtube.search(query, { type: type as 'video' | 'playlist' | 'channel' })
         console.log('Initial search completed, items count:', results.items?.length || 0)
       }
     }
     
     // Extract video, playlist, and channel data
-    const videoItems = results.items?.map((item: any, index: number) => {
+    const videoItems = results.items?.map((item: YouTubeSearchResult): YouTubeSearchResult | null => {
       // Handle channel items
       if (item.type === 'channel') {
         return item // Already in correct format
       }
       
+      // Type assertion for item properties
+      const itemRecord = item as Record<string, unknown>
+      
       // Check if this is a playlist by ID pattern (starts with PL) or has videoCount
-      const isPlaylistById = item.id && typeof item.id === 'string' && item.id.startsWith('PL')
-      const isPlaylistByVideoCount = item.videoCount !== undefined && !item.duration
+      const itemId = typeof itemRecord.id === 'string' ? itemRecord.id : ''
+      const isPlaylistById = itemId.startsWith('PL')
+      const videoCount = itemRecord.videoCount as number | undefined
+      const duration = itemRecord.duration as string | number | undefined
+      const isPlaylistByVideoCount = videoCount !== undefined && !duration
       
       if (isPlaylistById || isPlaylistByVideoCount) {
         // This is a playlist
-        const channelInfo = extractChannel(item.channel)
+        const channelInfo = extractChannel(itemRecord.channel as YouTubeChannel | undefined)
         
         return {
-          id: item.id,
+          id: itemId,
           type: 'playlist',
-          title: item.title,
-          description: item.description,
-          thumbnail: extractThumbnail(item.thumbnails || item.thumbnail),
-          videoCount: item.videoCount || 0,
-          viewCount: item.viewCount || 0,
-          lastUpdatedAt: item.lastUpdatedAt,
+          title: typeof itemRecord.title === 'string' ? itemRecord.title : '',
+          description: itemRecord.description as string | undefined,
+          thumbnail: extractThumbnail(itemRecord.thumbnails as YouTubeThumbnails | string | undefined),
+          videoCount: videoCount || 0,
+          viewCount: itemRecord.viewCount as string | number | undefined,
+          lastUpdatedAt: itemRecord.lastUpdatedAt as string | undefined,
           channel: channelInfo
         }
       }
       // Check if this looks like a video (has id, title, and basic video properties)
-      else if (item.id && item.title && (item.thumbnails || item.thumbnail || item.duration !== undefined || item.viewCount !== undefined)) {
+      else if (itemRecord.id && itemRecord.title && (itemRecord.thumbnails || itemRecord.thumbnail || duration !== undefined || itemRecord.viewCount !== undefined)) {
         // Format duration properly
-        let formattedDuration = item.duration
-        if (item.duration) {
+        let formattedDuration: string | number | undefined = duration
+        if (duration) {
           // Handle various duration formats from YouTube API
-          if (typeof item.duration === 'string') {
+          if (typeof duration === 'string') {
             // If it's already in MM:SS or HH:MM:SS format, keep it
-            if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(item.duration)) {
-              formattedDuration = item.duration
+            if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(duration)) {
+              formattedDuration = duration
             }
             // If it's in ISO 8601 format (PT4M13S), convert it
-            else if (item.duration.startsWith('PT')) {
-              const match = item.duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
+            else if (duration.startsWith('PT')) {
+              const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
               if (match) {
                 const hours = parseInt(match[1] || '0')
                 const minutes = parseInt(match[2] || '0')
@@ -329,54 +353,54 @@ export async function GET(request: NextRequest) {
               }
             }
             // If it's a number of seconds, convert it
-            else if (/^\d+$/.test(item.duration)) {
-              const totalSeconds = parseInt(item.duration)
+            else if (/^\d+$/.test(duration)) {
+              const totalSeconds = parseInt(duration)
               const minutes = Math.floor(totalSeconds / 60)
               const seconds = totalSeconds % 60
               formattedDuration = `${minutes}:${seconds.toString().padStart(2, '0')}`
             }
           }
           // If it's a number, convert it
-          else if (typeof item.duration === 'number') {
-            const minutes = Math.floor(item.duration / 60)
-            const seconds = Math.floor(item.duration % 60)
+          else if (typeof duration === 'number') {
+            const minutes = Math.floor(duration / 60)
+            const seconds = Math.floor(duration % 60)
             formattedDuration = `${minutes}:${seconds.toString().padStart(2, '0')}`
           }
         }
         
-        const channelInfo = extractChannel(item.channel)
+        const channelInfo = extractChannel(itemRecord.channel as YouTubeChannel | undefined)
         
         return {
-          id: item.id,
+          id: itemId,
           type: 'video',
-          title: item.title,
-          description: item.description,
-          thumbnail: extractThumbnail(item.thumbnails || item.thumbnail),
+          title: typeof itemRecord.title === 'string' ? itemRecord.title : '',
+          description: itemRecord.description as string | undefined,
+          thumbnail: extractThumbnail(itemRecord.thumbnails as YouTubeThumbnails | string | undefined),
           duration: formattedDuration,
-          viewCount: item.viewCount,
-          publishedAt: item.uploadDate, // YouTubei v1.8.0 API: uploadDate provides human-readable relative dates
-          isLive: item.isLive || false,
+          viewCount: itemRecord.viewCount as string | number | undefined,
+          publishedAt: itemRecord.uploadDate as string | undefined, // YouTubei v1.8.0 API: uploadDate provides human-readable relative dates
+          isLive: (itemRecord.isLive as boolean) || false,
           channel: channelInfo
         }
       }
       // Check if this looks like a playlist (has id, title, videoCount but no duration)
-      else if (item.id && item.title && (item.videoCount !== undefined || item.type === 'playlist')) {
-        const channelInfo = extractChannel(item.channel)
+      else if (itemRecord.id && itemRecord.title && (videoCount !== undefined || itemRecord.type === 'playlist')) {
+        const channelInfo = extractChannel(itemRecord.channel as YouTubeChannel | undefined)
         
         return {
-          id: item.id,
+          id: itemId,
           type: 'playlist',
-          title: item.title,
-          description: item.description,
-          thumbnail: extractThumbnail(item.thumbnails || item.thumbnail),
-          videoCount: item.videoCount || 0,
-          viewCount: item.viewCount || 0,
-          lastUpdatedAt: item.lastUpdatedAt,
+          title: typeof itemRecord.title === 'string' ? itemRecord.title : '',
+          description: itemRecord.description as string | undefined,
+          thumbnail: extractThumbnail(itemRecord.thumbnails as YouTubeThumbnails | string | undefined),
+          videoCount: videoCount || 0,
+          viewCount: itemRecord.viewCount as string | number | undefined,
+          lastUpdatedAt: itemRecord.lastUpdatedAt as string | undefined,
           channel: channelInfo
         }
       }
       return null
-    }).filter(Boolean) || []
+    }).filter((item): item is YouTubeSearchResult => item !== null) || []
     
     console.log('Items processed:', videoItems.length)
     console.log('Continuation token available:', !!results.continuation)

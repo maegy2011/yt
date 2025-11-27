@@ -4,202 +4,22 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { 
-  Film,
-  Music,
-  GameIcon,
-  PlayCircle,
-  Mic,
-  BookOpen,
-  Lightbulb,
-  Sparkles,
-  Heart,
-  TrendingUp,
-  Globe,
-  Clock,
-  Users,
-  Hash,
-  Tag,
   Filter,
   X,
   ChevronDown,
   Check,
-  Plus
-  Grid3x3
-  List
-  Video
-  Play
-  Settings,
-  Folders
-  Archive,
-  Camera,
-  Smartphone,
-  Tv,
-  Radio,
-  Newspaper,
-  GraduationCap,
-  Palette,
-  Package,
-  ShoppingCart,
-  Car,
-  Home,
-  Briefcase,
-  Headphones,
+  PlayCircle,
+  Music,
   Gamepad2,
-  Dumbbell,
-  Bell,
-  Search,
-  MoreHorizontal,
-  SlidersHorizontal,
-  Zap,
-  Star,
-  Award,
+  BookOpen,
+  Lightbulb,
+  Newspaper,
   Trophy,
-  Target,
-  Compass,
-  MapPin,
-  Building,
-  Factory,
   Coffee,
-  Utensils,
-  Wrench,
-  Shield,
-  Lock,
-  Unlock,
-  Eye,
-  EyeOff
-  Volume2,
-  Wifi,
-  Battery,
-  Bluetooth,
-  Download,
-  Upload,
-  Share,
-  Link,
-  Bookmark,
-  MessageSquare,
-  Mail,
-  Phone,
-  Calendar,
-  CreditCard,
-  DollarSign,
-  User,
-  Users2,
-  UserPlus,
-  UserMinus,
-  Settings2,
-  LogOut,
-  HelpCircle,
-  Info,
-  AlertTriangle,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  Menu,
-  Grid3x3,
-  ListOrdered,
-  Copy,
-  Trash2,
-  Edit3,
-  Save,
-  FolderOpen,
-  Folder,
-  FolderPlus,
-  FolderMinus,
-  File,
-  FileText,
-  FileImage,
-  FileVideo,
-  FileAudio,
-  FileCode,
-  FilePlus,
-  FileMinus,
-  MoreVertical,
-  MoreHorizontal,
-  SlidersHorizontal,
-  Zap,
-  Star,
-  Award,
-  Trophy,
-  Target,
-  Compass,
-  MapPin,
-  Building,
-  Factory,
-  Coffee,
-  Utensils,
-  Wrench,
-  Shield,
-  Lock,
-  Unlock,
-  Eye,
-  EyeOff,
-  Volume2,
-  Wifi,
-  Battery,
-  Bluetooth,
-  Download,
-  Upload,
-  Share,
-  Link,
-  Bookmark,
-  MessageSquare,
-  Mail,
-  Phone,
-  Calendar,
-  CreditCard,
-  DollarSign,
-  User,
-  Users2,
-  UserPlus,
-  UserMinus,
-  Settings2,
-  LogOut,
-  HelpCircle,
-  Info,
-  AlertTriangle,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  Menu,
-  Grid3x3,
-  ListOrdered,
-  Copy,
-  Trash2,
-  Edit3,
-  Save,
-  FolderOpen,
-  Folder,
-  FolderPlus,
-  FolderMinus,
-  File,
-  FileText,
-  FileImage,
-  FileVideo,
-  FileAudio,
-  FileCode,
-  FilePlus,
-  FileMinus,
-  MoreVertical,
-  MoreHorizontal,
-  SlidersHorizontal,
-  Zap,
-  Star,
-  Award,
-  Trophy,
-  Target,
-  Compass,
-  MapPin,
-  Building,
-  Factory,
-  Coffee,
-  Utensils,
-  Wrench
+  Briefcase,
+  Smartphone,
+  Heart,
+  Shield
 } from 'lucide-react'
 
 // Content categories with YouTube-specific categories
@@ -207,7 +27,7 @@ export interface ContentCategory {
   id: string
   name: string
   description: string
-  icon: any
+  icon: React.ComponentType<any>
   color: string
   keywords: string[]
   parentId?: string
@@ -228,7 +48,7 @@ export const CONTENT_CATEGORIES: ContentCategory[] = [
         id: 'comedy',
         name: 'Comedy',
         description: 'Funny videos, stand-up comedy, and comedy sketches',
-        icon: Sparkles,
+        icon: PlayCircle,
         color: 'text-pink-600',
         keywords: ['comedy', 'funny', 'stand-up', 'humor', 'sketches', 'viral']
       },
@@ -247,14 +67,6 @@ export const CONTENT_CATEGORIES: ContentCategory[] = [
         icon: Music,
         color: 'text-green-600',
         keywords: ['music', 'concert', 'audio', 'song', 'album', 'playlist', 'dj', 'music video']
-      },
-      {
-        id: 'movies',
-        name: 'Movies & TV',
-        description: 'Movies, TV shows, and film content',
-        icon: Film,
-        color: 'text-red-600',
-        keywords: ['movie', 'film', 'tv show', 'series', 'cinema', 'documentary']
       }
     ]
   },
@@ -263,10 +75,9 @@ export const CONTENT_CATEGORIES: ContentCategory[] = [
     id: 'education',
     name: 'Education',
     description: 'Educational content, tutorials, and learning materials',
-    icon: GraduationCap,
+    icon: BookOpen,
     color: 'text-blue-600',
-    keywords: ['education', 'tutorial', 'learning', 'course', 'lesson', 'study', 'academic', 'university', 'college', 'school']
-    },
+    keywords: ['education', 'tutorial', 'learning', 'course', 'lesson', 'study', 'academic', 'university', 'college', 'school'],
     subcategories: [
       {
         id: 'science',
@@ -275,26 +86,10 @@ export const CONTENT_CATEGORIES: ContentCategory[] = [
         icon: Lightbulb,
         color: 'text-cyan-600',
         keywords: ['science', 'technology', 'tech review', 'experiment', 'how to', 'tech', 'programming', 'coding', 'software']
-      },
-      {
-        id: 'history',
-        name: 'History & Documentaries',
-        description: 'Historical content, documentaries, and educational archives',
-        icon: Archive,
-        color: 'text-amber-600',
-        keywords: ['history', 'documentary', 'archive', 'historical', 'education', 'research', 'facts']
-      },
-      {
-        id: 'language',
-        name: 'Language Learning',
-        description: 'Language courses, language learning, and translation content',
-        icon: BookOpen,
-        color: 'text-teal-600',
-        keywords: ['language', 'learn language', 'translation', 'course', 'foreign language', 'language learning']
       }
     ]
   },
-  // News & Politics
+  // News
   {
     id: 'news',
     name: 'News & Politics',
@@ -302,33 +97,6 @@ export const CONTENT_CATEGORIES: ContentCategory[] = [
     icon: Newspaper,
     color: 'text-orange-600',
     keywords: ['news', 'politics', 'current events', 'breaking news', 'journalism', 'politics']
-    },
-    subcategories: [
-      {
-        id: 'world-news',
-        name: 'World News',
-        description: 'International news and global current events',
-        icon: Globe,
-        color: 'text-red-600',
-        keywords: ['world news', 'international', 'global', 'current events']
-      },
-      {
-        id: 'technology-news',
-        name: 'Technology News',
-        description: 'Tech news, gadget reviews, and innovation',
-        icon: Smartphone,
-        color: 'text-blue-600',
-        keywords: ['tech news', 'gadgets', 'innovation', 'technology', 'reviews']
-      },
-      {
-        id: 'politics',
-        name: 'Politics',
-        description: 'Political commentary, government content, and civic issues',
-        icon: Users2,
-        color: 'text-slate-600',
-        keywords: ['politics', 'government', 'civic', 'political', 'debate']
-      }
-    ]
   },
   // Sports
   {
@@ -338,49 +106,6 @@ export const CONTENT_CATEGORIES: ContentCategory[] = [
     icon: Trophy,
     color: 'text-green-600',
     keywords: ['sports', 'athletic', 'fitness', 'workout', 'exercise', 'competition', 'match']
-    },
-    subcategories: [
-      {
-        id: 'football',
-        name: 'Football',
-        description: 'Football matches, highlights, and soccer content',
-        icon: Users,
-        color: 'text-blue-600',
-        keywords: ['football', 'soccer', 'match', 'highlight', 'goal', 'team']
-      },
-      {
-        id: 'basketball',
-        name: 'Basketball',
-        description: 'Basketball games, highlights, and basketball content',
-        icon: Users,
-        color: 'text-orange-600',
-        keywords: ['basketball', 'nba', 'highlights', 'dunk', 'slam dunk']
-      },
-      {
-        id: 'baseball',
-        name: 'Baseball',
-        description: 'Baseball games, highlights, and baseball content',
-        icon: Users,
-        color: 'text-red-600',
-        keywords: ['baseball', 'mlb', 'home run', 'strikeout', 'world series']
-      },
-      {
-        id: 'tennis',
-        name: 'Tennis',
-        description: 'Tennis matches, tutorials, and tennis content',
-        icon: Users,
-        color: 'text-green-600',
-        keywords: ['tennis', 'match', 'grand slam', 'wimbledon', 'tutorial']
-      },
-      {
-        id: 'fitness',
-        name: 'Fitness & Health',
-        description: 'Workout routines, fitness tutorials, and health content',
-        icon: Heart,
-        color: 'text-pink-600',
-        keywords: ['fitness', 'workout', 'exercise', 'health', 'gym', 'training']
-      }
-    ]
   },
   // Lifestyle
   {
@@ -390,43 +115,8 @@ export const CONTENT_CATEGORIES: ContentCategory[] = [
     icon: Coffee,
     color: 'text-amber-600',
     keywords: ['lifestyle', 'vlog', 'daily life', 'cooking', 'recipe', 'home improvement']
-    },
-    subcategories: [
-      {
-        id: 'food',
-        name: 'Food & Cooking',
-        description: 'Cooking tutorials, recipes, and food content',
-        icon: Utensils,
-        color: 'text-orange-600',
-        keywords: ['cooking', 'recipe', 'food', 'baking', 'kitchen', 'chef']
-      },
-      {
-        id: 'travel',
-        name: 'Travel',
-        description: 'Travel vlogs, destination guides, and travel content',
-        icon: MapPin,
-        color: 'text-blue-600',
-        keywords: ['travel', 'vacation', 'destination', 'guide', 'tourism']
-      },
-      {
-        id: 'fashion',
-        name: 'Fashion & Beauty',
-        description: 'Fashion content, beauty tutorials, and style guides',
-        icon: Sparkles,
-        color: 'text-pink-600',
-        keywords: ['fashion', 'beauty', 'makeup', 'style', 'tutorial']
-      },
-      {
-        id: 'home-garden',
-        name: 'Home & Garden',
-        description: 'Home improvement, gardening, and DIY content',
-        icon: Home,
-        color: 'text-green-600',
-        keywords: ['home improvement', 'diy', 'gardening', 'home decor']
-      }
-    ]
   },
-  // Business & Finance
+  // Business
   {
     id: 'business',
     name: 'Business & Finance',
@@ -434,33 +124,6 @@ export const CONTENT_CATEGORIES: ContentCategory[] = [
     icon: Briefcase,
     color: 'text-blue-600',
     keywords: ['business', 'finance', 'entrepreneurship', 'investment', 'marketing', 'startup']
-    },
-    subcategories: [
-      {
-        id: 'investing',
-        name: 'Investing & Finance',
-        description: 'Investment advice, financial education, and stock market content',
-        icon: TrendingUp,
-        color: 'text-green-600',
-        keywords: ['investing', 'finance', 'stock market', 'trading', 'crypto', 'personal finance']
-      },
-      {
-        id: 'marketing',
-        name: 'Marketing',
-        description: 'Marketing strategies, digital marketing, and content creation',
-        icon: Target,
-        color: 'text-purple-600',
-        keywords: ['marketing', 'digital marketing', 'content creation', 'seo', 'social media']
-      },
-      {
-        id: 'entrepreneurship',
-        name: 'Entrepreneurship',
-        description: 'Startup advice, business tips, and entrepreneurial content',
-        icon: Lightbulb,
-        color: 'text-yellow-600',
-        keywords: ['startup', 'entrepreneurship', 'business tips', 'small business']
-      }
-    ]
   },
   // Technology
   {
@@ -470,43 +133,8 @@ export const CONTENT_CATEGORIES: ContentCategory[] = [
     icon: Smartphone,
     color: 'text-blue-600',
     keywords: ['technology', 'software', 'programming', 'coding', 'tech review', 'gadgets', 'app reviews']
-    },
-    subcategories: [
-      {
-        id: 'software-development',
-        name: 'Software Development',
-        description: 'Programming tutorials, coding content, and software development',
-        icon: Code,
-        color: 'text-green-600',
-        keywords: ['programming', 'coding', 'software development', 'tutorial', 'code review']
-      },
-      {
-        id: 'artificial-intelligence',
-        name: 'Artificial Intelligence',
-        description: 'AI content, machine learning, and artificial intelligence',
-        icon: Zap,
-        color: 'text-purple-600',
-        keywords: ['artificial intelligence', 'machine learning', 'ai', 'deep learning', 'neural networks']
-      },
-      {
-        'id': 'web-development',
-        name: 'Web Development',
-        description: 'Web design, development tutorials, and coding content',
-        icon: Globe,
-        color: 'text-cyan-600',
-        keywords: ['web development', 'web design', 'html', 'css', 'javascript', 'frontend']
-      },
-      {
-        id: 'cybersecurity',
-        name: 'Cybersecurity',
-        description: 'Cybersecurity content, security tips, and digital privacy',
-        icon: Shield,
-        color: 'text-red-600',
-        keywords: ['cybersecurity', 'security', 'privacy', 'hacking', 'digital security']
-      }
-    ]
   },
-  // Health & Wellness
+  // Health
   {
     id: 'health',
     name: 'Health & Wellness',
@@ -514,317 +142,168 @@ export const CONTENT_CATEGORIES: ContentCategory[] = [
     icon: Heart,
     color: 'text-red-600',
     keywords: ['health', 'wellness', 'medical', 'fitness', 'nutrition', 'mental health']
-    },
-    subcategories: [
-      {
-        id: 'mental-health',
-        name: 'Mental Health',
-        description: 'Mental health, meditation, and wellness content',
-        icon: Brain,
-        color: 'text-purple-600',
-        keywords: ['mental health', 'meditation', 'mindfulness', 'stress relief']
-      },
-      {
-        id: 'nutrition',
-        name: 'Nutrition',
-        description: 'Nutrition advice, healthy recipes, and dietary content',
-        icon: Utensils,
-        color: 'text-green-600',
-        keywords: ['nutrition', 'healthy recipes', 'diet', 'cooking', 'food']
-      },
-      {
-        id: 'medical',
-        name: 'Medical Information',
-        'description: 'Medical explanations, health education, and medical content',
-        icon: Stethoscope,
-        color: 'text-blue-600',
-        keywords: ['medical', 'health education', 'doctor', 'medicine', 'healthcare']
-      }
-    ]
   },
-  // Arts & Crafts
+  // Other
   {
-    id: 'arts',
-    name: 'Arts & Crafts',
-    description: 'Art tutorials, DIY projects, and creative content',
-    icon: Palette,
-    color: 'text-pink-600',
-    keywords: ['art', 'crafts', 'diy', 'creative', 'drawing', 'painting', 'sculpture']
-    },
-    subcategories: [
-      {
-        id: 'music-creation',
-        name: 'Music Creation',
-        description: 'Music production, beat making, and audio creation',
-        icon: Music,
-        color: 'text-purple-600',
-        keywords: ['music production', 'beat making', 'audio editing', 'djs', 'mixing']
-      },
-      {
-        id: 'photography',
-        name: 'Photography',
-        description: 'Photography tutorials, photo editing, and camera reviews',
-        icon: Camera,
-        color: 'text-blue-600',
-        keywords: ['photography', 'camera', 'photo editing', 'photo tutorials']
-      },
-      {
-        id: 'writing',
-        name: 'Writing',
-        description: 'Writing tips, creative writing, and content creation',
-        icon: Edit3,
-        color: 'text-green-600',
-        keywords: ['writing', 'creative writing', 'content creation', 'storytelling']
-      },
-      {
-        id: 'drawing',
-        name: 'Drawing & Painting',
-        description: 'Drawing tutorials, art techniques, and painting guides',
-        icon: Palette,
-        color: 'text-orange-600',
-        keywords: ['drawing', 'painting', 'art tutorials', 'sketching']
-      }
-    ]
-  },
-  // Autos & Vehicles
-  {
-    id: 'autos',
-    name: 'Autos & Vehicles',
-    description: 'Car reviews, automotive content, and vehicle maintenance',
-    icon: Car,
-    color: 'text-blue-600',
-    keywords: ['cars', 'automotive', 'car reviews', 'vehicle maintenance', 'motorcycle', 'truck']
-    },
-    subcategories: [
-      {
-        id: 'car-reviews',
-        name: 'Car Reviews',
-        description: 'Car reviews, automotive journalism, and vehicle testing',
-        icon: Car,
-        color: 'text-red-600',
-        keywords: ['car reviews', 'automotive journalism', 'vehicle testing', 'car comparison']
-      },
-      {
-        id: 'motorcycle',
-        name: 'Motorcycles',
-        description: 'Motorcycle content, riding tips, and motorcycle reviews',
-        icon: Users2,
-        color: 'text-orange-600',
-        keywords: ['motorcycle', 'riding tips', 'motorcycle reviews', 'bike reviews']
-      },
-      {
-        id: 'trucks',
-        name: 'Trucks',
-        description: 'Truck content, heavy vehicles, and commercial vehicles',
-        icon: Truck,
-        color: 'text-gray-600',
-        keywords: ['trucks', 'heavy vehicles', 'commercial vehicles', 'truck reviews']
-      }
-    ]
-  },
-  // Pets & Animals
-  {
-    id: 'pets',
-    name: 'Pets & Animals',
-    description: 'Pet content, animal care, and wildlife videos',
-    icon: Heart,
-    color: 'text-pink-600',
-    keywords: ['pets', 'animals', 'pet care', 'wildlife', 'animal videos', 'dog', 'cat']
-    },
-    subcategories: [
-      {
-        id: 'dogs',
-        name: 'Dogs',
-        description: 'Dog content, dog training, and canine care',
-        icon: Users,
-        color: 'text-amber-600',
-        keywords: ['dogs', 'dog training', 'canine care', 'puppy', 'dog videos']
-      },
-      {
-        id: 'cats',
-        name: 'Cats',
-        description: 'Cat content, cat care, and feline videos',
-        icon: Users2,
-        color: 'text-orange-600',
-        keywords: ['cats', 'cat care', 'feline', 'kitten', 'cat videos']
-      },
-      {
-        id: 'wildlife',
-        name: 'Wildlife',
-        nature: 'Wildlife content, animal documentaries, and nature videos',
-        icon: Camera,
-        color: 'text-green-600',
-        keywords: ['wildlife', 'nature', 'animal documentaries', 'wildlife videos']
-      }
-    ]
-  },
-  // Science & Exploration
-  {
-    id: 'science',
-    name: 'Science & Exploration',
-    description: 'Scientific content, space exploration, and discovery',
-    icon: Microscope,
-    color: 'text-blue-600',
-    keywords: ['science', 'space', 'exploration', 'discovery', 'astronomy', 'physics', 'chemistry']
-    },
-    subcategories: [
-      {
-        id: 'astronomy',
-        name: 'Astronomy & Space',
-        description: 'Space content, astronomy, and stargazing',
-        icon: Star,
-        color: 'text-purple-600',
-        keywords: ['astronomy', 'space', 'stargazing', 'planets', 'telescope', 'nasa']
-      },
-      {
-        id: 'physics',
-        name: 'Physics',
-        description: 'Physics explanations, experiments, and physics education',
-        icon: Atom,
-        color: 'text-blue-600',
-        keywords: ['physics', 'experiments', 'quantum physics', 'mechanics', 'particle physics']
-      },
-      {
-        id: 'chemistry',
-        name: 'Chemistry',
-        description: 'Chemistry experiments, chemical education, and lab content',
-        icon: Flask,
-        color: 'text-green-600',
-        keywords: ['chemistry', 'experiments', 'lab', 'chemical education', 'science experiments']
-      },
-      {
-        id: 'biology',
-        name: 'Biology',
-        description: 'Biology content, biological education, and life sciences',
-        icon: Dna,
-        color: 'text-green-600',
-        keywords: ['biology', 'life sciences', 'genetics', 'evolution', 'microbiology']
-      },
-      {
-        id: 'earth-science',
-        name: 'Earth Science',
-        description: 'Earth science, geology, and environmental content',
-        icon: Globe,
-        color: 'text-blue-600',
-        keywords: ['earth science', 'geology', 'environment', 'climate', 'ecology']
-      }
-    ]
-  },
-  // Gaming
-  {
-    id: 'gaming',
-    name: 'Gaming',
-    description: 'Video games, game reviews, and gaming culture',
-    icon: Gamepad2,
-    color: 'text-purple-600',
-    keywords: ['gaming', 'video games', 'game reviews', 'gaming culture', 'esports', 'gameplay']
-    },
-    subcategories: [
-      {
-        id: 'game-reviews',
-        name: 'Game Reviews',
-        description: 'Game reviews, gaming news, and game analysis',
-        icon: Star,
-        color: 'text-yellow-600',
-        keywords: ['game reviews', 'gaming news', 'game analysis', 'gameplay']
-      },
-      {
-        'id': 'game-development',
-        name: 'Game Development',
-        description: 'Game development, game design, and game creation',
-        icon: Code,
-        color: 'text-green-600',
-        keywords: ['game development', 'game design', 'indie games', 'game creation']
-      },
-      {
-        'id': 'esports',
-        name: 'Esports',
-        description: 'Esports tournaments, competitive gaming, and esports news',
-        icon: Trophy,
-        color: 'text-orange-600',
-        keywords: ['esports', 'tournaments', 'competitive gaming', 'esports news', 'pro gaming']
-      },
-      {
-        'id': 'tabletop-games',
-        name: 'Tabletop Games',
-        description: 'Tabletop games, board games, and tabletop gaming',
-        icon: Grid3x3,
-        color: 'text-amber-600',
-        keywords: ['tabletop games', 'board games', 'tabletop gaming', 'board games']
-      },
-      {
-        'id': 'mobile-gaming',
-        name: 'Mobile Gaming',
-        description: 'Mobile games, app reviews, and mobile gaming culture',
-        icon: Smartphone,
-        color: 'text-blue-600',
-        keywords: ['mobile games', 'app reviews', 'mobile gaming', 'android games', 'ios games']
-      }
-    ]
-  },
-    // Other
-    {
     id: 'other',
     name: 'Other',
-    description: 'Uncategorized content and miscellaneous topics',
-    icon: MoreHorizontal,
+    description: 'Other content categories',
+    icon: Shield,
     color: 'text-gray-600',
-    keywords: ['miscellaneous', 'uncategorized', 'other topics', 'random content']
-    }
+    keywords: ['other', 'miscellaneous', 'general', 'random']
   }
+]
+
+export interface CategoryFilterProps {
+  selectedCategories: string[]
+  onCategoriesChange: (categories: string[]) => void
+  className?: string
 }
 
-// Helper function to get category by ID
-export function getCategoryById(id: string): ContentCategory | undefined {
-  return CONTENT_CATEGORIES.find(cat => cat.id === id)
-}
+export function CategoryFilter({ selectedCategories, onCategoriesChange, className = '' }: CategoryFilterProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
 
-// Helper function to get all categories
-export function getAllCategories(): ContentCategory[] {
-  return CONTENT_CATEGORIES
-}
-
-// Helper function to get popular categories
-export function getPopularCategories(): ContentCategory[] {
-  return CONTENT_CATEGORIES.slice(0, 8)
-}
-
-// Helper function to get categories by type
-export function getCategoriesByType(type: string): ContentCategory[] {
-  return CONTENT_CATEGORIES.filter(cat => cat.id === type)
-}
-
-// Helper function to search categories by name or keywords
-export function searchCategories(query: string): ContentCategory[] {
-  const searchQuery = query.toLowerCase().trim()
-  
-  return CONTENT_CATEGORIES.filter(category => 
-    category.name.toLowerCase().includes(searchQuery) ||
-    category.description.toLowerCase().includes(searchQuery) ||
-    category.keywords.some(keyword => keyword.toLowerCase().includes(searchQuery))
-  )
-}
-
-// Helper function to get category suggestions based on query
-export function getCategorySuggestions(query: string, limit: number = 5): ContentCategory[] {
-  const searchQuery = query.toLowerCase().trim()
-  
-  const matches = CONTENT_CATEGORIES.filter(category => 
-    category.name.toLowerCase().includes(searchQuery) ||
-    category.description.toLowerCase().includes(searchQuery) ||
-    category.keywords.some(keyword => keyword.toLowerCase().includes(searchQuery))
-  )
-  
-  // Sort by relevance (exact name matches first, then description, then keywords)
-  return matches.sort((a, b) => {
-    const aScore = a.name.toLowerCase() === searchQuery ? 100 : 
-                   a.description.toLowerCase().includes(searchQuery) ? 80 : 
-                   a.keywords.some(k => k.toLowerCase().includes(searchQuery)) ? 60 : 0
+  const toggleCategory = useCallback((categoryId: string) => {
+    const newCategories = selectedCategories.includes(categoryId)
+      ? selectedCategories.filter(id => id !== categoryId)
+      : [...selectedCategories, categoryId]
     
-    const bScore = b.name.toLowerCase() === searchQuery ? 100 : 
-                   b.description.toLowerCase().includes(searchQuery) ? 80 : 
-                   b.keywords.some(k => k.toLowerCase().includes(searchQuery)) ? 60 : 0
-    
-    return bScore - aScore
-  }).slice(0, limit)
+    onCategoriesChange(newCategories)
+  }, [selectedCategories, onCategoriesChange])
+
+  const toggleExpanded = useCallback((categoryId: string) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId)
+      } else {
+        newSet.add(categoryId)
+      }
+      return newSet
+    })
+  }, [])
+
+  const clearAll = useCallback(() => {
+    onCategoriesChange([])
+  }, [onCategoriesChange])
+
+  const selectAll = useCallback(() => {
+    const allCategoryIds = CONTENT_CATEGORIES.map(cat => cat.id)
+    onCategoriesChange(allCategoryIds)
+  }, [onCategoriesChange])
+
+  const getSelectedCount = useCallback(() => {
+    return selectedCategories.length
+  }, [selectedCategories])
+
+  return (
+    <div className={`space-y-4 ${className}`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Filter className="h-4 w-4" />
+          <span className="font-medium">Categories</span>
+          {getSelectedCount() > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {getSelectedCount()} selected
+            </Badge>
+          )}
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          {getSelectedCount() > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearAll}
+              className="text-xs"
+            >
+              Clear All
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsOpen(!isOpen)}
+            className="flex items-center space-x-1"
+          >
+            <span>Select Categories</span>
+            <ChevronDown className={`h-3 w-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          </Button>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="border rounded-lg p-4 space-y-3 bg-background">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Content Categories</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={selectAll}
+              className="text-xs"
+            >
+              Select All
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {CONTENT_CATEGORIES.map((category) => {
+              const Icon = category.icon
+              const isSelected = selectedCategories.includes(category.id)
+              const isExpanded = expandedCategories.has(category.id)
+              const hasSubcategories = category.subcategories && category.subcategories.length > 0
+
+              return (
+                <div key={category.id} className="space-y-2">
+                  <Button
+                    variant={isSelected ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => toggleCategory(category.id)}
+                    className={`w-full justify-start ${category.color} ${isSelected ? 'bg-opacity-20' : ''}`}
+                  >
+                    <Icon className="h-4 w-4 mr-2" />
+                    <span className="flex-1 text-left">{category.name}</span>
+                    {isSelected && <Check className="h-3 w-3" />}
+                    {hasSubcategories && (
+                      <ChevronDown 
+                        className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleExpanded(category.id)
+                        }}
+                      />
+                    )}
+                  </Button>
+
+                  {hasSubcategories && isExpanded && (
+                    <div className="ml-4 space-y-1">
+                      {category.subcategories!.map((subcategory) => {
+                        const SubIcon = subcategory.icon
+                        const isSubSelected = selectedCategories.includes(subcategory.id)
+
+                        return (
+                          <Button
+                            key={subcategory.id}
+                            variant={isSubSelected ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => toggleCategory(subcategory.id)}
+                            className={`w-full justify-start text-xs ${subcategory.color} ${isSubSelected ? 'bg-opacity-20' : ''}`}
+                          >
+                            <SubIcon className="h-3 w-3 mr-1" />
+                            <span className="flex-1 text-left">{subcategory.name}</span>
+                            {isSubSelected && <Check className="h-3 w-3" />}
+                          </Button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }

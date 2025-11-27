@@ -35,6 +35,12 @@ model WatchedVideo {
   viewCount   String?
   watchedAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  // Performance indexes for common queries
+  @@index([watchedAt])
+  @@index([channelName])
+  @@index([videoId])
+  @@index([watchedAt, channelName])
 }
 
 model FavoriteVideo {
@@ -47,6 +53,12 @@ model FavoriteVideo {
   viewCount   String?
   addedAt     DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  // Performance indexes for common queries
+  @@index([addedAt])
+  @@index([channelName])
+  @@index([videoId])
+  @@index([addedAt, channelName])
 }
 
 model FavoriteChannel {
@@ -59,6 +71,11 @@ model FavoriteChannel {
   viewCount       String?
   addedAt         DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  
+  // Performance indexes for common queries
+  @@index([addedAt])
+  @@index([name])
+  @@index([channelId])
 }
 
 model Notebook {
@@ -75,6 +92,12 @@ model Notebook {
   notes       VideoNote[]
   noteLinks   NoteLink[]
   pdfs        PdfFile[]
+  
+  // Performance indexes for common queries
+  @@index([createdAt])
+  @@index([category])
+  @@index([isPublic])
+  @@index([createdAt, category])
 }
 
 model VideoNote {
@@ -93,6 +116,14 @@ model VideoNote {
   notebookId  String?
   notebook    Notebook? @relation(fields: [notebookId], references: [id])
   noteLinks   NoteLink[]
+  
+  // Performance indexes for common queries
+  @@index([notebookId, createdAt])
+  @@index([videoId])
+  @@index([createdAt])
+  @@index([notebookId])
+  @@index([channelName])
+  @@index([isClip])
 }
 
 model NoteLink {
@@ -105,6 +136,11 @@ model NoteLink {
   notebook Notebook  @relation(fields: [notebookId], references: [id], onDelete: Cascade)
   
   @@unique([noteId, notebookId])
+  
+  // Performance indexes for common queries
+  @@index([noteId])
+  @@index([notebookId])
+  @@index([createdAt])
 }
 
 model VideoPlaybackPosition {
@@ -117,6 +153,11 @@ model VideoPlaybackPosition {
   currentTime Float    @default(0)
   lastWatched DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  // Performance indexes for common queries
+  @@index([lastWatched])
+  @@index([videoId])
+  @@index([channelName])
 }
 
 model PdfFile {

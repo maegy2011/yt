@@ -26,7 +26,7 @@ export function isValidYouTubeVideoId(videoId: string): boolean {
 /**
  * Sanitizes and validates video ID from API response
  */
-export function sanitizeVideoId(videoId: any): string | null {
+export function sanitizeVideoId(videoId: unknown): string | null {
   if (!videoId) {
     return null
   }
@@ -81,7 +81,7 @@ export function generateEmbedUrl(videoId: string, startTime?: number): string {
 /**
  * Extracts video ID from YouTube URL
  */
-export function extractVideoIdFromUrl(url: string): string | null {
+export function extractVideoIdFromUrl(url: unknown): string | null {
   if (!url || typeof url !== 'string') {
     return null
   }

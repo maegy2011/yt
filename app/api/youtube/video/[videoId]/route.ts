@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Client } from 'youtubei'
+import { YouTubeClient, YouTubeVideo, YouTubeChannel, YouTubeThumbnails } from '@/types/youtube-api'
 import { isValidYouTubeVideoId, sanitizeVideoId } from '@/lib/youtube-utils'
 
-const youtube = new Client()
+// Use dynamic import for youtubei to avoid module resolution issues
+let Client: (new () => YouTubeClient) | null = null
+
+const initializeYoutubei = async (): Promise<void> => {
+  try {
+    const youtubeiModule = await import('youtubei') as any
+    Client = youtubeiModule.default?.Client || youtubeiModule.Client
+  } catch (error) {
+    console.error('Failed to initialize YouTubei:', error)
+  }
+}
+
+// Initialize immediately
+initializeYoutubei().catch(console.error)
 
 // Helper function to extract thumbnail URL from YouTubei v1.8.0 Thumbnails API
-function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
+function extractThumbnail(thumbnails: YouTubeThumbnails | string | undefined): { url: string; width: number; height: number } {
   if (!thumbnails) {
     return {
       url: `https://via.placeholder.com/320x180/374151/ffffff?text=No+Thumbnail`,
@@ -63,7 +76,7 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
 }
 
 // Helper function to extract channel information from YouTubei v1.8.0 BaseChannel
-function extractChannel(channel: any): { id: string; name: string; thumbnail?: string; subscriberCount?: string; handle?: string } {
+function extractChannel(channel: YouTubeChannel | undefined | null): { id: string; name: string; thumbnail?: string; subscriberCount?: string | number; handle?: string } {
   if (!channel) {
     return {
       id: '',
@@ -106,6 +119,11 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid video ID format' }, { status: 400 })
     }
     
+    if (!Client) {
+      return NextResponse.json({ error: 'YouTube client not initialized' }, { status: 500 })
+    }
+    
+    const youtube = new Client()
     const video = await youtube.getVideo(sanitizedVideoId)
     
     if (!video) {
@@ -116,15 +134,16 @@ export async function GET(
     const channelInfo = extractChannel(video.channel)
     
     // Extract only the necessary data to avoid circular references
+    const videoRecord = video as Record<string, unknown>
     const sanitizedVideo = {
-      id: video.id || sanitizedVideoId,
-      title: video.title || 'Unknown Video',
-      description: video.description || '',
-      thumbnail: extractThumbnail((video as any).thumbnails || (video as any).thumbnail),
-      duration: (video as any).duration || null,
-      viewCount: video.viewCount || 0,
-      publishedAt: (video as any).uploadDate || null, // YouTubei v1.8.0 API: uploadDate provides human-readable relative dates
-      isLive: (video as any).isLive || false,
+      id: (videoRecord.id as string) || sanitizedVideoId,
+      title: (videoRecord.title as string) || 'Unknown Video',
+      description: (videoRecord.description as string) || '',
+      thumbnail: extractThumbnail(videoRecord.thumbnails as YouTubeThumbnails | string | undefined),
+      duration: videoRecord.duration as string | number | null,
+      viewCount: (videoRecord.viewCount as string | number) || 0,
+      publishedAt: videoRecord.uploadDate as string | null,
+      isLive: ((videoRecord.isLive as boolean) || false),
       channel: channelInfo
     }
     

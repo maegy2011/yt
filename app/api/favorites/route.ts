@@ -2,150 +2,180 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { sanitizeVideoId, isValidYouTubeVideoId } from '@/lib/youtube-utils'
 import { isIncognitoRequest, shouldSkipInIncognito, createIncognitoResponse } from '@/lib/incognito-utils'
+import { 
+  withErrorHandler, 
+  ErrorHandlers, 
+  ValidationError, 
+  ConflictError, 
+  DatabaseError,
+  AuthorizationError 
+} from '@/lib/api/error-handler'
+import { createApiContext, createSuccessResponse } from '@/lib/api/middleware'
+import { optimizedQueries } from '@/lib/db'
 
-export async function GET() {
-  try {
-    // Check if database is available
-    if (!db) {
-      console.error('Database connection not available')
-      return NextResponse.json({ error: 'Database connection not available' }, { status: 500 })
-    }
-    
-    const favorites = await db.favoriteVideo.findMany({
-      orderBy: { addedAt: 'desc' }
-    })
-    
-    // Filter out any entries with invalid video IDs and convert dates to strings
-    const validFavorites = favorites
-      .filter(favorite => 
-        favorite.videoId && isValidYouTubeVideoId(favorite.videoId)
-      )
-      .map(favorite => ({
-        ...favorite,
-        addedAt: favorite.addedAt.toISOString(),
-        updatedAt: favorite.updatedAt.toISOString()
-      }))
-    
-    // Clean up invalid entries from database
-    const invalidFavorites = favorites.filter(favorite => 
-      !favorite.videoId || !isValidYouTubeVideoId(favorite.videoId)
+// GET /api/favorites - Get all favorite videos
+export const GET = withErrorHandler(async (request: NextRequest) => {
+  const context = createApiContext(request)
+  
+  // Check if database is available
+  if (!db) {
+    throw new DatabaseError('Database connection not available')
+  }
+  
+  // Use optimized query with pagination
+  const { result } = await optimizedQueries.getFavoriteVideos({
+    limit: 100, // Reasonable default limit
+    offset: 0
+  })
+  
+  // Filter out any entries with invalid video IDs and convert dates to strings
+  const validFavorites = result.videos
+    .filter(favorite => 
+      favorite.videoId && isValidYouTubeVideoId(favorite.videoId)
     )
-    
-    if (invalidFavorites.length > 0) {
-      console.log(`Cleaning up ${invalidFavorites.length} invalid favorite entries`)
-      await Promise.all(
-        invalidFavorites.map(favorite => 
-          db.favoriteVideo.delete({ where: { id: favorite.id } })
-        )
+    .map(favorite => ({
+      ...favorite,
+      addedAt: favorite.addedAt.toISOString(),
+      updatedAt: favorite.updatedAt.toISOString()
+    }))
+  
+  // Clean up invalid entries from database (async, don't wait)
+  const invalidFavorites = result.videos.filter(favorite => 
+    !favorite.videoId || !isValidYouTubeVideoId(favorite.videoId)
+  )
+  
+  if (invalidFavorites.length > 0) {
+    console.log(`Cleaning up ${invalidFavorites.length} invalid favorite entries`)
+    // Don't await this cleanup to avoid delaying the response
+    Promise.all(
+      invalidFavorites.map(favorite => 
+        db.favoriteVideo.delete({ where: { id: favorite.id } })
       )
-    }
-    
-    return NextResponse.json(validFavorites)
-  } catch (error) {
-    console.error('Failed to fetch favorites:', error)
-    return NextResponse.json({ error: 'Failed to fetch favorites' }, { status: 500 })
+    ).catch(error => {
+      console.error('Failed to cleanup invalid favorites:', error)
+    })
   }
-}
+  
+  return createSuccessResponse(context, validFavorites, {
+    pagination: {
+      page: 1,
+      limit: 100,
+      total: result.total,
+      hasMore: result.hasMore
+    }
+  })
+})
 
-export async function POST(request: NextRequest) {
+// POST /api/favorites - Add a new favorite video
+export const POST = withErrorHandler(async (request: NextRequest) => {
+  const context = createApiContext(request)
+  const isIncognito = isIncognitoRequest(request)
+  
+  // Skip saving favorites in incognito mode
+  if (shouldSkipInIncognito(isIncognito)) {
+    throw new AuthorizationError('Favorites are disabled in incognito mode')
+  }
+  
+  let body: any
   try {
-    const isIncognito = isIncognitoRequest(request)
-    
-    // Skip saving favorites in incognito mode
-    if (shouldSkipInIncognito(isIncognito)) {
-      const body = await request.json()
-      const { videoId, title, channelName, thumbnail, duration, viewCount } = body
-      
-      // Return error response for favorites in incognito mode
-      return NextResponse.json({
-        error: 'Favorites are disabled in incognito mode',
-        incognito: true,
-        message: 'Cannot add favorites while in incognito mode'
-      }, { status: 403 })
-    }
-    
-    const body = await request.json()
-    const { videoId, title, channelName, thumbnail, duration, viewCount } = body
-
-    // Validate required fields
-    if (!videoId) {
-      return NextResponse.json({ error: 'Video ID is required' }, { status: 400 })
-    }
-
-    // Validate and sanitize the video ID
-    const sanitizedVideoId = sanitizeVideoId(videoId)
-    
-    if (!sanitizedVideoId) {
-      console.error('Invalid video ID provided:', videoId)
-      return NextResponse.json({ error: 'Invalid video ID format' }, { status: 400 })
-    }
-
-    // Validate optional string fields
-    if (title && typeof title !== 'string') {
-      return NextResponse.json({ error: 'Title must be a string' }, { status: 400 })
-    }
-    
-    if (channelName && typeof channelName !== 'string') {
-      return NextResponse.json({ error: 'Channel name must be a string' }, { status: 400 })
-    }
-    
-    if (thumbnail && typeof thumbnail !== 'string') {
-      return NextResponse.json({ error: 'Thumbnail must be a string' }, { status: 400 })
-    }
-
-    // Validate viewCount (allow string formats like "1.4B", "1.5M", etc.)
-    if (viewCount !== undefined && typeof viewCount !== 'string' && typeof viewCount !== 'number') {
-      console.error('Invalid viewCount type:', typeof viewCount, viewCount)
-      return NextResponse.json({ error: 'View count must be a string or number' }, { status: 400 })
-    }
-
-    // Convert duration and viewCount to strings for database
-    const durationStr = duration ? duration.toString() : undefined
-    const viewCountStr = viewCount ? viewCount.toString() : undefined
-
-    try {
-      console.log('Adding favorite with videoId:', sanitizedVideoId)
-      const existing = await db.favoriteVideo.findUnique({
-        where: { videoId: sanitizedVideoId }
-      })
-
-      if (existing) {
-        console.log('Video already exists:', existing)
-        return NextResponse.json({ error: 'Video already in favorites' }, { status: 409 })
-      }
-
-      console.log('Creating new favorite entry...')
-      const favorite = await db.favoriteVideo.create({
-        data: {
-          videoId: sanitizedVideoId,
-          title: title && title.trim() ? title.trim() : 'Unknown Video',
-          channelName: channelName && channelName.trim() ? channelName.trim() : 'Unknown Channel',
-          thumbnail: thumbnail && thumbnail.trim() ? thumbnail.trim() : '',
-          duration: durationStr,
-          viewCount: viewCountStr
-        }
-      })
-
-      // Convert Date objects to strings for JSON serialization
-      const formattedFavorite = {
-        ...favorite,
-        addedAt: favorite.addedAt.toISOString(),
-        updatedAt: favorite.updatedAt.toISOString()
-      }
-
-      console.log('Favorite created successfully:', formattedFavorite)
-      return NextResponse.json(formattedFavorite)
-    } catch (dbError) {
-      console.error('Database error:', dbError)
-      return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
-    }
+    body = await request.json()
   } catch (error) {
-    console.error('Failed to add favorite:', error)
+    throw new ValidationError('Invalid JSON in request body')
+  }
+  
+  const { videoId, title, channelName, thumbnail, duration, viewCount } = body
+
+  // Validate required fields
+  if (!videoId) {
+    throw new ValidationError('Video ID is required', { field: 'videoId' })
+  }
+
+  // Validate and sanitize video ID
+  const sanitizedVideoId = sanitizeVideoId(videoId)
+  
+  if (!sanitizedVideoId) {
+    throw new ValidationError('Invalid video ID format', { 
+      field: 'videoId',
+      providedValue: videoId 
+    })
+  }
+
+  // Validate optional string fields
+  const stringFields = [
+    { name: 'title', value: title },
+    { name: 'channelName', value: channelName },
+    { name: 'thumbnail', value: thumbnail }
+  ]
+  
+  for (const field of stringFields) {
+    if (field.value !== undefined && typeof field.value !== 'string') {
+      throw new ValidationError(`${field.name} must be a string`, { 
+        field: field.name,
+        receivedType: typeof field.value 
+      })
+    }
+  }
+  
+  // Validate viewCount (allow string formats like "1.4B", "1.5M", etc.)
+  if (viewCount !== undefined && typeof viewCount !== 'string' && typeof viewCount !== 'number') {
+    throw new ValidationError('View count must be a string or number', { 
+      field: 'viewCount',
+      receivedType: typeof viewCount 
+    })
+  }
+
+  // Convert duration and viewCount to strings for database
+  const durationStr = duration ? duration.toString() : undefined
+  const viewCountStr = viewCount ? viewCount.toString() : undefined
+
+  try {
+    // Check if video already exists
+    const existing = await db.favoriteVideo.findUnique({
+      where: { videoId: sanitizedVideoId }
+    })
+
+    if (existing) {
+      throw new ConflictError('Video already in favorites', { 
+        videoId: sanitizedVideoId,
+        existingId: existing.id 
+      })
+    }
+
+    // Create new favorite
+    const favorite = await db.favoriteVideo.create({
+      data: {
+        videoId: sanitizedVideoId,
+        title: title && title.trim() ? title.trim() : 'Unknown Video',
+        channelName: channelName && channelName.trim() ? channelName.trim() : 'Unknown Channel',
+        thumbnail: thumbnail && thumbnail.trim() ? thumbnail.trim() : '',
+        duration: durationStr,
+        viewCount: viewCountStr
+      }
+    })
+
+    // Convert Date objects to strings for JSON serialization
+    const formattedFavorite = {
+      ...favorite,
+      addedAt: favorite.addedAt.toISOString(),
+      updatedAt: favorite.updatedAt.toISOString()
+    }
+
+    return createSuccessResponse(context, formattedFavorite)
     
-    if (error instanceof SyntaxError) {
-      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 })
+  } catch (error) {
+    // Re-throw our custom errors
+    if (error instanceof ConflictError || error instanceof ValidationError) {
+      throw error
     }
     
-    return NextResponse.json({ error: 'Failed to add favorite' }, { status: 500 })
+    // Handle database errors
+    if (error instanceof Error) {
+      throw new DatabaseError(`Failed to add favorite: ${error.message}`, {
+        originalError: error.message,
+        videoId: sanitizedVideoId
+      })
+    }
+    
+    throw error
   }
-}
+})
