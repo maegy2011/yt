@@ -108,12 +108,15 @@ export function useAdvancedFavorites(): FavoritesState & FavoriteOperations & {
       
       const allFavorites = await response.json()
       
+      // Extract the data array from the API response
+      const favoritesData = allFavorites?.data || []
+      
       // Apply filters
-      let filteredFavorites = allFavorites
+      let filteredFavorites = favoritesData
       
       if (customFilters?.searchQuery || filters.searchQuery) {
         const searchQuery = (customFilters?.searchQuery || filters.searchQuery)?.toLowerCase() || ''
-        filteredFavorites = allFavorites.filter((favorite: FavoriteVideo) => 
+        filteredFavorites = favoritesData.filter((favorite: FavoriteVideo) => 
           favorite.title.toLowerCase().includes(searchQuery) ||
           favorite.channelName.toLowerCase().includes(searchQuery) ||
           favorite.tags?.some(tag => tag.toLowerCase().includes(searchQuery)) ||
@@ -355,7 +358,8 @@ export function useAdvancedFavorites(): FavoritesState & FavoriteOperations & {
       }
       
       const favorites = await response.json()
-      return favorites.some((fav: FavoriteVideo) => fav.videoId === videoId)
+      const favoritesData = favorites?.data || []
+      return favoritesData.some((fav: FavoriteVideo) => fav.videoId === videoId)
     } catch {
       return false
     }

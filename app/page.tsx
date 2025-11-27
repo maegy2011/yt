@@ -864,7 +864,25 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       }
       const data = await response.json()
       // Convert database videos to SimpleVideo format
-      const convertedVideos = (data || []).map((video: FavoriteVideo) => convertDbVideoToSimple(video))
+      let favoritesData = []
+      
+      if (Array.isArray(data?.data)) {
+        favoritesData = data.data
+      } else if (Array.isArray(data)) {
+        favoritesData = data
+      } else {
+        console.warn('Unexpected API response structure:', data)
+        favoritesData = []
+      }
+      
+      // Ensure we have an array before mapping
+      if (!Array.isArray(favoritesData)) {
+        console.error('favoritesData is not an array:', favoritesData)
+        setFavoriteVideos([])
+        return
+      }
+      
+      const convertedVideos = favoritesData.map((video: FavoriteVideo) => convertDbVideoToSimple(video))
       setFavoriteVideos(convertedVideos)
     } catch (error) {
       console.error('Failed to load favorite videos:', error)

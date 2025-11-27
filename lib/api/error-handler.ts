@@ -267,3 +267,28 @@ export const ApiErrorLogger = {
     }
   }
 }
+
+// Custom error classes for specific error types
+export class ValidationError extends AppError {
+  constructor(message: string, public field?: string, context?: Record<string, any>) {
+    super(message, 400, 'VALIDATION_ERROR', true, { field, ...context })
+  }
+}
+
+export class DatabaseError extends AppError {
+  constructor(message: string, context?: Record<string, any>) {
+    super(message, 500, 'DATABASE_ERROR', true, context)
+  }
+}
+
+export class ConflictError extends AppError {
+  constructor(message: string, context?: Record<string, any>) {
+    super(message, 409, 'CONFLICT', true, context)
+  }
+}
+
+export class AuthorizationError extends AppError {
+  constructor(message: string, context?: Record<string, any>) {
+    super(message, 401, 'AUTHORIZATION_ERROR', true, context)
+  }
+}

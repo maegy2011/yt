@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createApiContext, createErrorResponse, createSuccessResponse } from '../middleware'
+import { createApiContext, createErrorResponse, createSuccessResponse } from './middleware'
 
 // API version configuration
 export interface ApiVersionConfig {

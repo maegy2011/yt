@@ -44,12 +44,15 @@ export function useFavorites(): FavoritesState & FavoriteOperations {
       
       const allFavorites = await response.json()
       
+      // Extract the data array from the API response
+      const favoritesData = allFavorites?.data || []
+      
       // Apply filters
-      let filteredFavorites = allFavorites
+      let filteredFavorites = favoritesData
       
       if (customFilters?.searchQuery || filters.searchQuery) {
         const searchQuery = (customFilters?.searchQuery || filters.searchQuery)?.toLowerCase() || ''
-        filteredFavorites = allFavorites.filter((favorite: FavoriteVideo) => 
+        filteredFavorites = favoritesData.filter((favorite: FavoriteVideo) => 
           favorite.title.toLowerCase().includes(searchQuery) ||
           favorite.channelName.toLowerCase().includes(searchQuery)
         )

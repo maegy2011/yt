@@ -6,7 +6,7 @@ import { BackgroundPlayerProvider } from "@/contexts/background-player-context";
 import { IncognitoProvider } from "@/contexts/incognito-context";
 import { MiniPlayer } from "@/components/mini-player";
 import { ThemeProvider } from "next-themes";
-import ErrorBoundary from "@/components/error-boundary";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

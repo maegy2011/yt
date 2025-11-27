@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db, ensureDatabaseConnection, DatabaseMonitor } from '@/lib/db'
-import { createApiContext, createSuccessResponse, createErrorResponse } from '../middleware'
+import { createApiContext, createSuccessResponse, createErrorResponse } from './middleware'
 
 // Health check response interface
 interface HealthCheckResponse {
