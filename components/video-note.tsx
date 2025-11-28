@@ -424,9 +424,9 @@ export function VideoNote({
 
   const handleCaptureStart = () => {
     console.log('=== Set Start Button Clicked ===')
-    console.log('Player ready:', playerReady)
+  
     console.log('Current time (state):', currentTime)
-    console.log('Player ref exists:', !!playerRef.current)
+  
     
     // Get the most accurate current time directly from the player
     let accurateCurrentTime = currentTime
@@ -434,14 +434,14 @@ export function VideoNote({
     if (playerRef.current && playerRef.current.getCurrentTime) {
       try {
         accurateCurrentTime = playerRef.current.getCurrentTime()
-        console.log('Captured start time from player:', accurateCurrentTime)
+  
       } catch (error) {
-        console.error('Error getting current time from player:', error)
+  
         // Fallback to state value
         accurateCurrentTime = currentTime
       }
     } else {
-      console.warn('YouTube player not ready yet, using fallback time:', accurateCurrentTime)
+  
     }
     
     const startTime = Math.floor(accurateCurrentTime)
@@ -463,9 +463,9 @@ export function VideoNote({
     if (playerRef.current && playerRef.current.getCurrentTime) {
       try {
         accurateCurrentTime = playerRef.current.getCurrentTime()
-        console.log('Captured end time from player:', accurateCurrentTime)
+  
       } catch (error) {
-        console.error('Error getting current time from player:', error)
+  
         // Fallback to state value
         accurateCurrentTime = currentTime
       }
@@ -682,9 +682,9 @@ export function VideoNote({
     try {
       const initialTime = event.target.getCurrentTime()
       setCurrentTime(initialTime || 0)
-      console.log('YouTube player ready, initial time:', initialTime)
+  
     } catch (error) {
-      console.error('Error getting initial time from YouTube player:', error)
+  
       setCurrentTime(0)
     }
     

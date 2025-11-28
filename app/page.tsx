@@ -200,7 +200,7 @@ const fetchBlacklistedItems = async (): Promise<BlacklistedItem[]> => {
     const data = await response.json()
     return data.items || []
   } catch (error) {
-    console.error('Error fetching blacklist:', error)
+    // Error fetching blacklist
     return []
   }
 }
@@ -212,7 +212,7 @@ const fetchWhitelistedItems = async (): Promise<WhitelistedItem[]> => {
     const data = await response.json()
     return data.items || []
   } catch (error) {
-    console.error('Error fetching whitelist:', error)
+    // Error fetching whitelist
     return []
   }
 }
@@ -238,7 +238,7 @@ const addToBlacklist = async (item: any): Promise<boolean> => {
     })
     return response.ok
   } catch (error) {
-    console.error('Error adding to blacklist:', error)
+    // Error adding to blacklist
     return false
   }
 }
@@ -264,7 +264,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     })
     return response.ok
   } catch (error) {
-    console.error('Error adding to whitelist:', error)
+    // Error adding to whitelist
     return false
   }
 }
@@ -282,7 +282,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         handleBlacklistChange(blacklistedData)
         handleWhitelistChange(whitelistedData)
       } catch (error) {
-        console.error('Error loading blacklist/whitelist from database:', error)
+        // Error loading blacklist/whitelist from database
       }
     }
     
@@ -1620,7 +1620,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       })
       
       if (filteredPlaylistVideos.length === 0) {
-        console.log('All playlist videos were filtered out by blacklist/whitelist rules')
+        // All playlist videos were filtered out by blacklist/whitelist rules
       } else {
         setPlaylistVideos(filteredPlaylistVideos)
         showDynamicConfirmation('playlistLoaded', [playlist.title, filteredPlaylistVideos.length])
@@ -2243,11 +2243,11 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
 
   // Memoized callbacks for SearchResultsFilter to prevent infinite loops
   const handleBlacklistChange = useCallback((blacklisted: BlacklistedItem[]) => {
-    console.log('Blacklist updated:', blacklisted)
+    // Blacklist updated
   }, [])
 
   const handleWhitelistChange = useCallback((whitelisted: WhitelistedItem[]) => {
-    console.log('Whitelist updated:', whitelisted)
+    // Whitelist updated
   }, [])
 
   const handleVideoSelect = (video: Video) => {

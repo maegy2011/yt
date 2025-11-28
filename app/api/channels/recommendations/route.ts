@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const strategy = searchParams.get('strategy') || 'similar' // similar, trending, popular, related
     const excludeFollowed = searchParams.get('excludeFollowed') === 'true'
 
-    console.log('Channel recommendations request:', { limit, strategy, excludeFollowed })
+    // 'Channel recommendations request:', { limit, strategy, excludeFollowed })
 
     // Get favorite channels for analysis
     const favoriteChannels = await db.favoriteChannel.findMany({
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Channel recommendations error:', error)
+    // 'Channel recommendations error:', error)
     return NextResponse.json({ 
       error: 'Failed to fetch channel recommendations',
       details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
@@ -103,7 +103,7 @@ async function getSimilarChannels(favoriteChannels: any[], limit: number, exclud
           allRecommendations.push(...relatedChannels)
         }
       } catch (error) {
-        console.error(`Failed to get related channels for ${favoriteChannel.channelId}:`, error)
+        // `Failed to get related channels for ${favoriteChannel.channelId}:`, error)
       }
     }
 
@@ -116,7 +116,7 @@ async function getSimilarChannels(favoriteChannels: any[], limit: number, exclud
 
     return allRecommendations.slice(0, limit)
   } catch (error) {
-    console.error('Similar channels error:', error)
+    // 'Similar channels error:', error)
     return []
   }
 }
@@ -167,7 +167,7 @@ async function getTrendingChannels(limit: number, excludeFollowed: boolean) {
           allRecommendations.push(...channels)
         }
       } catch (error) {
-        console.error(`Failed to search trending channels for ${topic}:`, error)
+        // `Failed to search trending channels for ${topic}:`, error)
       }
     }
 
@@ -176,7 +176,7 @@ async function getTrendingChannels(limit: number, excludeFollowed: boolean) {
 
     return allRecommendations.slice(0, limit)
   } catch (error) {
-    console.error('Trending channels error:', error)
+    // 'Trending channels error:', error)
     return []
   }
 }
@@ -232,7 +232,7 @@ async function getPopularChannels(limit: number, excludeFollowed: boolean) {
           allRecommendations.push(...channels)
         }
       } catch (error) {
-        console.error(`Failed to search popular channels for ${query}:`, error)
+        // `Failed to search popular channels for ${query}:`, error)
       }
     }
 
@@ -241,7 +241,7 @@ async function getPopularChannels(limit: number, excludeFollowed: boolean) {
 
     return allRecommendations.slice(0, limit)
   } catch (error) {
-    console.error('Popular channels error:', error)
+    // 'Popular channels error:', error)
     return []
   }
 }
@@ -267,7 +267,7 @@ async function getRelatedChannels(favoriteChannels: any[], limit: number, exclud
 
     return uniqueChannels.slice(0, limit)
   } catch (error) {
-    console.error('Related channels error:', error)
+    // 'Related channels error:', error)
     return []
   }
 }

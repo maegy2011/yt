@@ -62,7 +62,6 @@ const fetchBlacklistedItems = async (): Promise<BlacklistedItem[]> => {
     const result = await response.json()
     return result.items || []
   } catch (error) {
-    console.error('Error fetching blacklist:', error)
     return []
   }
 }
@@ -74,7 +73,6 @@ const fetchWhitelistedItems = async (): Promise<WhitelistedItem[]> => {
     const result = await response.json()
     return result.items || []
   } catch (error) {
-    console.error('Error fetching whitelist:', error)
     return []
   }
 }
@@ -88,7 +86,6 @@ const addToBlacklist = async (item: BlacklistedItem): Promise<boolean> => {
     })
     return response.ok
   } catch (error) {
-    console.error('Error adding to blacklist:', error)
     return false
   }
 }
@@ -102,7 +99,6 @@ const addToWhitelist = async (item: WhitelistedItem): Promise<boolean> => {
     })
     return response.ok
   } catch (error) {
-    console.error('Error adding to whitelist:', error)
     return false
   }
 }
@@ -136,7 +132,7 @@ export function SearchResultsFilter({
         onBlacklistChange?.(blacklistedData)
         onWhitelistChange?.(whitelistedData)
       } catch (error) {
-        console.error('Error loading blacklisted/whitelisted items:', error)
+        // Error loading items handled silently
       }
     }
     
@@ -155,7 +151,7 @@ export function SearchResultsFilter({
       onBlacklistChange?.(blacklistedData)
       onWhitelistChange?.(whitelistedData)
     } catch (error) {
-      console.error('Error refreshing blacklisted/whitelisted items:', error)
+      // Error refreshing items handled silently
     }
   }, [onBlacklistChange, onWhitelistChange])
 

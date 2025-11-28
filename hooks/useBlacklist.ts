@@ -144,7 +144,7 @@ export function useBlacklist(options: UseBlacklistOptions = {}) {
         setWhitelistStats(whitelistData)
       }
     } catch (err) {
-      console.error('Failed to fetch stats:', err)
+      // Failed to fetch stats
     }
   }, [])
 

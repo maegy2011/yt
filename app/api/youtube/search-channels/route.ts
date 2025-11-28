@@ -10,14 +10,14 @@ const initializeYoutubei = async () => {
     const youtubeiModule = await import('youtubei')
     youtubei = youtubeiModule.default || youtubeiModule
     Client = youtubei.Client || youtubeiModule.Client
-    console.log('YouTubei initialized successfully for channels')
+    // 'YouTubei initialized successfully for channels')
   } catch (error) {
-    console.error('Failed to initialize YouTubei for channels:', error)
+    // 'Failed to initialize YouTubei for channels:', error)
   }
 }
 
 // Initialize immediately
-initializeYoutubei().catch(console.error)
+initializeYoutubei().catch(() => {})
 
 // Helper function to extract thumbnail URL from YouTubei v1.8.0 Thumbnails API
 function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Query parameter is required' }, { status: 400 })
     }
 
-    console.log('Enhanced channel search request:', { 
+    // 'Enhanced channel search request:', { 
       query, 
       sortBy, 
       order, 
@@ -168,7 +168,7 @@ export async function GET(request: NextRequest) {
 
     // Use youtubei for real YouTube data
     if (!Client) {
-      console.error('YouTube client not initialized for channels, waiting...')
+      // 'YouTube client not initialized for channels, waiting...')
       await new Promise(resolve => setTimeout(resolve, 1000))
       if (!Client) {
         return NextResponse.json({ 
@@ -321,7 +321,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     }
     
-    console.log('Enhanced channel search completed:', {
+    // 'Enhanced channel search completed:', {
       query,
       totalFound: channelItems.length,
       returned: limitedItems.length,
@@ -331,7 +331,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(response)
   } catch (error) {
-    console.error('Enhanced YouTube channel search error:', error)
+    // 'Enhanced YouTube channel search error:', error)
     const { searchParams } = new URL(request.url)
     
     // Return more specific error messages

@@ -105,60 +105,6 @@ export function VideoCard({
   const [isHovered, setIsHovered] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
-  const [forceShowButtons, setForceShowButtons] = useState(true) // Always show buttons for debugging
-  
-  // Debug logging
-  console.log('VideoCard render:', {
-    videoId: video.videoId || video.id,
-    title: video.title,
-    hasBlacklistButton: !!(onAddToBlacklist || onAddToWhitelist),
-    hasWhitelistButton: !!(onAddToBlacklist || onAddToWhitelist),
-    isBlacklisted,
-    isWhitelisted,
-    forceShowButtons // Always true for debugging
-  })
-  
-  // Debug logging
-  console.log('VideoCard render:', {
-    videoId: video.videoId || video.id,
-    title: video.title,
-    hasBlacklistButton: !!(onAddToBlacklist || onAddToWhitelist),
-    hasWhitelistButton: !!(onAddToBlacklist || onAddToWhitelist),
-    isBlacklisted,
-    isWhitelisted
-  })
-  
-  // Debug logging
-  console.log('VideoCard render:', {
-    videoId: video.videoId || video.id,
-    title: video.title,
-    hasBlacklistButton: !!(onAddToBlacklist || onAddToWhitelist),
-    hasWhitelistButton: !!(onAddToBlacklist || onAddToWhitelist),
-    isBlacklisted,
-    isWhitelisted,
-    buttonsVisible: (onAddToBlacklist || onAddToWhitelist) ? 'opacity-100' : 'opacity-0'
-  })
-  
-  // Debug logging for button visibility
-  console.log('VideoCard render:', {
-    videoId: video.videoId || video.id,
-    title: video.title,
-    hasBlacklistButton: !!(onAddToBlacklist || onAddToWhitelist),
-    hasWhitelistButton: !!(onAddToBlacklist || onAddToWhitelist),
-    isBlacklisted,
-    isWhitelisted,
-    showActions
-  })
-  
-  // Debug logging
-  console.log('VideoCard render:', {
-    videoId: video.videoId || video.id,
-    title: video.title,
-    hasBlacklistButton: !!(onAddToBlacklist || onAddToWhitelist),
-    hasWhitelistButton: !!(onAddToBlacklist || onAddToWhitelist),
-    isBlacklisted,
-    isWhitelisted
-  })
   
   const {
     backgroundVideo,
@@ -172,8 +118,6 @@ export function VideoCard({
 
   // Handle card click
   const handleCardClick = useCallback((e: React.MouseEvent) => {
-    console.log('VideoCard clicked:', video.title, 'onPlay:', !!onPlay) // Debug log
-    
     // Only prevent playing video if clicking on specific interactive elements
     const target = e.target as HTMLElement
     const isCheckbox = target.closest('input[type="checkbox"]')
@@ -181,16 +125,11 @@ export function VideoCard({
     
     // Allow clicks on buttons, play overlay, and general card area
     if (isCheckbox || isMenu) {
-      console.log('Click prevented - interactive element')
       return
     }
     
-    console.log('Calling onPlay with video:', video.title)
-    
     if (onPlay) {
       onPlay(video)
-    } else {
-      console.log('onPlay is not defined')
     }
   }, [onPlay, video])
 

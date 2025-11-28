@@ -36,7 +36,6 @@ export async function DELETE(request: NextRequest) {
       message: `Deleted ${result.count} favorite videos`
     })
   } catch (error) {
-    console.error('Failed to batch delete favorite videos:', error)
     return NextResponse.json({ error: 'Failed to delete favorite videos' }, { status: 500 })
   }
 }
@@ -96,7 +95,6 @@ export async function PUT(request: NextRequest) {
       errors
     })
   } catch (error) {
-    console.error('Failed to batch update favorite videos:', error)
     return NextResponse.json({ error: 'Failed to update favorite videos' }, { status: 500 })
   }
 }

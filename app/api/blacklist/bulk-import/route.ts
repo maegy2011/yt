@@ -232,7 +232,6 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Bulk import failed:', error)
     return NextResponse.json({ 
       error: 'Bulk import failed', 
       details: error instanceof Error ? error.message : 'Unknown error' 
@@ -277,7 +276,7 @@ export async function DELETE(request: NextRequest) {
       data: { status: 'cancelled' }
     })
   } catch (error) {
-    console.error('Failed to update batch status:', error)
+    // Failed to update batch status
   }
 
   return NextResponse.json({ success: true, message: 'Import cancelled' })
@@ -309,6 +308,6 @@ async function updateBlacklistMetrics(itemCount: number, processingTime: number)
       }
     })
   } catch (error) {
-    console.error('Failed to update metrics:', error)
+    // Failed to update metrics
   }
 }

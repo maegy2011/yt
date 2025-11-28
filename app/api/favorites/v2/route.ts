@@ -65,7 +65,6 @@ const getHandler = routeMiddleware.authenticated(async (request: NextRequest, co
     )
     
     if (invalidFavorites.length > 0) {
-      console.log(`Cleaning up ${invalidFavorites.length} invalid favorite entries`)
       await Promise.all(
         invalidFavorites.map(favorite => 
           db.favoriteVideo.delete({ where: { id: favorite.id } })

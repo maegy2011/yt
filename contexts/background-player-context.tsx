@@ -99,7 +99,7 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
             )
           }
         } catch (error) {
-          console.error('Error getting current time:', error)
+          // Error getting current time, continuing without update
         }
       }
     }, 5000) // Update every 5 seconds for background mode (less frequent than main player)
@@ -260,12 +260,10 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
 
     const handleMediaSessionPrevious = () => {
       // This would be handled by the parent component
-      console.log('Previous track requested')
     }
 
     const handleMediaSessionNext = () => {
       // This would be handled by the parent component
-      console.log('Next track requested')
     }
 
     // Add event listeners

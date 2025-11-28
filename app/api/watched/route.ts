@@ -10,7 +10,6 @@ export async function GET() {
     
     // Check if database is available
     if (!db) {
-      console.error('Database connection not available')
       return NextResponse.json({ error: 'Database connection not available' }, { status: 500 })
     }
     
@@ -35,7 +34,6 @@ export async function GET() {
     )
     
     if (invalidVideos.length > 0) {
-      console.log(`Cleaning up ${invalidVideos.length} invalid watched video entries`)
       await Promise.all(
         invalidVideos.map(video => 
           db.watchedVideo.delete({ where: { id: video.id } })
@@ -45,7 +43,6 @@ export async function GET() {
     
     return NextResponse.json(validVideos)
   } catch (error) {
-    console.error('Failed to fetch watched videos:', error)
     return NextResponse.json({ error: 'Failed to fetch watched videos' }, { status: 500 })
   }
 }
@@ -83,7 +80,6 @@ export async function POST(request: NextRequest) {
     const sanitizedVideoId = sanitizeVideoId(videoId)
     
     if (!sanitizedVideoId) {
-      console.error('Invalid video ID provided:', videoId)
       return NextResponse.json({ error: 'Invalid video ID' }, { status: 400 })
     }
 
@@ -130,7 +126,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(responseVideo)
   } catch (error) {
-    console.error('Failed to add watched video:', error)
     return NextResponse.json({ error: 'Failed to add watched video' }, { status: 500 })
   }
 }

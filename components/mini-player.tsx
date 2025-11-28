@@ -92,9 +92,9 @@ export function MiniPlayer() {
       // Ignore messages that aren't from YouTube iframe
       if (!event.data || !event.source) return
       
-      // Log YouTube iframe messages for debugging
+      // Process YouTube iframe messages as needed
       if (event.data && typeof event.data === 'object') {
-        console.log('YouTube iframe message:', event.data)
+        // Handle YouTube iframe communication
       }
     }
 

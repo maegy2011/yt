@@ -1,237 +1,111 @@
-// Service Worker for MyTube YouTube Clone
-// Handles background playback, caching, and keep-alive functionality
-
-const CACHE_NAME = 'mytube-v1'
-const STATIC_CACHE = 'mytube-static-v1'
-const DYNAMIC_CACHE = 'mytube-dynamic-v1'
-
-// Files to cache for offline functionality
-const STATIC_ASSETS = [
+const CACHE_NAME = 'mytube-v1';
+const urlsToCache = [
   '/',
-  '/logo.svg',
-  '/favicon.ico'
-]
+  '/api/health',
+  '/logo.svg'
+];
 
-// Install event - cache static assets
+// Install event - cache resources
 self.addEventListener('install', (event) => {
-  console.log('Service Worker installing...')
-  
+  console.log('Service Worker: Installing...');
   event.waitUntil(
-    caches.open(STATIC_CACHE)
+    caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Caching static assets')
-        return cache.addAll(STATIC_ASSETS)
-      })
-      .then(() => {
-        console.log('Static assets cached successfully')
-        return self.skipWaiting()
+        console.log('Service Worker: Caching files');
+        return cache.addAll(urlsToCache);
       })
       .catch((error) => {
-        console.error('Failed to cache static assets:', error)
+        console.error('Service Worker: Failed to cache files:', error);
       })
-  )
-})
+  );
+});
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activating...')
-  
+  console.log('Service Worker: Activating...');
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
-              console.log('Deleting old cache:', cacheName)
-              return caches.delete(cacheName)
-            }
-          })
-        )
-      })
-      .then(() => {
-        console.log('Service Worker activated')
-        return self.clients.claim()
-      })
-      .catch((error) => {
-        console.error('Failed to activate service worker:', error)
-      })
-  )
-})
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Service Worker: Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+});
 
-// Fetch event - handle network requests
+// Fetch event - serve from cache when offline
 self.addEventListener('fetch', (event) => {
-  const { request } = event
-  
-  // Skip non-GET requests
-  if (request.method !== 'GET') {
-    return
-  }
-  
-  // Skip chrome-extension requests
-  if (request.url.startsWith('chrome-extension://')) {
-    return
-  }
-  
   event.respondWith(
-    caches.match(request)
+    caches.match(event.request)
       .then((response) => {
-        // Return cached version if available
+        // Return cached version or fetch from network
         if (response) {
-          return response
+          return response;
         }
         
-        // Otherwise fetch from network
-        return fetch(request)
-          .then((response) => {
-            // Don't cache non-successful responses
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response
-            }
-            
-            // Clone the response since it can only be consumed once
-            const responseToCache = response.clone()
-            
-            // Cache dynamic resources
-            if (shouldCache(request)) {
-              caches.open(DYNAMIC_CACHE)
-                .then((cache) => {
-                  cache.put(request, responseToCache)
-                })
-                .catch((error) => {
-                  console.warn('Failed to cache dynamic resource:', error)
-                })
-            }
-            
-            return response
-          })
-          .catch((error) => {
-            console.warn('Network request failed:', error)
-            
-            // Return offline page for navigation requests if available
-            if (request.destination === 'document') {
-              return caches.match('/')
-            }
-          })
+        // For API requests, try network first, then serve offline response
+        if (event.request.url.includes('/api/')) {
+          return fetch(event.request)
+            .catch(() => {
+              // Return offline response for API requests
+              return new Response(
+                JSON.stringify({ error: 'Offline - Service unavailable' }),
+                {
+                  status: 503,
+                  headers: { 'Content-Type': 'application/json' }
+                }
+              );
+            });
+        }
+        
+        // For other requests, try network
+        return fetch(event.request);
       })
-  )
-})
-
-// Determine if a request should be cached
-function shouldCache(request) {
-  const url = new URL(request.url)
-  
-  // Cache API responses
-  if (url.pathname.startsWith('/api/')) {
-    return true
-  }
-  
-  // Cache static assets
-  if (request.destination === 'script' || 
-      request.destination === 'style' || 
-      request.destination === 'image' ||
-      request.destination === 'font') {
-    return true
-  }
-  
-  return false
-}
+      .catch((error) => {
+        console.error('Service Worker: Fetch failed:', error);
+        return new Response('Offline - No network connection', {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain' }
+        });
+      })
+  );
+});
 
 // Handle messages from main thread
 self.addEventListener('message', (event) => {
-  const { type, data } = event.data
-  
-  switch (type) {
-    case 'KEEP_ALIVE':
-      console.log('Service Worker keep-alive message received:', data?.timestamp)
-      // Respond to keep the service worker active
-      event.ports?.[0]?.postMessage({
-        type: 'KEEP_ALIVE_RESPONSE',
-        timestamp: Date.now()
-      })
-      break
-      
-    case 'SKIP_WAITING':
-      self.skipWaiting()
-      break
-      
-    case 'GET_VERSION':
-      event.ports?.[0]?.postMessage({
-        type: 'VERSION_RESPONSE',
-        version: CACHE_NAME
-      })
-      break
-      
-    default:
-      console.log('Unknown message type:', type)
+  if (event.data && event.data.type === 'KEEP_ALIVE') {
+    console.log('Service Worker: Keep alive message received at:', new Date(event.data.timestamp));
   }
-})
+});
 
-// Handle push notifications (if needed in the future)
+// Handle background sync (optional)
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'background-sync') {
+    console.log('Service Worker: Background sync triggered');
+    event.waitUntil(
+      // Perform background sync operations here
+      Promise.resolve()
+    );
+  }
+});
+
+// Handle push notifications (optional)
 self.addEventListener('push', (event) => {
   if (event.data) {
-    const data = event.data.json()
-    console.log('Push notification received:', data)
+    const options = {
+      body: event.data.text(),
+      icon: '/logo.svg',
+      badge: '/logo.svg'
+    };
     
-    // Show notification if needed
-    if (data.title) {
-      event.waitUntil(
-        self.registration.showNotification(data.title, {
-          body: data.body || '',
-          icon: '/logo.svg',
-          badge: '/logo.svg',
-          tag: 'mytube-notification'
-        })
-      )
-    }
-  }
-})
-
-// Handle notification clicks
-self.addEventListener('notificationclick', (event) => {
-  console.log('Notification clicked:', event)
-  
-  event.notification.close()
-  
-  // Focus or open the app
-  event.waitUntil(
-    clients.matchAll({ type: 'window' })
-      .then((clientList) => {
-        // Focus existing window if available
-        for (const client of clientList) {
-          if (client.url === '/' && 'focus' in client) {
-            return client.focus()
-          }
-        }
-        
-        // Open new window
-        if (clients.openWindow) {
-          return clients.openWindow('/')
-        }
-      })
-  )
-})
-
-// Handle background sync (if needed)
-self.addEventListener('sync', (event) => {
-  console.log('Background sync event:', event.tag)
-  
-  if (event.tag === 'background-sync') {
     event.waitUntil(
-      // Perform background sync tasks here
-      Promise.resolve()
-    )
+      self.registration.showNotification('MyTube', options)
+    );
   }
-})
+});
 
-// Periodic background sync for keeping the service worker active
-self.addEventListener('periodicsync', (event) => {
-  if (event.tag === 'keep-alive-sync') {
-    console.log('Periodic sync for keep-alive')
-    event.waitUntil(
-      // Perform periodic tasks
-      Promise.resolve()
-    )
-  }
-})
-
-console.log('Service Worker loaded successfully')
+console.log('Service Worker: Loaded successfully');

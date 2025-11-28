@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Error searching notebooks:', error)
+    // 'Error searching notebooks:', error)
     return NextResponse.json(
       { error: 'Failed to search notebooks' },
       { status: 500 }

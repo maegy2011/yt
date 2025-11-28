@@ -10,14 +10,14 @@ const initializeYoutubei = async () => {
     const youtubeiModule = await import('youtubei')
     youtubei = youtubeiModule.default || youtubeiModule
     Client = youtubei.Client || youtubeiModule.Client
-    console.log('YouTubei initialized successfully for followed channels')
+    // 'YouTubei initialized successfully for followed channels')
   } catch (error) {
-    console.error('Failed to initialize YouTubei for followed channels:', error)
+    // 'Failed to initialize YouTubei for followed channels:', error)
   }
 }
 
 // Initialize immediately
-initializeYoutubei().catch(console.error)
+initializeYoutubei().catch(() => {})
 
 // Helper function to extract thumbnail URL from YouTubei v1.8.0 Thumbnails API
 function extractThumbnail(thumbnails: any): { url: string; width: number; height: number } {
@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
     const videosPerPage = parseInt(searchParams.get('videosPerPage') || '12')
     const playlistsPerPage = parseInt(searchParams.get('playlistsPerPage') || '6')
 
-    console.log('Fetching followed channels content:', { 
+    // 'Fetching followed channels content:', { 
       maxVideos, 
       maxPlaylists, 
       includePlaylists, 
@@ -160,7 +160,7 @@ export async function GET(request: NextRequest) {
       db.whitelistedItem.findMany()
     ])
 
-    console.log('Loaded blacklist/whitelist items:', {
+    // 'Loaded blacklist/whitelist items:', {
       blacklisted: blacklistedItems.length,
       whitelisted: whitelistedItems.length
     })
@@ -215,7 +215,7 @@ export async function GET(request: NextRequest) {
     // Process each favorite channel
     for (const channel of favoriteChannels) {
       try {
-        console.log(`Processing channel: ${channel.name} (${channel.channelId})`)
+        // `Processing channel: ${channel.name} (${channel.channelId})`)
         
         // Get channel info
         const channelData = await youtube.getChannel(channel.channelId)
@@ -236,7 +236,7 @@ export async function GET(request: NextRequest) {
 
           // Search for videos from this channel
           try {
-            console.log(`Searching for videos from ${channel.name}...`)
+            // `Searching for videos from ${channel.name}...`)
             
             // Add retry logic for YouTube API calls
             let videoSearch = null
@@ -248,16 +248,16 @@ export async function GET(request: NextRequest) {
                 videoSearch = await youtube.search(channel.name, { type: 'video' })
                 
                 if (videoSearch && videoSearch.items && videoSearch.items.length > 0) {
-                  console.log(`Successfully found ${videoSearch.items.length} videos from ${channel.name} on attempt ${retries + 1}`)
+                  console.warn(`Successfully found ${videoSearch.items.length} videos from ${channel.name} on attempt ${retries + 1}`)
                   break
                 } else if (retries === maxRetries - 1) {
-                  console.log(`No videos found for ${channel.name} after ${maxRetries} attempts`)
+                console.warn(`No videos found for ${channel.name} after ${maxRetries} attempts`)
                   break
                 }
               } catch (searchError) {
                 console.warn(`Search attempt ${retries + 1} failed for ${channel.name}:`, searchError.message)
                 if (retries === maxRetries - 1) {
-                  console.log(`Max retries reached for ${channel.name}, continuing without videos`)
+                  console.warn(`Max retries reached for ${channel.name}, continuing without videos`)
                   break
                 }
               }
@@ -320,16 +320,16 @@ export async function GET(request: NextRequest) {
               const filteredVideos = videos.filter(video => !shouldFilterContent(video, blacklistedItems, whitelistedItems))
               
               allVideos.push(...filteredVideos)
-              console.log(`Found ${videos.length} videos (${filteredVideos.length} after filtering) from ${channel.name}`)
+              // `Found ${videos.length} videos (${filteredVideos.length} after filtering) from ${channel.name}`)
             }
           } catch (videoError) {
-            console.error(`Error searching for videos from ${channel.name}:`, videoError)
+            // `Error searching for videos from ${channel.name}:`, videoError)
           }
 
           // Search for playlists from this channel if requested
           if (includePlaylists) {
             try {
-              console.log(`Searching for playlists from ${channel.name}...`)
+              // `Searching for playlists from ${channel.name}...`)
               
               // Add retry logic for YouTube API calls
               let playlistSearch = null
@@ -341,16 +341,16 @@ export async function GET(request: NextRequest) {
                   playlistSearch = await youtube.search(channel.name, { type: 'playlist' })
                   
                   if (playlistSearch && playlistSearch.items && playlistSearch.items.length > 0) {
-                    console.log(`Successfully found ${playlistSearch.items.length} playlists from ${channel.name} on attempt ${retries + 1}`)
+                    // `Successfully found ${playlistSearch.items.length} playlists from ${channel.name} on attempt ${retries + 1}`)
                     break
                   } else if (retries === maxRetries - 1) {
-                    console.log(`No playlists found for ${channel.name} after ${maxRetries} attempts`)
+                    // `No playlists found for ${channel.name} after ${maxRetries} attempts`)
                     break
                   }
                 } catch (searchError) {
-                  console.warn(`Playlist search attempt ${retries + 1} failed for ${channel.name}:`, searchError.message)
+                  // `Playlist search attempt ${retries + 1} failed for ${channel.name}:`, searchError.message)
                   if (retries === maxRetries - 1) {
-                    console.log(`Max retries reached for ${channel.name}, continuing without playlists`)
+                    // `Max retries reached for ${channel.name}, continuing without playlists`)
                     break
                   }
                 }
@@ -400,15 +400,15 @@ export async function GET(request: NextRequest) {
                 const filteredPlaylists = playlists.filter(playlist => !shouldFilterContent(playlist, blacklistedItems, whitelistedItems))
                 
                 allPlaylists.push(...filteredPlaylists)
-                console.log(`Found ${playlists.length} playlists (${filteredPlaylists.length} after filtering) from ${channel.name}`)
+                // `Found ${playlists.length} playlists (${filteredPlaylists.length} after filtering) from ${channel.name}`)
               }
             } catch (playlistError) {
-              console.error(`Error searching for playlists from ${channel.name}:`, playlistError)
+              // `Error searching for playlists from ${channel.name}:`, playlistError)
             }
           }
         }
       } catch (error) {
-        console.error(`Error processing channel ${channel.name}:`, error)
+        // `Error processing channel ${channel.name}:`, error)
         // Continue with other channels even if one fails
       }
     }
@@ -486,7 +486,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log('Followed channels content fetched successfully:', {
+    // 'Followed channels content fetched successfully:', {
       channels: response.stats.totalChannels,
       videos: response.stats.totalVideos,
       playlists: response.stats.totalPlaylists,
@@ -497,7 +497,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response)
 
   } catch (error) {
-    console.error('Failed to fetch followed channels content:', error)
+    // 'Failed to fetch followed channels content:', error)
     return NextResponse.json({ 
       error: 'Failed to fetch followed channels content',
       details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined

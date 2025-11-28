@@ -39,7 +39,6 @@ export function SimpleFavoritesContainer({
   const loading = false
 
   const handleRemove = async (videoId: string) => {
-    console.log('Removing favorite:', videoId)
     // In real app, this would call API to remove favorite
   }
 

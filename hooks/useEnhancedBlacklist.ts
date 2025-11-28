@@ -198,7 +198,7 @@ export function useEnhancedBlacklist(options: UseEnhancedBlacklistOptions = {}) 
       
       return items
     } catch (err) {
-      console.error('Failed to fetch patterns:', err)
+      // Failed to fetch patterns
       return []
     }
   }, [cache.patterns, isCacheValid, cacheTime])
@@ -294,7 +294,7 @@ export function useEnhancedBlacklist(options: UseEnhancedBlacklistOptions = {}) 
       
       return await response.json()
     } catch (err) {
-      console.error('Failed to get import progress:', err)
+      // Failed to get import progress
       return null
     }
   }, [])
@@ -434,7 +434,7 @@ export function useEnhancedBlacklist(options: UseEnhancedBlacklistOptions = {}) 
       const result = await response.json()
       setMetrics(result)
     } catch (err) {
-      console.error('Failed to fetch metrics:', err)
+      // Failed to fetch metrics
     }
   }, [enableMetrics])
 
@@ -444,7 +444,7 @@ export function useEnhancedBlacklist(options: UseEnhancedBlacklistOptions = {}) 
       await fetch('/api/blacklist/filter', { method: 'DELETE' })
       setCache({ blacklist: null, whitelist: null, patterns: null })
     } catch (err) {
-      console.error('Failed to clear cache:', err)
+      // Failed to clear cache
     }
   }, [])
 

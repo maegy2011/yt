@@ -280,7 +280,7 @@ export function EnhancedBlacklistManager({ isOpen, onClose, type }: BlacklistMan
       const result = await fetchBlacklistPatterns()
       setPatterns(result.patterns || [])
     } catch (err) {
-      console.error('Failed to load patterns:', err)
+      // Failed to load patterns
     }
   }, [])
 
@@ -289,7 +289,7 @@ export function EnhancedBlacklistManager({ isOpen, onClose, type }: BlacklistMan
       const result = await fetchBlacklistBatches()
       setBatches(result.batches || [])
     } catch (err) {
-      console.error('Failed to load batches:', err)
+      // Failed to load batches
     }
   }, [])
 
@@ -301,7 +301,7 @@ export function EnhancedBlacklistManager({ isOpen, onClose, type }: BlacklistMan
         setStats(result)
       }
     } catch (err) {
-      console.error('Failed to load stats:', err)
+      // Failed to load stats
     }
   }, [type])
 
@@ -365,7 +365,7 @@ export function EnhancedBlacklistManager({ isOpen, onClose, type }: BlacklistMan
               await loadStats()
             }
           } catch (error) {
-            console.error('Failed to get progress:', error)
+            // Failed to get progress
           }
         }
         
@@ -472,7 +472,7 @@ export function EnhancedBlacklistManager({ isOpen, onClose, type }: BlacklistMan
                 await loadStats()
               }
             } catch (error) {
-              console.error('Failed to get progress:', error)
+              // Failed to get progress
             }
           }
           

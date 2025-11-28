@@ -45,14 +45,13 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   )
   
   if (invalidFavorites.length > 0) {
-    console.log(`Cleaning up ${invalidFavorites.length} invalid favorite entries`)
     // Don't await this cleanup to avoid delaying the response
     Promise.all(
       invalidFavorites.map(favorite => 
         db.favoriteVideo.delete({ where: { id: favorite.id } })
       )
-    ).catch(error => {
-      console.error('Failed to cleanup invalid favorites:', error)
+    ).catch(() => {
+      // Cleanup errors are non-critical
     })
   }
   

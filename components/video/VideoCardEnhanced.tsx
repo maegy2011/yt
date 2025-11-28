@@ -162,7 +162,7 @@ export function VideoCard({
       try {
         await playOperation.execute(() => Promise.resolve(onPlay(video)))
       } catch (error) {
-        console.error('Failed to play video:', error)
+        // Failed to play video
       }
     }
   }, [onPlay, video, loading, playOperation])
@@ -174,7 +174,7 @@ export function VideoCard({
       try {
         await favoriteOperation.execute(() => Promise.resolve(onFavorite(video)))
       } catch (error) {
-        console.error('Failed to favorite video:', error)
+        // Failed to favorite video
       }
     }
   }, [onFavorite, video, favoriteOperation])
@@ -187,7 +187,7 @@ export function VideoCard({
         await removeOperation.execute(() => Promise.resolve(onRemove(videoId)))
         setIsMenuOpen(false)
       } catch (error) {
-        console.error('Failed to remove video:', error)
+        // Failed to remove video
       }
     }
   }, [onRemove, videoId, removeOperation])
@@ -217,7 +217,7 @@ export function VideoCard({
         await blacklistOperation.execute(() => Promise.resolve(onAddToBlacklist(video)))
         setIsMenuOpen(false)
       } catch (error) {
-        console.error('Failed to add to blacklist:', error)
+        // Failed to add to blacklist
       }
     }
   }, [onAddToBlacklist, video, blacklistOperation])
@@ -230,7 +230,7 @@ export function VideoCard({
         await whitelistOperation.execute(() => Promise.resolve(onAddToWhitelist(video)))
         setIsMenuOpen(false)
       } catch (error) {
-        console.error('Failed to add to whitelist:', error)
+        // Failed to add to whitelist
       }
     }
   }, [onAddToWhitelist, video, whitelistOperation])

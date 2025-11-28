@@ -102,7 +102,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result)
 
   } catch (error) {
-    console.error('Failed to get performance metrics:', error)
     return NextResponse.json({ 
       error: 'Failed to get performance metrics', 
       details: error instanceof Error ? error.message : 'Unknown error' 
@@ -196,7 +195,6 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
     }
   } catch (error) {
-    console.error('Performance optimization failed:', error)
     return NextResponse.json({ 
       error: 'Performance optimization failed', 
       details: error instanceof Error ? error.message : 'Unknown error' 

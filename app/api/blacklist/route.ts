@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
   try {
     // Check if database is available
     if (!db) {
-      console.error('Database connection not available')
       return NextResponse.json({ error: 'Database connection not available' }, { status: 500 })
     }
 
@@ -22,8 +21,6 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const sortBy = searchParams.get('sortBy') || 'addedAt' // 'addedAt' | 'title' | 'type'
     const sortOrder = searchParams.get('sortOrder') || 'desc' // 'asc' | 'desc'
-
-    console.log('Database available, fetching blacklist items with filters...')
     
     // Build where clause
     const where: any = {}
@@ -52,8 +49,6 @@ export async function GET(request: NextRequest) {
       take: limit
     })
     
-    console.log('Found blacklist items:', blacklistedItems.length)
-    
     return NextResponse.json({
       items: blacklistedItems,
       pagination: {
@@ -70,7 +65,6 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Failed to fetch blacklist:', error)
     return NextResponse.json({ error: 'Failed to fetch blacklist' }, { status: 500 })
   }
 }
@@ -109,7 +103,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(blacklistedItem)
   } catch (error) {
-    console.error('Failed to add to blacklist:', error)
     return NextResponse.json({ error: 'Failed to add to blacklist' }, { status: 500 })
   }
 }
@@ -175,7 +168,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Failed to remove from blacklist:', error)
     return NextResponse.json({ error: 'Failed to remove from blacklist' }, { status: 500 })
   }
 }
@@ -239,7 +231,6 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid operation' }, { status: 400 })
   } catch (error) {
-    console.error('Failed to perform batch blacklist operation:', error)
     return NextResponse.json({ error: 'Failed to perform batch operation' }, { status: 500 })
   }
 }
@@ -279,7 +270,6 @@ export async function PUT(request: NextRequest) {
       }))
     })
   } catch (error) {
-    console.error('Failed to get blacklist statistics:', error)
     return NextResponse.json({ error: 'Failed to get statistics' }, { status: 500 })
   }
 }

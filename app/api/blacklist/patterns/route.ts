@@ -5,7 +5,6 @@ import { db } from '@/lib/db'
 export async function GET(request: NextRequest) {
   try {
     if (!db) {
-      console.error('Database connection not available')
       return NextResponse.json({ error: 'Database connection not available' }, { status: 500 })
     }
 
@@ -24,7 +23,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ patterns })
   } catch (error) {
-    console.error('Failed to fetch patterns:', error)
     return NextResponse.json({ error: 'Failed to fetch patterns' }, { status: 500 })
   }
 }
@@ -78,7 +76,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(newPattern)
   } catch (error) {
-    console.error('Failed to create pattern:', error)
     return NextResponse.json({ error: 'Failed to create pattern' }, { status: 500 })
   }
 }

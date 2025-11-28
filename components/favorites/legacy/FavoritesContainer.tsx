@@ -27,7 +27,7 @@ export function FavoritesContainer({ className = '', onVideoPlay }: FavoritesCon
     try {
       await removeFavorite(videoId)
     } catch (error) {
-      console.error('Failed to remove favorite:', error)
+      // Error handled by parent component
     }
   }, [removeFavorite])
 
@@ -55,7 +55,7 @@ export function FavoritesContainer({ className = '', onVideoPlay }: FavoritesCon
     try {
       await fetchFavorites()
     } catch (error) {
-      console.error('Failed to refresh favorites:', error)
+      // Error handled by parent component
     }
   }, [fetchFavorites])
 

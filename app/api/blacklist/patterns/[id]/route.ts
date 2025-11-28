@@ -17,7 +17,6 @@ export async function GET(
 
     return NextResponse.json(pattern)
   } catch (error) {
-    console.error('Failed to fetch pattern:', error)
     return NextResponse.json({ error: 'Failed to fetch pattern' }, { status: 500 })
   }
 }
@@ -73,7 +72,6 @@ export async function PUT(
 
     return NextResponse.json(updatedPattern)
   } catch (error) {
-    console.error('Failed to update pattern:', error)
     return NextResponse.json({ error: 'Failed to update pattern' }, { status: 500 })
   }
 }
@@ -89,7 +87,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Failed to delete pattern:', error)
     return NextResponse.json({ error: 'Failed to delete pattern' }, { status: 500 })
   }
 }

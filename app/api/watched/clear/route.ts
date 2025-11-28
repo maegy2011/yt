@@ -10,7 +10,6 @@ export async function POST() {
     
     return NextResponse.json({ success: true, message: 'Watched history cleared' })
   } catch (error) {
-    console.error('Failed to clear watched history:', error)
     return NextResponse.json({ error: 'Failed to clear watched history' }, { status: 500 })
   }
 }

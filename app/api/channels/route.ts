@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 
 export async function GET() {
   try {
-    console.log('Fetching favorite channels...')
+    // Fetching favorite channels...
     
     const channels = await db.favoriteChannel.findMany({
       orderBy: { addedAt: 'desc' }
@@ -16,17 +16,10 @@ export async function GET() {
       updatedAt: channel.updatedAt.toISOString()
     }))
     
-    console.log(`Found ${formattedChannels.length} favorite channels`)
+    // Found ${formattedChannels.length} favorite channels
     
     return NextResponse.json(formattedChannels)
   } catch (error) {
-    console.error('Failed to fetch channels - Full error:', {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : 'Unknown',
-      constructor: error instanceof Error ? error.constructor.name : 'Unknown'
-    })
-    
     return NextResponse.json({ 
       error: 'Failed to fetch channels',
       details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined

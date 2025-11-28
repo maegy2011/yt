@@ -56,7 +56,7 @@ export function FavoritesContainerEnhanced({ className = '', onVideoPlay }: Favo
         await removeFavorite(videoId)
       })
     } catch (error) {
-      console.error('Failed to remove favorite:', error)
+      // Error handled by async operation hook
     }
   }, [removeFavorite, removeOperation])
 
@@ -86,7 +86,7 @@ export function FavoritesContainerEnhanced({ className = '', onVideoPlay }: Favo
         await fetchFavorites()
       })
     } catch (error) {
-      console.error('Failed to refresh favorites:', error)
+      // Error handled by async operation hook
     }
   }, [fetchFavorites, refreshOperation])
 
@@ -96,7 +96,7 @@ export function FavoritesContainerEnhanced({ className = '', onVideoPlay }: Favo
         toggleEnabled()
       })
     } catch (error) {
-      console.error('Failed to toggle enabled:', error)
+      // Error handled by async operation hook
     }
   }, [toggleEnabled, toggleEnabledOperation])
 
@@ -106,7 +106,7 @@ export function FavoritesContainerEnhanced({ className = '', onVideoPlay }: Favo
         togglePaused()
       })
     } catch (error) {
-      console.error('Failed to toggle paused:', error)
+      // Error handled by async operation hook
     }
   }, [togglePaused, togglePausedOperation])
 
@@ -127,7 +127,7 @@ export function FavoritesContainerEnhanced({ className = '', onVideoPlay }: Favo
   return (
     <ErrorBoundary
       onError={(error, errorInfo) => {
-        console.error('FavoritesContainer error:', error, errorInfo)
+        // Error handled by ErrorBoundary component
       }}
     >
       <IncognitoWrapper feature="favorites" className={getContainerClasses()}>

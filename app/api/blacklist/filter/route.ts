@@ -58,7 +58,7 @@ async function getCachedBlacklist(forceRefresh = false): Promise<any[]> {
     blacklistCache.set(cacheKey, { data: items, timestamp: Date.now() })
     return items
   } catch (error) {
-    console.error('Failed to fetch blacklist:', error)
+    // Failed to fetch blacklist
     return []
   }
 }
@@ -82,7 +82,7 @@ async function getCachedWhitelist(forceRefresh = false): Promise<any[]> {
     whitelistCache.set(cacheKey, { data: items, timestamp: Date.now() })
     return items
   } catch (error) {
-    console.error('Failed to fetch whitelist:', error)
+    // Failed to fetch whitelist
     return []
   }
 }
@@ -107,7 +107,7 @@ async function getCachedPatterns(forceRefresh = false): Promise<any[]> {
     patternCache.set(cacheKey, { data: patterns, timestamp: Date.now() })
     return patterns
   } catch (error) {
-    console.error('Failed to fetch patterns:', error)
+    // Failed to fetch patterns
     return []
   }
 }
@@ -136,7 +136,7 @@ function matchesPattern(text: string, pattern: any): boolean {
         const regex = new RegExp(pattern.pattern, 'i')
         return regex.test(text)
       } catch (error) {
-        console.warn('Invalid regex pattern:', pattern.pattern)
+        // Invalid regex pattern
         return false
       }
     
@@ -292,7 +292,7 @@ export async function POST(request: NextRequest) {
                   }
                 })
               } catch (error) {
-                console.warn('Failed to update pattern metrics:', error)
+                // Failed to update pattern metrics
                 // Ignore metric update errors to not break filtering
               }
               
@@ -346,7 +346,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result)
 
   } catch (error) {
-    console.error('Enhanced filtering failed:', error)
     return NextResponse.json({ 
       error: 'Filtering failed', 
       details: error instanceof Error ? error.message : 'Unknown error' 
@@ -394,7 +393,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result)
 
   } catch (error) {
-    console.error('Failed to get blacklist stats:', error)
     return NextResponse.json({ 
       error: 'Failed to get statistics', 
       details: error instanceof Error ? error.message : 'Unknown error' 
@@ -414,7 +412,6 @@ export async function DELETE(request: NextRequest) {
       message: 'Cache cleared successfully' 
     })
   } catch (error) {
-    console.error('Failed to clear cache:', error)
     return NextResponse.json({ 
       error: 'Failed to clear cache', 
       details: error instanceof Error ? error.message : 'Unknown error' 

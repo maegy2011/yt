@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
     // Enable proper HMR
     webpackBuildWorker: true,
   },
+  // Configure allowed development origins to prevent cross-origin warnings
+  allowedDevOrigins: [
+    'preview-chat-*.space.z.ai',
+  ],
   // Configure rewrites to handle API routes properly
   async rewrites() {
     return [

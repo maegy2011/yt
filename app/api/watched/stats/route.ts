@@ -4,7 +4,6 @@ import { db } from '@/lib/db'
 export async function GET() {
   try {
     if (!db) {
-      console.error('Database connection not available')
       return NextResponse.json({ error: 'Database connection not available' }, { status: 500 })
     }
     
@@ -54,7 +53,6 @@ export async function GET() {
       stats
     })
   } catch (error) {
-    console.error('Failed to fetch watched history stats:', error)
     return NextResponse.json({ error: 'Failed to fetch watched history stats' }, { status: 500 })
   }
 }

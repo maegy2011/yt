@@ -51,7 +51,7 @@ export function usePlaybackPosition(videoId: string) {
         return 0
       }
     } catch (error) {
-      console.error('Failed to load playback position:', error)
+      // Failed to load playback position
       setError(error instanceof Error ? error.message : 'Failed to load playback position')
       return 0
     } finally {
@@ -102,7 +102,7 @@ export function usePlaybackPosition(videoId: string) {
         localStorage.setItem(`playback-position-${id}`, JSON.stringify(positionData))
         setPlaybackPosition(positionData)
       } catch (error) {
-        console.error('Failed to save playback position:', error)
+        // Failed to save playback position
         setError(error instanceof Error ? error.message : 'Failed to save playback position')
       }
     }
@@ -125,7 +125,7 @@ export function usePlaybackPosition(videoId: string) {
       localStorage.removeItem(`playback-position-${id}`)
       setPlaybackPosition(null)
     } catch (error) {
-      console.error('Failed to delete playback position:', error)
+      // Failed to delete playback position
       setError(error instanceof Error ? error.message : 'Failed to delete playback position')
     } finally {
       setIsLoading(false)

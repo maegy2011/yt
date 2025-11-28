@@ -172,7 +172,7 @@ export function BlacklistManager({ isOpen, onClose, type }: BlacklistManagerProp
       const result = await fetchBlacklistStats(type)
       setStats(result)
     } catch (err) {
-      console.error('Failed to load stats:', err)
+      // Failed to load stats
     }
   }, [type])
 

@@ -73,9 +73,7 @@ export function ChannelsContainer({
       }
       const channels = await response.json()
       setFavoriteChannels(channels)
-      console.log(`Fetched ${channels.length} channels`)
     } catch (err) {
-      console.error('Failed to fetch channels:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch channels')
     } finally {
       setLoading(false)
@@ -107,7 +105,7 @@ export function ChannelsContainer({
       }
       setFavoriteChannels(prev => prev.filter(channel => channel.channelId !== channelId))
     } catch (error) {
-      console.error('Failed to remove channel:', error)
+      setError(error instanceof Error ? error.message : 'Failed to remove channel')
     }
   }, [])
 

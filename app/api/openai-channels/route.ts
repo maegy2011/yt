@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     const videosPerPage = parseInt(searchParams.get('videosPerPage') || '12')
     const playlistsPerPage = parseInt(searchParams.get('playlistsPerPage') || '6')
 
-    console.log('Fetching OpenAI content:', { 
+    // Fetching OpenAI content 
       maxVideos, 
       maxPlaylists, 
       includePlaylists, 
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     try {
       // Search for OpenAI videos directly
-      console.log('Searching for OpenAI videos...')
+      // 'Searching for OpenAI videos...')
       const videoSearch = await youtube.search('OpenAI official', { type: 'video' })
       
       if (videoSearch && videoSearch.items && videoSearch.items.length > 0) {
@@ -156,16 +156,16 @@ export async function GET(request: NextRequest) {
         })
         
         allVideos.push(...videos)
-        console.log(`Found ${videos.length} OpenAI videos`)
+        // `Found ${videos.length} OpenAI videos`)
       }
     } catch (error) {
-      console.error('Error searching for OpenAI videos:', error)
+      // 'Error searching for OpenAI videos:', error)
     }
 
     try {
       // Search for OpenAI playlists if requested
       if (includePlaylists) {
-        console.log('Searching for OpenAI playlists...')
+        // 'Searching for OpenAI playlists...')
         const playlistSearch = await youtube.search('OpenAI official', { type: 'playlist' })
         
         if (playlistSearch && playlistSearch.items && playlistSearch.items.length > 0) {
@@ -201,11 +201,11 @@ export async function GET(request: NextRequest) {
           })
           
           allPlaylists.push(...playlists)
-          console.log(`Found ${playlists.length} OpenAI playlists`)
+          // `Found ${playlists.length} OpenAI playlists`)
         }
       }
     } catch (error) {
-      console.error('Error searching for OpenAI playlists:', error)
+      // 'Error searching for OpenAI playlists:', error)
     }
 
     // Sort videos by published date (newest first)
@@ -281,7 +281,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log('OpenAI content fetched successfully:', {
+    // 'OpenAI content fetched successfully:', {
       channels: response.stats.totalChannels,
       videos: response.stats.totalVideos,
       playlists: response.stats.totalPlaylists,
@@ -292,7 +292,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response)
 
   } catch (error) {
-    console.error('Failed to fetch OpenAI content:', error)
+    // 'Failed to fetch OpenAI content:', error)
     return NextResponse.json({ 
       error: 'Failed to fetch OpenAI content',
       details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined

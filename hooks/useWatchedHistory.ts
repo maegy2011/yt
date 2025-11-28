@@ -34,9 +34,7 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
       }
       const videos = await response.json()
       setWatchedVideos(videos)
-      console.log('Fetched', videos.length, 'watched videos')
     } catch (err) {
-      console.error('Failed to fetch watched videos:', err)
       setError(err as Error)
     } finally {
       setIsLoading(false)
@@ -65,7 +63,6 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
       const result = await response.json()
       
       // Don't immediately refresh - let the server respond first
-      console.log('Successfully added to watched history:', video.title, result.incognito ? '(incognito)' : '')
       
       // Only update local state if not in incognito mode
       if (!result.incognito) {
@@ -86,7 +83,6 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
         })
       }
     } catch (err) {
-      console.error('Failed to add to watched history:', err)
       setError(err as Error)
     } finally {
       setIsLoading(false)
@@ -106,7 +102,6 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
       // Update local state
       setWatchedVideos(prev => prev.filter(video => video.videoId !== videoId))
     } catch (err) {
-      console.error('Failed to remove from watched history:', err)
       setError(err as Error)
     }
   }, [])
@@ -124,7 +119,6 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
       // Update local state
       setWatchedVideos([])
     } catch (err) {
-      console.error('Failed to clear watched history:', err)
       setError(err as Error)
     }
   }, [])
@@ -146,7 +140,6 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
       // Refresh the list
       await fetchWatchedVideos()
     } catch (err) {
-      console.error('Failed to batch remove from watched history:', err)
       setError(err as Error)
     }
   }, [])

@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
         ...videoData
       })
     } catch (error) {
-      console.error('Error fetching video details:', error)
+      // Error fetching video details, returning basic info
       
       // Return basic info even if details fetch fails
       return NextResponse.json({
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       })
     }
   } catch (error) {
-    console.error('Error processing YouTube URL:', error)
+    // Error processing YouTube URL
     return NextResponse.json({ 
       error: 'Failed to process YouTube URL' 
     }, { status: 500 })
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
       clientSideFunction: 'checkClipboardForYouTubeVideo'
     })
   } catch (error) {
-    console.error('Error checking clipboard:', error)
+    // Error checking clipboard
     return NextResponse.json({ 
       error: 'Failed to check clipboard' 
     }, { status: 500 })

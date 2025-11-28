@@ -10,14 +10,14 @@ const initializeYoutubei = async (): Promise<void> => {
     const youtubeiModule = await import('youtubei') as unknown as YouTubeiModule
     youtubei = youtubeiModule
     Client = youtubeiModule.default?.Client || youtubeiModule.Client
-    console.log('YouTubei initialized successfully')
+    // YouTubei initialized successfully
   } catch (error) {
-    console.error('Failed to initialize YouTubei:', error)
+    // Failed to initialize YouTubei
   }
 }
 
 // Initialize immediately
-initializeYoutubei().catch(console.error)
+initializeYoutubei().catch(() => {})
 
 // Helper function to extract thumbnail URL from YouTubei v1.8.0 Thumbnails API
 function extractThumbnail(thumbnails: YouTubeThumbnails | string | undefined): { url: string; width: number; height: number } {
@@ -78,7 +78,7 @@ function extractThumbnail(thumbnails: YouTubeThumbnails | string | undefined): {
       height: 180
     }
   } catch (error) {
-    console.error('Error extracting thumbnail:', error)
+    // Error extracting thumbnail
     return {
       url: `https://via.placeholder.com/320x180/374151/ffffff?text=Error`,
       width: 320,
@@ -124,16 +124,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Query parameter is required' }, { status: 400 })
     }
 
-    console.log('Search request:', { 
-      query, 
-      page,
-      hasContinuation: !!continuation,
-      continuationLength: continuation?.length || 0
+    // Search request received
+    // query, 
+    // page, 
+    // hasContinuation: !!continuation,
+    // continuationLength: continuation?.length || 0
     })
 
     // Use youtubei for real YouTube data only
     if (!Client) {
-      console.error('YouTube client not initialized, waiting...')
+      // 'YouTube client not initialized, waiting...')
       // Wait a bit and retry once
       await new Promise(resolve => setTimeout(resolve, 1000))
       if (!Client) {
@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
     if (continuation) {
       // For pagination, use the continuation token properly
       try {
-        console.log('Attempting continuation search with token:', continuation.substring(0, 50) + '...')
+        // 'Attempting continuation search with token:', continuation.substring(0, 50) + '...')
         
         // Create a new client for continuation
         if (!Client) {
@@ -167,12 +167,12 @@ export async function GET(request: NextRequest) {
         
         if (continuationResults && continuationResults.items) {
           results = continuationResults
-          console.log('Continuation search successful, items count:', results.items?.length || 0)
+          // 'Continuation search successful, items count:', results.items?.length || 0)
         } else {
           throw new Error('Continuation returned no results')
         }
       } catch (continuationError) {
-        console.error('Continuation search failed:', continuationError)
+        // 'Continuation search failed:', continuationError)
         // When continuation fails, return empty results to stop pagination
         // This prevents showing unrelated content
         return NextResponse.json({
@@ -187,7 +187,7 @@ export async function GET(request: NextRequest) {
       // Initial search
       if (type === 'all') {
         // For 'all' type, perform separate searches and combine results
-        console.log('Performing separate searches for videos, playlists, and channels')
+        // 'Performing separate searches for videos, playlists, and channels')
         
         const [videoResults, playlistResults, channelResults] = await Promise.all([
           youtube.search(query, { type: 'video' }),
@@ -218,17 +218,17 @@ export async function GET(request: NextRequest) {
           continuation: videoResults.continuation || playlistResults.continuation
         }
         
-        console.log(`Combined search completed: ${selectedVideos.length} videos, ${selectedPlaylists.length} playlists, ${selectedChannels.length} channels, total: ${combinedItems.length}`)
+        // `Combined search completed: ${selectedVideos.length} videos, ${selectedPlaylists.length} playlists, ${selectedChannels.length} channels, total: ${combinedItems.length}`)
       } else if (type === 'playlist') {
         // For playlist search, try to get playlist results
         results = await youtube.search(query, { type: 'playlist' })
-        console.log('Playlist search completed, items count:', results.items?.length || 0)
+        // 'Playlist search completed, items count:', results.items?.length || 0)
         
         // If no playlists found, try video search with playlist keywords
         if (!results.items || results.items.length === 0) {
-          console.log('No playlists found, trying video search with playlist keywords')
+          // 'No playlists found, trying video search with playlist keywords')
           results = await youtube.search(query + ' playlist', { type: 'video' })
-          console.log('Video search with playlist keywords completed, items count:', results.items?.length || 0)
+          // 'Video search with playlist keywords completed, items count:', results.items?.length || 0)
         }
       } else if (type === 'channel') {
         // For channel search, use the search-channels API
@@ -285,11 +285,11 @@ export async function GET(request: NextRequest) {
           continuation: null // Channel search doesn't support pagination
         }
         
-        console.log('Channel search completed, items count:', channelItems.length)
+        // 'Channel search completed, items count:', channelItems.length)
       } else {
         // For specific types (video, playlist), use normal search
         results = await youtube.search(query, { type: type as 'video' | 'playlist' | 'channel' })
-        console.log('Initial search completed, items count:', results.items?.length || 0)
+        // 'Initial search completed, items count:', results.items?.length || 0)
       }
     }
     
@@ -402,8 +402,8 @@ export async function GET(request: NextRequest) {
       return null
     }).filter((item): item is YouTubeSearchResult => item !== null) || []
     
-    console.log('Items processed:', videoItems.length)
-    console.log('Continuation token available:', !!results.continuation)
+    // 'Items processed:', videoItems.length)
+    // 'Continuation token available:', !!results.continuation)
     
     // Return real data only, even if empty
     const response = {
@@ -414,12 +414,12 @@ export async function GET(request: NextRequest) {
       hasMore: !!results.continuation
     }
     
-    console.log('Final response items count:', response.items.length)
-    console.log('First item channel data:', response.items[0]?.channel)
+    // 'Final response items count:', response.items.length)
+    // 'First item channel data:', response.items[0]?.channel)
     
     return NextResponse.json(response)
   } catch (error) {
-    console.error('YouTube search error:', error)
+    // 'YouTube search error:', error)
     const { searchParams } = new URL(request.url)
     return NextResponse.json({ 
       error: 'Failed to search YouTube. Please try again later.',

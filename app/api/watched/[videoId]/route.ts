@@ -25,7 +25,6 @@ export async function GET(
 
     return NextResponse.json(video)
   } catch (error) {
-    console.error('Failed to get watched video:', error)
     return NextResponse.json({ error: 'Failed to get watched video' }, { status: 500 })
   }
 }
@@ -68,7 +67,6 @@ export async function PUT(
 
     return NextResponse.json(updatedVideo)
   } catch (error) {
-    console.error('Failed to update watched video:', error)
     return NextResponse.json({ error: 'Failed to update watched video' }, { status: 500 })
   }
 }
@@ -103,7 +101,6 @@ export async function DELETE(
       message: 'Watched video deleted successfully' 
     })
   } catch (error) {
-    console.error('Failed to delete watched video:', error)
     return NextResponse.json({ error: 'Failed to delete watched video' }, { status: 500 })
   }
 }

@@ -38,7 +38,6 @@ export async function DELETE(request: NextRequest) {
       message: `Deleted ${result.count} watched videos`
     })
   } catch (error) {
-    console.error('Failed to batch delete watched videos:', error)
     return NextResponse.json({ error: 'Failed to delete watched videos' }, { status: 500 })
   }
 }
@@ -100,7 +99,6 @@ export async function PUT(request: NextRequest) {
       errors
     })
   } catch (error) {
-    console.error('Failed to batch update watched videos:', error)
     return NextResponse.json({ error: 'Failed to update watched videos' }, { status: 500 })
   }
 }
