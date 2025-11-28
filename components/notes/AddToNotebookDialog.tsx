@@ -50,7 +50,7 @@ export function AddToNotebookDialog({
       onOpenChange(false)
       onSuccess?.()
     } catch (error) {
-      console.error('Failed to add notes to notebook:', error)
+      // Console statement removed
     } finally {
       setIsAdding(false)
     }

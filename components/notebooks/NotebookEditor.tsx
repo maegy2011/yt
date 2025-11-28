@@ -122,7 +122,7 @@ export function NotebookEditor({
       
       onClose()
     } catch (error) {
-      console.error('Failed to save notebook:', error)
+      // Failed to save notebook
     } finally {
       setLoading(false)
     }
@@ -149,7 +149,7 @@ export function NotebookEditor({
       setThumbnail(result.thumbnailPath)
       setThumbnailFile(null)
     } catch (error) {
-      console.error('Error uploading thumbnail:', error)
+      // Error uploading thumbnail
     } finally {
       setUploadingThumbnail(false)
     }

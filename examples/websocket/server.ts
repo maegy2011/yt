@@ -47,11 +47,11 @@ const createUserMessage = (username: string, content: string): Message => ({
 })
 
 io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`)
+  // Console statement removed
 
   // Add test event handler
   socket.on('test', (data) => {
-    console.log('Received test message:', data)
+    // Console statement removed
     socket.emit('test-response', { 
       message: 'Server received test message', 
       data: data,
@@ -79,7 +79,7 @@ io.on('connection', (socket) => {
     const usersList = Array.from(users.values())
     socket.emit('users-list', { users: usersList })
     
-    console.log(`${username} joined the chat room, current online users: ${users.size}`)
+    // Console statement removed
   })
 
   socket.on('message', (data: { content: string; username: string }) => {
@@ -89,7 +89,7 @@ io.on('connection', (socket) => {
     if (user && user.username === username) {
       const message = createUserMessage(username, content)
       io.emit('message', message)
-      console.log(`${username}: ${content}`)
+      // Console statement removed
     }
   })
 
@@ -104,35 +104,35 @@ io.on('connection', (socket) => {
       const leaveMessage = createSystemMessage(`${user.username} left the chat room`)
       io.emit('user-left', { user: { id: socket.id, username: user.username }, message: leaveMessage })
       
-      console.log(`${user.username} left the chat room, current online users: ${users.size}`)
+      // Console statement removed
     } else {
-      console.log(`User disconnected: ${socket.id}`)
+      // Console statement removed
     }
   })
 
   socket.on('error', (error) => {
-    console.error(`Socket error (${socket.id}):`, error)
+    // Console statement removed
   })
 })
 
 const PORT = 3003
 httpServer.listen(PORT, () => {
-  console.log(`WebSocket server running on port ${PORT}`)
+  // Console statement removed
 })
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('Received SIGTERM signal, shutting down server...')
+  // Console statement removed
   httpServer.close(() => {
-    console.log('WebSocket server closed')
+    // Console statement removed
     process.exit(0)
   })
 })
 
 process.on('SIGINT', () => {
-  console.log('Received SIGINT signal, shutting down server...')
+  // Console statement removed
   httpServer.close(() => {
-    console.log('WebSocket server closed')
+    // Console statement removed
     process.exit(0)
   })
 })

@@ -133,7 +133,7 @@ export function VideoNote({
         }
       }
     } catch (error) {
-      console.error('Failed to refresh notes:', error)
+      // Console statement removed
     }
   }, [videoId, onNotesChange])
 
@@ -213,7 +213,7 @@ export function VideoNote({
       try {
         accurateCurrentTime = playerRef.current.getCurrentTime()
       } catch (error) {
-        console.error('Error getting current time:', error)
+        // Console statement removed
       }
       
       const startTime = Math.floor(accurateCurrentTime)
@@ -225,7 +225,7 @@ export function VideoNote({
       try {
         accurateCurrentTime = playerRef.current.getCurrentTime()
       } catch (error) {
-        console.error('Error getting current time:', error)
+        // Console statement removed
       }
       
       const endTime = Math.floor(accurateCurrentTime)
@@ -263,7 +263,7 @@ export function VideoNote({
             throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
           }
         } catch (error) {
-          console.error('Failed to save quick note:', error)
+          // Console statement removed
         }
       } else {
         // End time must be greater than start time
@@ -298,7 +298,7 @@ export function VideoNote({
           setNotes(videoNotes)
         }
       } catch (error) {
-        console.error('Failed to load notes:', error)
+        // Console statement removed
       }
     }
     
@@ -325,7 +325,7 @@ export function VideoNote({
             )
           }
         } catch (error) {
-          console.error('Error getting current time:', error)
+          // Console statement removed
         }
       }
     }, 2000) // Update every 2 seconds and save position
@@ -349,7 +349,7 @@ export function VideoNote({
             
             // Only check end time if video is actually playing (state === 1)
             if (playerState === 1 && currentTime >= activeNote.endTime) {
-              console.log('Auto-stopping at end time:', currentTime, '>=', activeNote.endTime)
+              // Console statement removed
               setAutoStopTriggered(true)
               playerRef.current.pauseVideo()
               setIsPlaying(false)
@@ -364,7 +364,7 @@ export function VideoNote({
               }, 500)
             }
           } catch (error) {
-            console.error('Error monitoring video progress:', error)
+            // Console statement removed
           }
         }
       }, 200) // Check every 200ms for better responsiveness
@@ -417,15 +417,15 @@ export function VideoNote({
           throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
         }
       } catch (error) {
-        console.error('Failed to save note:', error)
+        // Console statement removed
       }
     }
   }
 
   const handleCaptureStart = () => {
-    console.log('=== Set Start Button Clicked ===')
+    // Console statement removed
   
-    console.log('Current time (state):', currentTime)
+    // Console statement removed
   
     
     // Get the most accurate current time directly from the player
@@ -445,7 +445,7 @@ export function VideoNote({
     }
     
     const startTime = Math.floor(accurateCurrentTime)
-    console.log('Final start time:', startTime)
+    // Console statement removed
     
     setNewNote({ 
       ...newNote, 
@@ -453,7 +453,7 @@ export function VideoNote({
       endTime: Math.max(startTime + 1, newNote.endTime)
     })
     setIsCapturing(true)
-    console.log('Start time set to:', startTime, 'from current time:', accurateCurrentTime)
+    // Console statement removed
   }
 
   const handleSaveNote = async () => {
@@ -503,17 +503,17 @@ export function VideoNote({
             onNotesChange()
           }
           
-          console.log('Note saved with end time:', endTime, 'from current time:', accurateCurrentTime)
+          // Console statement removed
         } else {
           const errorData = await response.json().catch(() => ({}))
           throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
         }
       } catch (error) {
-        console.error('Failed to save note:', error)
+        // Console statement removed
       }
     } else {
       // End time must be greater than start time
-      console.log('End time not greater than start time:', endTime, '<=', newNote.startTime)
+      // Console statement removed
     }
   }
 
@@ -543,7 +543,7 @@ export function VideoNote({
         throw new Error('Failed to update note')
       }
     } catch (error) {
-      console.error('Failed to update note:', error)
+      // Console statement removed
     }
   }
 
@@ -594,7 +594,7 @@ export function VideoNote({
         throw new Error('Failed to delete note')
       }
     } catch (error) {
-      console.error('Failed to delete note:', error)
+      // Console statement removed
       setDeleteConfirmOpen(false)
       setNoteToDelete(null)
     }
@@ -692,7 +692,7 @@ export function VideoNote({
     if (savedTime && savedTime > 10 && videoDuration > 0 && savedTime < videoDuration - 10) {
       setSavedPosition(savedTime)
       setShowResumePrompt(true)
-      console.log('Found saved position:', savedTime, 'showing resume prompt')
+      // Console statement removed
     } else {
       // Set initial video position if needed
       setSavedPosition(null)
@@ -744,12 +744,12 @@ export function VideoNote({
     if (id && id.includes('-')) {
       // This might be a database ID, not a YouTube video ID
       // In this case, we need to get the actual videoId from the video object
-      console.error('Invalid YouTube video ID provided:', id)
+      // Console statement removed
       return ''
     }
     
     // Return empty string if invalid
-    console.error('Invalid YouTube video ID format:', id)
+    // Console statement removed
     return ''
   }
 

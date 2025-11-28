@@ -32,11 +32,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { channelId, name, thumbnail, subscriberCount, viewCount, videoCount } = body
 
-    console.log('Follow channel request:', { channelId, name, subscriberCount, viewCount })
+    // Console statement removed
 
     // Validate required fields
     if (!channelId || !name) {
-      console.error('Missing required fields:', { channelId, name })
+      // Console statement removed
       return NextResponse.json({ 
         error: 'Missing required fields: channelId and name are required' 
       }, { status: 400 })
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (existing) {
-      console.log('Channel already exists:', { channelId, name })
+      // Console statement removed
       // Convert Date objects to strings for JSON serialization
       const formattedExisting = {
         ...existing,
@@ -79,21 +79,14 @@ export async function POST(request: NextRequest) {
       updatedAt: channel.updatedAt.toISOString()
     }
 
-    console.log('Channel followed successfully:', { 
-      id: formattedChannel.id, 
-      channelId: formattedChannel.channelId, 
-      name: formattedChannel.name,
+    // Console removed
+    return NextResponse.json({
       viewCount: formattedChannel.viewCount
     })
 
     return NextResponse.json(formattedChannel)
   } catch (error) {
-    console.error('Failed to add channel - Full error:', {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : 'Unknown',
-      constructor: error instanceof Error ? error.constructor.name : 'Unknown'
-    })
+    // Console removed - Failed to add channel full error logged
     
     // Handle specific database errors
     if (error instanceof Error && 'code' in error && error.code === 'P2002') {

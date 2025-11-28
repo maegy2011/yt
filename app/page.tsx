@@ -295,7 +295,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   useEffect(() => {
     const globalTimeout = setTimeout(() => {
       if (showSplashScreen) {
-        console.log('App: Global timeout - forcing splash screen to hide')
+        // Console statement removed
         setShowSplashScreen(false)
       }
     }, 20000) // 20 seconds maximum
@@ -400,7 +400,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       setNetworkStatus(isOnline ? 'online' : 'offline')
       return isOnline
     } catch (error) {
-      console.warn('Network connectivity check failed:', error)
+      // Console statement removed
       setNetworkStatus('offline')
       // Don't throw error, just return false
       return false
@@ -437,7 +437,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         // Clear timeout if request fails
         if (timeoutId) clearTimeout(timeoutId)
         
-        console.warn(`Fetch attempt ${i + 1} failed for ${url}:`, error)
+        // Console statement removed
         
         // Don't check connectivity on first attempt to avoid circular dependency
         if (i === 0) {
@@ -446,7 +446,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
           // On subsequent attempts, check connectivity
           const isConnected = await checkNetworkConnectivity()
           if (!isConnected) {
-            console.warn('Network connectivity issue detected, skipping further retries')
+            // Console statement removed
             throw new Error('Network connectivity issue detected')
           }
         }
@@ -503,7 +503,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
 
   // Handle splash screen completion
   const handleSplashComplete = useCallback(() => {
-    console.log('App: Splash screen completed, hiding splash screen')
+    // Console statement removed
     setShowSplashScreen(false)
   }, [])
 
@@ -845,14 +845,14 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     try {
       const response = await fetchWithRetry('/api/channels')
       if (!response.ok) {
-        console.error('Response status:', response.status, response.statusText)
+        // Console statement removed
         throw new Error(`Failed to fetch favorite channels: ${response.status} ${response.statusText}`)
       }
       const data = await response.json()
       setFavoriteChannels(data || [])
       return data || []
     } catch (error) {
-      console.error('Failed to load favorite channels:', error)
+      // Console statement removed
       setFavoriteChannels([])
       
       return []
@@ -863,7 +863,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     try {
       const response = await fetchWithRetry('/api/favorites')
       if (!response.ok) {
-        console.error('Response status:', response.status, response.statusText)
+        // Console statement removed
         throw new Error(`Failed to fetch favorite videos: ${response.status} ${response.statusText}`)
       }
       const data = await response.json()
@@ -875,13 +875,13 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       } else if (Array.isArray(data)) {
         favoritesData = data
       } else {
-        console.warn('Unexpected API response structure:', data)
+        // Console statement removed
         favoritesData = []
       }
       
       // Ensure we have an array before mapping
       if (!Array.isArray(favoritesData)) {
-        console.error('favoritesData is not an array:', favoritesData)
+        // Console statement removed
         setFavoriteVideos([])
         return
       }
@@ -889,7 +889,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       const convertedVideos = favoritesData.map((video: FavoriteVideo) => convertDbVideoToSimple(video))
       setFavoriteVideos(convertedVideos)
     } catch (error) {
-      console.error('Failed to load favorite videos:', error)
+      // Console statement removed
       setFavoriteVideos([])
       
     }
@@ -900,13 +900,13 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       setNotesLoading(true)
       const response = await fetchWithRetry('/api/notes')
       if (!response.ok) {
-        console.error('Response status:', response.status, response.statusText)
+        // Console statement removed
         throw new Error(`Failed to fetch notes: ${response.status} ${response.statusText}`)
       }
       const data = await response.json()
       setAllNotes(data || [])
     } catch (error) {
-      console.error('Failed to load notes:', error)
+      // Console statement removed
       setAllNotes([])
       
     } finally {
@@ -926,7 +926,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       setRetryCount(0)
       
     } catch (error) {
-      console.error('Failed to reload data:', error)
+      // Console statement removed
       if (retryCount < 3) {
         setTimeout(retryLoadingAllData, 2000 * (retryCount + 1))
       } else {
@@ -945,7 +945,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       setAllNotes(prev => prev.filter(note => note.id !== noteId))
       
     } catch (error) {
-      console.error('Failed to delete note:', error)
+      // Console statement removed
       
     }
   }
@@ -970,7 +970,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       ))
       
     } catch (error) {
-      console.error('Failed to update note:', error)
+      // Console statement removed
       
     }
   }
@@ -1053,7 +1053,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
           throw new Error('Failed to create note')
         }
       } catch (error) {
-        console.error('Failed to create note:', error)
+        // Console statement removed
         
       }
     }
@@ -1090,7 +1090,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       setSelectedNotes(new Set())
       setMultiSelectMode(false)
     } catch (error) {
-      console.error('Failed to delete notes:', error)
+      // Console statement removed
       
     }
   }
@@ -1191,7 +1191,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       ])
       
     } catch (error) {
-      console.error('Failed to clear all data:', error)
+      // Console statement removed
       
     } finally {
       setLoading(false)
@@ -1207,7 +1207,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         setDataStatistics(data.statistics)
       }
     } catch (error) {
-      console.error('Failed to fetch data statistics:', error)
+      // Console statement removed
     }
   }
 
@@ -1280,7 +1280,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       setDataStatistics(null)
       
     } catch (error) {
-      console.error('Failed to clear selected data:', error)
+      // Console statement removed
     } finally {
       setLoading(false)
     }
@@ -1300,7 +1300,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
             return { channel, videos: channelData.videos || [] }
           }
         } catch (error) {
-          console.error(`Failed to load videos for channel ${channel.name}:`, error)
+          // Console statement removed
         }
         return { channel, videos: [] }
       })
@@ -1315,7 +1315,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       
       setChannelVideos(allVideos)
     } catch (error) {
-      console.error('Error loading channel videos:', error)
+      // Console statement removed
       setChannelVideos([])
     } finally {
       setChannelVideosLoading(false)
@@ -1339,21 +1339,18 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       )
       if (response.ok) {
         const data = await response.json()
-        console.log('Frontend received followed channels data:', JSON.stringify({
-          channelsCount: data.channels?.length || 0,
-          videosCount: data.videos?.length || 0,
-          playlistsCount: data.playlists?.length || 0,
-          totalVideos: data.stats?.totalVideos || 0,
-          totalPlaylists: data.stats?.totalPlaylists || 0,
-          hasData: !!(data.videos?.length || data.playlists?.length)
-        }, null, 2))
+        // Console log removed
         setFollowedChannelsContent(data)
         setFollowedChannelsVideos(data.videos || [])
         setFollowedChannelsPlaylists(data.playlists || [])
         setFollowedChannels(data.channels || [])
+        setFollowedChannelsContent(data)
+        setFollowedChannelsVideos(data.videos || [])
+        setFollowedChannelsPlaylists(data.playlists || [])
         setVideoPagination(data.pagination?.videos || null)
         setPlaylistPagination(data.pagination?.playlists || null)
-        console.log('Followed channels content loaded:', JSON.stringify({
+        // Console log removed
+        setFollowedChannelsPagination({
           videosCount: data.videos?.length || 0,
           playlistsCount: data.playlists?.length || 0,
           channelsCount: data.channels?.length || 0,
@@ -1361,12 +1358,12 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
           hasPlaylists: !!(data.playlists?.length),
           videoPage: data.pagination?.videos?.currentPage,
           playlistPage: data.pagination?.playlists?.currentPage
-        }, null, 2))
+        })
       } else {
-        console.error('Failed to load followed channels content:', response.statusText)
+        // Console statement removed
       }
     } catch (error) {
-      console.error('Error loading followed channels content:', error)
+      // Console statement removed
     } finally {
       setFollowedChannelsLoading(false)
     }
@@ -1482,10 +1479,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       }
       
       if (data.query && data.query !== queryToUse) {
-        console.warn('Search query mismatch:', { 
-          expected: queryToUse, 
-          received: data.query 
-        })
+        // Console warn removed - query mismatch detected
       }
       
       let finalItems: SearchResultItem[]
@@ -1536,7 +1530,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       }
       
     } catch (error) {
-      console.error('Search error:', error)
+      // Console statement removed
       
       if (!append) setSearchResults(null)
     } finally {
@@ -1576,7 +1570,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         try {
           return convertYouTubeVideo(video)
         } catch (conversionError) {
-          console.error('Failed to convert video:', video, conversionError)
+          // Console statement removed
           return null
         }
       }).filter((video): video is Video => video !== null)
@@ -1630,7 +1624,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       setActiveTab('search')
       
     } catch (error) {
-      console.error('Failed to load playlist videos:', error)
+      // Console statement removed
       const errorMessage = error instanceof Error ? error.message : 'Could not load playlist videos'
       
       
@@ -1686,7 +1680,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
             try {
               return convertYouTubeVideo(video)
             } catch (conversionError) {
-              console.error('Failed to convert video:', video, conversionError)
+              // Console statement removed
               return null
             }
           })
@@ -1738,7 +1732,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         }
         
       } catch (error) {
-        console.error('Failed to expand playlist:', error)
+        // Console statement removed
         
       } finally {
         setExpandedPlaylistLoading(prev => {
@@ -1818,7 +1812,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   }
 
   const handleVideoPlay = async (video: Video, startTime?: number) => {
-    console.log('handleVideoPlay called:', video.title, 'startTime:', startTime) // Debug log
+    // Console statement removed // Debug log
     setPreviousTab(activeTab) // Track the previous tab
     setSelectedVideo(video)
     setActiveTab('player')
@@ -1839,9 +1833,9 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         duration: video.duration,
         viewCount: video.viewCount?.toString()
       })
-      console.log('Added to watch history:', video.title)
+      // Console statement removed
     } else {
-      console.log('Video already in watch history:', video.title)
+      // Console statement removed
     }
   }
 
@@ -1883,7 +1877,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
 
   const handleChannelSelect = (channel: FavoriteChannel) => {
     // Handle channel selection - could open channel details or switch to channel view
-    console.log('Channel selected:', channel.name)
+    // Console statement removed
     // For now, just open the channel in YouTube
     window.open(`https://youtube.com/channel/${channel.channelId}`, '_blank')
   }
@@ -1919,10 +1913,10 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       if (data.success) {
         setNotebookNotes(data.notes)
       } else {
-        console.error('Failed to fetch notebook notes:', data.error)
+        // Failed to fetch notebook notes
       }
     } catch (error) {
-      console.error('Error selecting notebook:', error)
+      // Error selecting notebook
     } finally {
       setNotebookNotesLoading(false)
     }
@@ -2002,7 +1996,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       await loadNotes()
       
     } catch (error) {
-      console.error('Failed to create note for notebook:', error)
+      // Failed to create note for notebook
       throw error
     }
   }
@@ -2206,7 +2200,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         })
       }
     } catch (error) {
-      console.error(`Error in handleConfirmAction:`, error)
+      // Console statement removed
       toast({
         title: `Error!`,
         description: `An unexpected error occurred. Please try again.`,
@@ -2251,7 +2245,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   }, [])
 
   const handleVideoSelect = (video: Video) => {
-    console.log('handleVideoSelect called:', video.title) // Debug log
+    // Console statement removed // Debug log
     handleVideoPlay(video)
   }
 
@@ -2436,7 +2430,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         }
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error)
+      // Console statement removed
       
     } finally {
       setDynamicLoadingMessage('')
@@ -2478,7 +2472,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       
       setChannelSearchResults(channelsWithFavoriteStatus)
     } catch (error) {
-      console.error('Error searching channels:', error)
+      // Console statement removed
       
       setChannelSearchResults([])
     } finally {
@@ -2555,7 +2549,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         }
       }
     } catch (error) {
-      console.error('Error following channel:', error)
+      // Console statement removed
       
     } finally {
       setIsUpdatingFollow(false) // Re-enable useEffect updates
@@ -2581,36 +2575,36 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     }
 
     const loadInitialData = async () => {
-      console.log('App: Starting initial data load')
+      // Console statement removed
       try {
-        console.log('App: Loading favorite channels, videos, and notes...')
+        // Console statement removed
         const results = await Promise.all([
           loadFavoriteChannels(),
           loadFavoriteVideos(),
           loadNotes()
         ])
-        console.log('App: Initial data load completed', results)
+        // Console statement removed
         
         // The second result is favoriteChannels data
         const favoriteChannelsData = results[1]
         if (favoriteChannelsData && favoriteChannelsData.length > 0) {
-          console.log('App: Loading channel videos for', favoriteChannelsData.length, 'channels')
+          // Console statement removed
           await loadChannelVideos(favoriteChannelsData)
         }
       } catch (error) {
-        console.error('App: Failed to load initial data:', error)
+        // Console statement removed
       }
     }
     
     // Debug splash screen state changes
-    console.log('App: showSplashScreen changed to:', showSplashScreen)
+    // Console statement removed
     if (!showSplashScreen) {
-      console.log('App: Splash screen hidden, triggering initial data load')
+      // Console statement removed
       loadInitialData()
       
       // Add a fallback timeout to show the app even if data loading fails
       setTimeout(() => {
-        console.log('App: Fallback timeout - showing app regardless of data load status')
+        // Console statement removed
         // The app should already be visible, but this ensures we're not stuck
       }, 5000) // 5 seconds after splash screen
     }
@@ -2663,7 +2657,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   // Load followed channels content when page changes
   useEffect(() => {
     if (videoPage > 1 || playlistPage > 1) {
-      console.log('Loading followed channels content for page change:', { videoPage, playlistPage })
+      // Console statement removed
       setFollowedChannelsLoading(true)
       const currentPage = videoPage
       const currentPlaylistPage = playlistPage
@@ -2676,7 +2670,8 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         }
         throw new Error('Failed to load followed channels content')
       }).then(data => {
-        console.log('Page change - received followed channels data:', {
+        // Console log removed
+        setFollowedChannelsPagination({
           channels: data.channels?.length || 0,
           videos: data.videos?.length || 0,
           playlists: data.playlists?.length || 0
@@ -2688,7 +2683,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         setVideoPagination(data.pagination?.videos || null)
         setPlaylistPagination(data.pagination?.playlists || null)
       }).catch(error => {
-        console.error('Error loading followed channels content:', error)
+        // Console statement removed
       }).finally(() => {
         setFollowedChannelsLoading(false)
       })
@@ -2704,7 +2699,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
             loadNotes()
           ])
         } catch (error) {
-          console.error('Failed to refresh data:', error)
+          // Console statement removed
         }
       }
       refreshData()

@@ -52,7 +52,7 @@ export async function POST(
       count: updatedNotes.count
     })
   } catch (error) {
-    console.error('Error batch adding notes to notebook:', error)
+    // Error batch adding notes to notebook
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

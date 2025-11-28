@@ -34,7 +34,7 @@ export async function GET(
       exists: true
     })
   } catch (error) {
-    console.error('Error fetching playback position:', error)
+    // Console statement removed
     return NextResponse.json(
       { error: 'Failed to fetch playback position' },
       { status: 500 }
@@ -91,7 +91,7 @@ export async function PUT(
 
     return NextResponse.json(formattedPosition)
   } catch (error) {
-    console.error('Error updating playback position:', error)
+    // Console statement removed
     return NextResponse.json(
       { error: 'Failed to update playback position' },
       { status: 500 }
@@ -113,7 +113,7 @@ export async function DELETE(
 
     return NextResponse.json({ message: 'Playback position deleted successfully' })
   } catch (error) {
-    console.error('Error deleting playback position:', error)
+    // Console statement removed
     return NextResponse.json(
       { error: 'Failed to delete playback position' },
       { status: 500 }

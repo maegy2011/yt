@@ -70,7 +70,7 @@ export function useIncognitoButtonProps(feature: 'favorites' | 'notes' | 'watch-
       e.preventDefault()
       e.stopPropagation()
       // Optionally show a toast or notification
-      console.log(message)
+      // Console statement removed
     } : undefined
   }
 }

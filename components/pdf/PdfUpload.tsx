@@ -106,7 +106,7 @@ export function PdfUpload({ onUpload, maxFiles = 10, maxSize = 10 }: PdfUploadPr
       }, 2000)
 
     } catch (error) {
-      console.error('Upload failed:', error)
+      // Console statement removed
       setPdfs(prev => prev.map(pdf => 
         files.includes(pdf.file) 
           ? { ...pdf, status: 'error', error: 'Upload failed' }

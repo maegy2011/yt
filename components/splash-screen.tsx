@@ -33,19 +33,19 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    console.log('Splash screen: Starting simplified version')
+    // Console statement removed
     
     // Simplified loading with fixed intervals
     const messageInterval = setInterval(() => {
       setCurrentMessageIndex((prev) => {
-        console.log(`Splash screen: Moving from message ${prev} to ${prev + 1}`)
+        // Console statement removed
         if (prev >= loadingMessages.length - 1) {
-          console.log('Splash screen: All messages shown, completing')
+          // Console statement removed
           clearInterval(messageInterval)
           setIsLoading(false)
           // Complete after a brief delay to show final message
           setTimeout(() => {
-            console.log('Splash screen: Calling onComplete')
+            // Console statement removed
             onComplete()
           }, 1000)
           return prev
@@ -55,21 +55,21 @@ export function SplashScreen({ onComplete }: SplashScreenProps) {
     }, 800) // Slower, more reliable interval
 
     return () => {
-      console.log('Splash screen: Cleaning up interval')
+      // Console statement removed
       clearInterval(messageInterval)
     }
   }, [onComplete])
 
   // Add a simple safety timeout
   useEffect(() => {
-    console.log('Splash screen: Setting safety timeout')
+    // Console statement removed
     const safetyTimeout = setTimeout(() => {
-      console.log('Splash screen: Safety timeout triggered')
+      // Console statement removed
       onComplete()
     }, 8000) // 8 seconds max
 
     return () => {
-      console.log('Splash screen: Clearing safety timeout')
+      // Console statement removed
       clearTimeout(safetyTimeout)
     }
   }, [onComplete])

@@ -234,11 +234,11 @@ export const ApiErrorLogger = {
     }
 
     if (statusCode >= 500) {
-      console.error('API Server Error:', logData)
+      // Console statement removed
     } else if (statusCode >= 400) {
-      console.warn('API Client Error:', logData)
+      // Console statement removed
     } else {
-      console.log('API Request:', logData)
+      // Console statement removed
     }
   },
 
@@ -263,7 +263,7 @@ export const ApiErrorLogger = {
     }
 
     if (responseTime > 5000) {
-      console.warn('Slow API Request:', logData)
+      // Console statement removed
     }
   }
 }

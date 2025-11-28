@@ -94,7 +94,7 @@ export function NavigationEnhanced({
     announce(`Navigated to ${itemLabel}`)
     
     // Here you would typically handle navigation
-    console.log(`Navigate to ${itemId}`)
+    // Console statement removed
   }
 
   // Handle keyboard navigation

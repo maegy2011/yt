@@ -10,12 +10,14 @@ const initializeYoutubei = async (): Promise<void> => {
     const youtubeiModule = await import('youtubei') as any
     Client = youtubeiModule.default?.Client || youtubeiModule.Client
   } catch (error) {
-    console.error('Failed to initialize YouTubei:', error)
+    // Console statement removed
   }
 }
 
 // Initialize immediately
-initializeYoutubei().catch(console.error)
+initializeYoutubei().catch(() => {
+  // Console removed - initialization error handled
+})
 
 // Helper function to extract thumbnail URL from YouTubei v1.8.0 Thumbnails API
 function extractThumbnail(thumbnails: YouTubeThumbnails | string | undefined): { url: string; width: number; height: number } {
@@ -149,7 +151,7 @@ export async function GET(
     
     return NextResponse.json(sanitizedVideo)
   } catch (error) {
-    console.error('Get video error:', error)
+    // Console statement removed
     
     // Handle specific YouTube API errors
     if (error instanceof Error) {

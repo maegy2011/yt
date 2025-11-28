@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       linkedCount: newLinks.count
     })
   } catch (error) {
-    console.error('Error batch linking notes:', error)
+    // Console statement removed
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

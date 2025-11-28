@@ -21,11 +21,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const options = clearSelectiveDataSchema.parse(body)
 
-    console.log('Starting selective clear data operation:', options)
     
     const result = await DataManager.clearSelective(options)
     
-    console.log('Selective data clearing completed:', result)
     
     return NextResponse.json({
       success: true,
@@ -33,7 +31,7 @@ export async function POST(request: NextRequest) {
       deleted: result.deleted
     })
   } catch (error) {
-    console.error('Selective clear data failed:', error)
+    // Selective clear data failed
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -62,7 +62,7 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
       height: 180
     }
   } catch (error) {
-    console.error('Error extracting thumbnail:', error)
+    // Console statement removed
     return {
       url: `https://via.placeholder.com/320x180/374151/ffffff?text=Error`,
       width: 320,
@@ -81,7 +81,7 @@ export async function GET(
     const includeVideos = searchParams.get('includeVideos') === 'true'
     const maxVideos = parseInt(searchParams.get('maxVideos') || '10')
 
-    console.log('Fetching channel data:', { channelId, includeVideos, maxVideos })
+    // Console statement removed
 
     // Get channel data from YouTube
     const channel = await youtube.getChannel(channelId)
@@ -179,17 +179,11 @@ export async function GET(
       sanitizedChannel.addedAt = favoriteChannel.addedAt
     }
 
-    console.log('Channel data fetched successfully:', {
-      channelId: sanitizedChannel.id,
-      name: sanitizedChannel.name,
-      subscriberCount: sanitizedChannel.subscriberCount,
-      videoCount: sanitizedChannel.videoCount,
-      hasVideos: sanitizedChannel.metadata.hasVideos
-    })
+    // Console removed - Channel data fetched successfully
 
     return NextResponse.json(sanitizedChannel)
   } catch (error) {
-    console.error('Get channel error:', error)
+    // Console statement removed
     
     // Return more specific error messages
     if (error instanceof Error && (error.message?.includes('Not found') || error.message?.includes('404'))) {

@@ -57,7 +57,7 @@ export async function POST(
       thumbnailPath
     })
   } catch (error) {
-    console.error('Error uploading thumbnail:', error)
+    // Error uploading thumbnail
     return NextResponse.json(
       { error: 'Failed to upload thumbnail' },
       { status: 500 }
@@ -82,7 +82,7 @@ export async function DELETE(
       message: 'Thumbnail removed successfully'
     })
   } catch (error) {
-    console.error('Error removing thumbnail:', error)
+    // Error removing thumbnail
     return NextResponse.json(
       { error: 'Failed to remove thumbnail' },
       { status: 500 }

@@ -26,14 +26,14 @@ export function useKeepAliveService(): KeepAliveServiceHook {
         wakeLockRef.current = await (navigator as any).wakeLock.request('screen')
         
         wakeLockRef.current.addEventListener('release', () => {
-          console.log('Wake Lock released')
+          // Console statement removed
           wakeLockRef.current = null
         })
 
-        console.log('Wake Lock granted')
+        // Console statement removed
         return true
       } catch (error) {
-        console.warn('Could not obtain Wake Lock:', error)
+        // Console statement removed
         return false
       }
     }
@@ -55,7 +55,7 @@ export function useKeepAliveService(): KeepAliveServiceHook {
       try {
         startSWKeepAlive()
       } catch (error) {
-        console.warn('Service worker keep-alive failed, using fallback:', error)
+        // Console statement removed
       }
     }
 
@@ -82,7 +82,7 @@ export function useKeepAliveService(): KeepAliveServiceHook {
         try {
           sendKeepAliveMessage()
         } catch (error) {
-          console.warn('Service worker keep-alive message failed:', error)
+          // Console statement removed
         }
       }
 
@@ -94,7 +94,7 @@ export function useKeepAliveService(): KeepAliveServiceHook {
             timestamp: Date.now()
           })
         } catch (error) {
-          console.warn('Direct service worker message failed:', error)
+          // Console statement removed
         }
       }
     }, 30000) // Every 30 seconds
@@ -115,7 +115,7 @@ export function useKeepAliveService(): KeepAliveServiceHook {
         
         oscillatorRef.current.start()
       } catch (error) {
-        console.warn('Could not create audio context for keep-alive:', error)
+        // Console statement removed
       }
     }
 
@@ -126,14 +126,14 @@ export function useKeepAliveService(): KeepAliveServiceHook {
     var handleVisibilityChange = function() {
       if (document.hidden) {
         // Tab is hidden, ensure playback continues
-        console.log('Tab hidden, keeping playback alive')
+        // Console statement removed
         
         // Send immediate keep-alive when tab becomes hidden
         if (isSupported && isRegistered) {
           try {
             sendKeepAliveMessage()
           } catch (error) {
-            console.warn('Visibility change keep-alive failed:', error)
+            // Console statement removed
           }
         }
       }
@@ -150,7 +150,7 @@ export function useKeepAliveService(): KeepAliveServiceHook {
           try {
             return originalSend.call(this, data)
           } catch (error) {
-            console.warn('WebSocket send failed:', error)
+            // Console statement removed
           }
         }
       }

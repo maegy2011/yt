@@ -100,7 +100,7 @@ export async function POST(
       method
     })
   } catch (error) {
-    console.error('Error sharing notebook:', error)
+    // Error sharing notebook
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -166,7 +166,7 @@ export async function GET(
       shareContent
     })
   } catch (error) {
-    console.error('Error getting notebook share info:', error)
+    // Error getting notebook share info
     return NextResponse.json(
       { success: false, error: 'Failed to get notebook share info' },
       { status: 500 }

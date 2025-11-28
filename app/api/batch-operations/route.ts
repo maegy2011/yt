@@ -11,11 +11,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const operations: BatchOperation[] = body.operations
     
-    console.log('Starting batch operations:', operations)
+    // Console statement removed
     
     const result = await DataManager.clearBatch(operations)
     
-    console.log('Batch operations completed:', result)
+    // Console statement removed
     
     return NextResponse.json({
       success: true,
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       localStorageCleared: true // Client will handle this
     })
   } catch (error) {
-    console.error('Batch operations failed:', error)
+    // Console statement removed
     return NextResponse.json({
       success: false,
       error: 'Failed to perform batch operations',

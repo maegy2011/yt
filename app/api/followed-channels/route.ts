@@ -76,7 +76,7 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
       height: 180
     }
   } catch (error) {
-    console.error('Error extracting thumbnail:', error)
+    // Console statement removed
     return {
       url: `https://via.placeholder.com/320x180/374151/ffffff?text=Error`,
       width: 320,
@@ -139,15 +139,7 @@ export async function GET(request: NextRequest) {
     const videosPerPage = parseInt(searchParams.get('videosPerPage') || '12')
     const playlistsPerPage = parseInt(searchParams.get('playlistsPerPage') || '6')
 
-    // 'Fetching followed channels content:', { 
-      maxVideos, 
-      maxPlaylists, 
-      includePlaylists, 
-      videoPage, 
-      playlistPage, 
-      videosPerPage, 
-      playlistsPerPage 
-    })
+    // Console removed - Fetching followed channels content parsed
 
     // Get all favorite channels from database
     const favoriteChannels = await db.favoriteChannel.findMany({
@@ -160,10 +152,7 @@ export async function GET(request: NextRequest) {
       db.whitelistedItem.findMany()
     ])
 
-    // 'Loaded blacklist/whitelist items:', {
-      blacklisted: blacklistedItems.length,
-      whitelisted: whitelistedItems.length
-    })
+    // Console removed - Loaded blacklist/whitelist items parsed
 
     if (favoriteChannels.length === 0) {
       return NextResponse.json({
@@ -248,16 +237,16 @@ export async function GET(request: NextRequest) {
                 videoSearch = await youtube.search(channel.name, { type: 'video' })
                 
                 if (videoSearch && videoSearch.items && videoSearch.items.length > 0) {
-                  console.warn(`Successfully found ${videoSearch.items.length} videos from ${channel.name} on attempt ${retries + 1}`)
+                  // Console statement removed
                   break
                 } else if (retries === maxRetries - 1) {
-                console.warn(`No videos found for ${channel.name} after ${maxRetries} attempts`)
+                // Console statement removed
                   break
                 }
               } catch (searchError) {
-                console.warn(`Search attempt ${retries + 1} failed for ${channel.name}:`, searchError.message)
+                // Console statement removed
                 if (retries === maxRetries - 1) {
-                  console.warn(`Max retries reached for ${channel.name}, continuing without videos`)
+                  // Console statement removed
                   break
                 }
               }
@@ -486,13 +475,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 'Followed channels content fetched successfully:', {
-      channels: response.stats.totalChannels,
-      videos: response.stats.totalVideos,
-      playlists: response.stats.totalPlaylists,
-      videoPage: videoPage,
-      playlistPage: playlistPage
-    })
+    // Console removed - Followed channels content fetched successfully
 
     return NextResponse.json(response)
 

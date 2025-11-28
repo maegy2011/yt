@@ -52,7 +52,7 @@ export async function GET(
       notebook: formattedNotebook
     })
   } catch (error) {
-    console.error('Error fetching notebook:', error)
+    // Error fetching notebook
     return NextResponse.json(
       { success: false, error: 'Failed to fetch notebook' },
       { status: 500 }
@@ -111,7 +111,7 @@ export async function PUT(
       notebook: formattedNotebook
     })
   } catch (error) {
-    console.error('Error updating notebook:', error)
+    // Error updating notebook
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -162,7 +162,7 @@ export async function DELETE(
       message: 'Notebook deleted successfully'
     })
   } catch (error) {
-    console.error('Error deleting notebook:', error)
+    // Error deleting notebook
     return NextResponse.json(
       { success: false, error: 'Failed to delete notebook' },
       { status: 500 }

@@ -50,7 +50,7 @@ export function NotesContainer({ videoData, onVideoPlay, onAddToNotebook, classN
     try {
       await deleteNote(noteId)
     } catch (error) {
-      console.error('Failed to delete note:', error)
+      // Console statement removed
     }
   }, [deleteNote])
 
@@ -85,7 +85,7 @@ export function NotesContainer({ videoData, onVideoPlay, onAddToNotebook, classN
       }
       await fetchNotes()
     } catch (error) {
-      console.error('Failed to save note:', error)
+      // Console statement removed
       throw error
     }
   }, [createNote, updateNote, fetchNotes])
@@ -94,7 +94,7 @@ export function NotesContainer({ videoData, onVideoPlay, onAddToNotebook, classN
     try {
       await fetchNotes()
     } catch (error) {
-      console.error('Failed to refresh notes:', error)
+      // Console statement removed
     }
   }, [fetchNotes])
 

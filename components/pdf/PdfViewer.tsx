@@ -77,7 +77,7 @@ export function PdfViewer({ pdf, isOpen, onClose }: PdfViewerProps) {
           url: window.location.origin + pdf.path
         })
       } catch (error) {
-        console.error('Error sharing:', error)
+        // Console statement removed
       }
     } else {
       // Fallback: copy to clipboard
@@ -215,7 +215,7 @@ export function PdfCard({ pdf, onView, onDelete }: PdfCardProps) {
           url: window.location.origin + pdf.path
         })
       } catch (error) {
-        console.error('Error sharing:', error)
+        // Console statement removed
       }
     } else {
       // Fallback: copy to clipboard

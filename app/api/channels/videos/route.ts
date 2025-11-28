@@ -12,15 +12,7 @@ export async function GET(request: NextRequest) {
     const dateRange = searchParams.get('dateRange') || 'all' // all, week, month, year
     const includeStats = searchParams.get('includeStats') === 'true'
 
-    console.log('Enhanced channel videos request:', { 
-      channelId, 
-      limit, 
-      offset, 
-      sortBy, 
-      order, 
-      dateRange, 
-      includeStats 
-    })
+    // Console removed - Enhanced channel videos request parsed
 
     if (channelId) {
       // Get videos from specific channel
@@ -30,7 +22,7 @@ export async function GET(request: NextRequest) {
       return await getAllFavoriteChannelsVideos(limit, offset, sortBy, order, dateRange, includeStats)
     }
   } catch (error) {
-    console.error('Failed to fetch channel videos:', error)
+    // Console statement removed
     return NextResponse.json({ 
       error: 'Failed to fetch channel videos',
       details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
@@ -194,7 +186,7 @@ async function getChannelVideos(
       }
     })
   } catch (error) {
-    console.error('Single channel videos error:', error)
+    // Console statement removed
     return NextResponse.json({ error: 'Failed to fetch channel videos' }, { status: 500 })
   }
 }
@@ -256,7 +248,7 @@ async function getAllFavoriteChannelsVideos(
         
         allVideos.push(...channelVideos)
       } catch (error) {
-        console.error(`Failed to fetch videos for channel ${channel.name}:`, error)
+        // Console statement removed
         // Continue with other channels even if one fails
       }
     }
@@ -365,7 +357,7 @@ async function getAllFavoriteChannelsVideos(
       }
     })
   } catch (error) {
-    console.error('All channels videos error:', error)
+    // Console statement removed
     return NextResponse.json({ error: 'Failed to fetch channel videos' }, { status: 500 })
   }
 }

@@ -183,7 +183,7 @@ export function SettingsContainerEnhanced({
       try {
         setAppSettings(JSON.parse(savedSettings))
       } catch (error) {
-        console.error('Failed to load settings:', error)
+        // Failed to load settings
       }
     }
     fetchDataStatistics()

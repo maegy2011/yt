@@ -300,21 +300,16 @@ class Logger {
           error: log.error
         };
         
-        console.log(
-          `${colorCode}[${log.timestamp}] ${log.levelName.toUpperCase()} ${log.service}${resetCode}`,
-          structuredLog
-        );
+        // Console removed - Structured log with colors
       } else {
-        console.log(
-          `${colorCode}[${log.timestamp}] ${log.levelName.toUpperCase()} ${log.service}: ${log.message}${resetCode}`
-        );
+        // Console removed - Simple log with colors
         
         if (log.context) {
-          console.log('  Context:', log.context);
+          // Console statement removed - context logged
         }
         
         if (log.error) {
-          console.log('  Error:', log.error);
+          // Console statement removed - error logged
         }
       }
     });

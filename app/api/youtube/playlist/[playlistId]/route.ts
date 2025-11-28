@@ -94,7 +94,7 @@ export async function GET(
       return NextResponse.json({ error: 'Playlist ID is required' }, { status: 400 })
     }
 
-    console.log('Getting playlist:', playlistId)
+    // Console statement removed
 
     // Use youtubei for real YouTube data
     const { Client } = await import('youtubei')
@@ -119,10 +119,10 @@ export async function GET(
       channel: channelInfo
     }
 
-    console.log('Playlist retrieved successfully:', playlistId)
+    // Console statement removed
     return NextResponse.json(formattedPlaylist)
   } catch (error) {
-    console.error('Get playlist error:', error)
+    // Console statement removed
     return NextResponse.json({ 
       error: 'Failed to get playlist. Please try again later.' 
     }, { status: 500 })

@@ -50,7 +50,7 @@ export async function DELETE(request: NextRequest) {
       unlinkedCount: totalUnlinked
     })
   } catch (error) {
-    console.error('Error batch unlinking notes:', error)
+    // Console statement removed
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

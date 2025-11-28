@@ -77,7 +77,7 @@ export async function POST(
       files: uploadedFiles
     })
   } catch (error) {
-    console.error('Error uploading PDFs:', error)
+    // Error uploading PDFs
     return NextResponse.json(
       { error: 'Failed to upload PDFs' },
       { status: 500 }
@@ -116,7 +116,7 @@ export async function GET(
 
     return NextResponse.json({ files: pdfFiles })
   } catch (error) {
-    console.error('Error fetching PDFs:', error)
+    // Error fetching PDFs
     return NextResponse.json(
       { error: 'Failed to fetch PDFs' },
       { status: 500 }

@@ -14,7 +14,7 @@ export async function GET() {
       schema: 'VideoPlaybackPosition table exists'
     })
   } catch (error) {
-    console.error('Database test error:', error)
+    // Console statement removed
     return NextResponse.json(
       { 
         error: 'Database connection failed',

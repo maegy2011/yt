@@ -16,7 +16,7 @@ export async function GET() {
     
     return NextResponse.json(formattedNotes)
   } catch (error) {
-    console.error('Failed to fetch notes:', error)
+    // Console statement removed
     return NextResponse.json({ error: 'Failed to fetch notes' }, { status: 500 })
   }
 }
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(formattedNote)
   } catch (error) {
-    console.error('Failed to add note:', error)
+    // Console statement removed
     return NextResponse.json({ 
       error: 'Failed to add note', 
       details: error instanceof Error ? error.message : 'Unknown error'

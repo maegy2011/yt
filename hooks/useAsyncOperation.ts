@@ -198,7 +198,7 @@ export function usePaginatedAsyncOperation<T>(
       
       return result
     } catch (error) {
-      console.error('Failed to load page:', error)
+      // Console statement removed
       return null
     }
   }, [page, fetchPage, asyncOperation])

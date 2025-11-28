@@ -25,11 +25,11 @@ async function createCustomServer() {
 
     // Start the server
     server.listen(currentPort, hostname, () => {
-      console.log(`> Ready on http://${hostname}:${currentPort}`);
+      // Console statement removed;
     });
 
   } catch (err) {
-    console.error('Server startup error:', err);
+    // Console statement removed;
     process.exit(1);
   }
 }

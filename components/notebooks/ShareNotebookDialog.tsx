@@ -116,7 +116,7 @@ export function ShareNotebookDialog({
         }
       }
     } catch (error) {
-      console.error('Failed to share notebook:', error)
+      // Failed to share notebook
     } finally {
       setIsSharing(false)
     }
@@ -128,7 +128,7 @@ export function ShareNotebookDialog({
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (error) {
-      console.error('Failed to copy link:', error)
+      // Failed to copy link
     }
   }
 

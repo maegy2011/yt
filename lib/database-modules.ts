@@ -19,7 +19,7 @@ export class FavoriteChannelsModule {
         where: { channelId: id }
       })
     } catch (error) {
-      console.error('Failed to find favorite channel:', error)
+      // Console statement removed
       return null
     }
   }
@@ -131,7 +131,7 @@ export class FavoriteVideosModule {
         where: { videoId: id }
       })
     } catch (error) {
-      console.error('Failed to find favorite video:', error)
+      // Console statement removed
       return null
     }
   }
@@ -249,7 +249,7 @@ export class VideoNotesModule {
         where: { id }
       })
     } catch (error) {
-      console.error('Failed to find video note:', error)
+      // Console statement removed
       return null
     }
   }
@@ -367,7 +367,7 @@ export class WatchedVideosModule {
         where: { videoId: id }
       })
     } catch (error) {
-      console.error('Failed to find watched video:', error)
+      // Console statement removed
       return null
     }
   }
@@ -481,7 +481,7 @@ export class NotebooksModule {
         where: { id }
       })
     } catch (error) {
-      console.error('Failed to find notebook:', error)
+      // Console statement removed
       return null
     }
   }
@@ -592,7 +592,7 @@ export class PlaybackPositionsModule {
         where: { videoId }
       }) || null
     } catch (error) {
-      console.error('Failed to find playback position:', error)
+      // Console statement removed
       return null
     }
   }

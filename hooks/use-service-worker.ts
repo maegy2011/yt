@@ -25,7 +25,7 @@ export function useServiceWorker(): ServiceWorkerHook {
       // Register service worker
       navigator.serviceWorker.register('/sw.js')
         .then((reg) => {
-          console.log('Service Worker registered successfully:', reg.scope)
+          // Console statement removed
           setRegistration(reg)
           setIsRegistered(true)
           
@@ -33,11 +33,11 @@ export function useServiceWorker(): ServiceWorkerHook {
           reg.addEventListener('updatefound', () => {
             const newWorker = reg.installing
             if (newWorker) {
-              console.log('Service Worker update found')
+              // Console statement removed
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   // New worker is available, show update notification if needed
-                  console.log('New Service Worker available - refresh to update')
+                  // Console statement removed
                 }
               })
             }
@@ -45,20 +45,20 @@ export function useServiceWorker(): ServiceWorkerHook {
           
           // Check if service worker is already controlling the page
           if (navigator.serviceWorker.controller) {
-            console.log('Service Worker is already controlling the page')
+            // Console statement removed
           }
         })
         .catch((error) => {
-          console.warn('Service Worker registration failed:', error.message)
+          // Console statement removed
           setIsRegistered(false)
           
           // Don't treat this as a critical error - app can work without service worker
           if (error.name === 'TypeError' && (error.message.includes('404') || error.message.includes('Failed to fetch'))) {
-            console.info('Service worker script not found - app will work without it')
+            // Console info removed
           }
         })
     } else {
-      console.info('Service Worker not supported in this browser')
+      // Console info removed
       setIsSupported(false)
     }
   }, [])

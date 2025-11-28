@@ -56,7 +56,7 @@ export async function GET(
       }))
     })
   } catch (error) {
-    console.error('Error fetching note notebooks:', error)
+    // Console statement removed
     return NextResponse.json(
       { success: false, error: 'Failed to fetch note notebooks' },
       { status: 500 }
@@ -135,7 +135,7 @@ export async function POST(
       }
     })
   } catch (error) {
-    console.error('Error linking note to notebook:', error)
+    // Console statement removed
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

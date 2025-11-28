@@ -10,14 +10,16 @@ const initializeYoutubei = async () => {
     const youtubeiModule = await import('youtubei')
     youtubei = youtubeiModule.default || youtubeiModule
     Client = youtubei.Client || youtubeiModule.Client
-    console.log('YouTubei initialized successfully for stats')
+    // Console statement removed
   } catch (error) {
-    console.error('Failed to initialize YouTubei for stats:', error)
+    // Console statement removed
   }
 }
 
 // Initialize immediately
-initializeYoutubei().catch(console.error)
+initializeYoutubei().catch(() => {
+  // Console removed - initialization error handled
+})
 
 export async function GET(request: NextRequest) {
   try {
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest) {
     const includeComparison = searchParams.get('includeComparison') === 'true'
     const timeframe = searchParams.get('timeframe') || 'all' // all, month, week
 
-    console.log('Channel stats request:', { channelId, includeComparison, timeframe })
+    // Console statement removed
 
     if (channelId) {
       // Get stats for specific channel
@@ -36,7 +38,7 @@ export async function GET(request: NextRequest) {
       return await getAllChannelsStats(includeComparison, timeframe)
     }
   } catch (error) {
-    console.error('Channel stats error:', error)
+    // Console statement removed
     return NextResponse.json({ 
       error: 'Failed to fetch channel statistics',
       details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
@@ -113,7 +115,7 @@ async function getSingleChannelStats(channelId: string, includeComparison: boole
 
     return NextResponse.json(stats)
   } catch (error) {
-    console.error('Single channel stats error:', error)
+    // Console statement removed
     return NextResponse.json({ error: 'Failed to fetch channel statistics' }, { status: 500 })
   }
 }
@@ -188,7 +190,7 @@ async function getAllChannelsStats(includeComparison: boolean, timeframe: string
           channelDetails.push(channelDetail)
         }
       } catch (error) {
-        console.error(`Failed to fetch details for channel ${favoriteChannel.channelId}:`, error)
+        // Console statement removed
         // Add basic data even if detailed fetch fails
         channelDetails.push({
           id: favoriteChannel.id,
@@ -256,7 +258,7 @@ async function getAllChannelsStats(includeComparison: boolean, timeframe: string
       }
     })
   } catch (error) {
-    console.error('All channels stats error:', error)
+    // Console statement removed
     return NextResponse.json({ error: 'Failed to fetch channel statistics' }, { status: 500 })
   }
 }

@@ -118,7 +118,7 @@ export async function searchVideos(query: string, type: 'video' | 'playlist' | '
     
     return result
   } catch (error) {
-    console.error('Search error:', error)
+    // Console statement removed
     return { 
       items: [], 
       error: error instanceof Error ? error.message : 'Search failed' 
@@ -141,7 +141,7 @@ export async function getVideo(videoId: string): Promise<Video | null> {
     const video = await response.json()
     return video
   } catch (error) {
-    console.error('Get video error:', error)
+    // Console statement removed
     return null
   }
 }
@@ -161,7 +161,7 @@ export async function getChannel(channelId: string): Promise<Channel | null> {
     const channel = await response.json()
     return channel
   } catch (error) {
-    console.error('Get channel error:', error)
+    // Console statement removed
     return null
   }
 }
@@ -181,7 +181,7 @@ export async function getPlaylist(playlistId: string): Promise<Playlist | null> 
     const playlist = await response.json()
     return playlist
   } catch (error) {
-    console.error('Get playlist error:', error)
+    // Console statement removed
     return null
   }
 }
@@ -201,7 +201,7 @@ export async function getPlaylistVideos(playlistId: string): Promise<{ videos: V
     const result = await response.json()
     return result
   } catch (error) {
-    console.error('Get playlist videos error:', error)
+    // Console statement removed
     return { 
       videos: [], 
       error: error instanceof Error ? error.message : 'Failed to get playlist videos' 
@@ -318,7 +318,7 @@ export function formatPublishedAt(date: string): string {
     if (days < 365) return `${Math.floor(days / 30)} months ago`
     return `${Math.floor(days / 365)} years ago`
   } catch (error) {
-    console.error('Date formatting error:', error)
+    // Console statement removed
     return 'Unknown date'
   }
 }

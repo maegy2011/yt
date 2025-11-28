@@ -158,13 +158,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Query parameter is required' }, { status: 400 })
     }
 
-    // 'Enhanced channel search request:', { 
-      query, 
-      sortBy, 
-      order, 
-      limit, 
-      includeStats 
-    })
+    // Console removed - Enhanced channel search request parsed
 
     // Use youtubei for real YouTube data
     if (!Client) {
@@ -321,13 +315,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     }
     
-    // 'Enhanced channel search completed:', {
-      query,
-      totalFound: channelItems.length,
-      returned: limitedItems.length,
-      sortBy,
-      order
-    })
+    // Console removed - Enhanced channel search completed
     
     return NextResponse.json(response)
   } catch (error) {

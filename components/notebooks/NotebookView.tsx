@@ -143,7 +143,7 @@ export function NotebookView({
       setShowUnlinkConfirm(false)
       setNoteToUnlink(null)
     } catch (error) {
-      console.error('Failed to unlink note:', error)
+      // Failed to unlink note
     } finally {
       setIsUnlinking(false)
     }
@@ -160,7 +160,7 @@ export function NotebookView({
       }
       setSelectedNotes(new Set())
     } catch (error) {
-      console.error('Failed to batch unlink notes:', error)
+      // Failed to batch unlink notes
     } finally {
       setIsUnlinking(false)
     }
@@ -172,7 +172,7 @@ export function NotebookView({
     }
 
     if (!onNoteCreate) {
-      console.error('Note creation not supported')
+      // Note creation not supported
       return
     }
 
@@ -198,7 +198,7 @@ export function NotebookView({
       })
       setShowAddNoteDialog(false)
     } catch (error) {
-      console.error('Failed to create note:', error)
+      // Failed to create note
     } finally {
       setIsCreatingNote(false)
     }

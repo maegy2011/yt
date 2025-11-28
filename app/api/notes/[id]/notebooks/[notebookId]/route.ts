@@ -84,7 +84,7 @@ export async function DELETE(
       message: 'Note unlinked from notebook successfully'
     })
   } catch (error) {
-    console.error('Error unlinking note from notebook:', error)
+    // Console statement removed
     return NextResponse.json(
       { success: false, error: 'Failed to unlink note from notebook' },
       { status: 500 }

@@ -18,7 +18,7 @@ export function useNotificationService(): NotificationServiceHook {
   // Request notification permission
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (!('Notification' in window)) {
-      console.warn('This browser does not support notifications')
+      // Console statement removed
       return false
     }
 
@@ -42,7 +42,7 @@ export function useNotificationService(): NotificationServiceHook {
     const isServiceWorker = typeof window !== 'undefined' && typeof window.document === 'undefined'
     
     if (isServiceWorker) {
-      console.log('Cannot show notifications in service worker context')
+      // Console statement removed
       return
     }
 
@@ -88,17 +88,17 @@ export function useNotificationService(): NotificationServiceHook {
 
         // Handle notification actions
         notificationRef.current.onshow = () => {
-          console.log('Playback notification shown')
+          // Console statement removed
         }
 
         notificationRef.current.onerror = (error) => {
-          console.error('Notification error:', error)
+          // Console statement removed
         }
       }
     } catch (error) {
-      console.error('Failed to show notification:', error)
+      // Console statement removed
       // Fallback: console notification
-      console.log(`🎵 ${isPlaying ? 'Now Playing' : 'Paused'}: ${video.title} - ${video.channelName}`)
+      // Console statement removed
     }
   }, [requestPermission])
 
@@ -201,7 +201,7 @@ export function useNotificationService(): NotificationServiceHook {
       })
 
     } catch (error) {
-      console.error('Media Session API error:', error)
+      // Console statement removed
     }
   }, [])
 
@@ -218,7 +218,7 @@ export function useNotificationService(): NotificationServiceHook {
           navigator.mediaSession.setActionHandler(action as any, null)
         })
       } catch (error) {
-        console.error('Error clearing media session:', error)
+        // Console statement removed
       }
     }
   }, [])

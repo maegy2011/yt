@@ -96,7 +96,7 @@ export async function GET(
       return NextResponse.json({ error: 'Playlist ID is required' }, { status: 400 })
     }
 
-    console.log('Getting playlist videos:', playlistId, 'loadAll:', loadAll)
+    // Console statement removed
 
     // Use youtubei for real YouTube data
     const { Client } = await import('youtubei')
@@ -173,7 +173,7 @@ export async function GET(
       }
     })
 
-    console.log(`Retrieved ${formattedVideos.length} videos from playlist:`, playlistId)
+    // Console statement removed
     
     return NextResponse.json({
       videos: formattedVideos,
@@ -181,7 +181,7 @@ export async function GET(
       hasMore: !Array.isArray(playlist.videos) && !!playlist.videos.continuation
     })
   } catch (error) {
-    console.error('Get playlist videos error:', error)
+    // Console statement removed
     return NextResponse.json({ 
       error: 'Failed to get playlist videos. Please try again later.',
       videos: []

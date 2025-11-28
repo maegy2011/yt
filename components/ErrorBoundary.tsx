@@ -32,7 +32,7 @@ export class ErrorBoundary extends Component<Props, State> {
     
     // Log error to console in development
     if (process.env.NODE_ENV === 'development') {
-      console.error('ErrorBoundary caught an error:', error, errorInfo)
+      // Console statement removed
     }
     
     // Call custom error handler if provided
@@ -115,7 +115,7 @@ export function withErrorBoundary<P extends object>(
 // Hook for handling errors in functional components
 export function useErrorHandler() {
   return (error: Error, errorInfo?: ErrorInfo) => {
-    console.error('Error caught by useErrorHandler:', error, errorInfo)
+    // Console statement removed
     
     // You can integrate with error reporting services here
     // Example: Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo?.componentStack } } })

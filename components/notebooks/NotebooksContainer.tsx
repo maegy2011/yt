@@ -75,7 +75,7 @@ export function NotebooksContainer({
       await deleteNotebook(deletingNotebook.id)
       await fetchNotebooks()
     } catch (error) {
-      console.error('Failed to delete notebook:', error)
+      // Failed to delete notebook
     } finally {
       setDeletingNotebook(null)
     }
@@ -92,7 +92,7 @@ export function NotebooksContainer({
       await updateNotebook(notebook.id, { isPublic: !notebook.isPublic })
       await fetchNotebooks()
     } catch (error) {
-      console.error('Failed to toggle notebook visibility:', error)
+      // Failed to toggle notebook visibility
     }
   }, [updateNotebook, fetchNotebooks])
 
@@ -124,7 +124,7 @@ export function NotebooksContainer({
       }
       await fetchNotebooks()
     } catch (error) {
-      console.error('Failed to save notebook:', error)
+      // Failed to save notebook
       throw error
     }
   }, [createNotebook, updateNotebook, fetchNotebooks])
@@ -133,7 +133,7 @@ export function NotebooksContainer({
     try {
       await fetchNotebooks()
     } catch (error) {
-      console.error('Failed to refresh notebooks:', error)
+      // Failed to refresh notebooks
     }
   }, [fetchNotebooks])
 

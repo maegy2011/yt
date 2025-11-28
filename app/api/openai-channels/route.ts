@@ -68,15 +68,7 @@ export async function GET(request: NextRequest) {
     const videosPerPage = parseInt(searchParams.get('videosPerPage') || '12')
     const playlistsPerPage = parseInt(searchParams.get('playlistsPerPage') || '6')
 
-    // Fetching OpenAI content 
-      maxVideos, 
-      maxPlaylists, 
-      includePlaylists, 
-      videoPage, 
-      playlistPage, 
-      videosPerPage, 
-      playlistsPerPage 
-    })
+    // Console removed - Fetching OpenAI content parsed
 
     const { Client } = await import('youtubei')
     const youtube = new Client()
@@ -281,13 +273,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 'OpenAI content fetched successfully:', {
-      channels: response.stats.totalChannels,
-      videos: response.stats.totalVideos,
-      playlists: response.stats.totalPlaylists,
-      videoPage: videoPage,
-      playlistPage: playlistPage
-    })
+    // Console removed - OpenAI content fetched successfully
 
     return NextResponse.json(response)
 

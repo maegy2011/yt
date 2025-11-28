@@ -3,11 +3,8 @@ import { DataManager } from '@/lib/database-modules'
 
 export async function POST() {
   try {
-    console.log('Starting comprehensive clear all data operation with enhanced modules...')
-    
     const result = await DataManager.clearAll()
     
-    console.log('Comprehensive database cleanup completed:', result)
     
     return NextResponse.json({
       success: true,
@@ -16,7 +13,7 @@ export async function POST() {
       localStorageCleared: true // Client will handle this
     })
   } catch (error) {
-    console.error('Clear all data failed:', error)
+    // Clear all data failed
     return NextResponse.json({
       success: false,
       error: 'Failed to clear all data',
@@ -35,7 +32,7 @@ export async function GET() {
       enhanced: true // Using enhanced modules
     })
   } catch (error) {
-    console.error('Failed to get data statistics:', error)
+    // Failed to get data statistics
     return NextResponse.json({
       error: 'Failed to get data statistics',
       details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined

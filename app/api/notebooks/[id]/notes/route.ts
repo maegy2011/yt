@@ -59,7 +59,7 @@ export async function POST(
       note: formattedNote
     })
   } catch (error) {
-    console.error('Error adding note to notebook:', error)
+    // Error adding note to notebook
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -138,7 +138,7 @@ export async function GET(
       notes: allNotes
     })
   } catch (error) {
-    console.error('Error fetching notebook notes:', error)
+    // Error fetching notebook notes
     return NextResponse.json(
       { success: false, error: 'Failed to fetch notebook notes' },
       { status: 500 }

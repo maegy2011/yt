@@ -26,11 +26,7 @@ export function GlobalErrorBoundary({ children, fallback }: GlobalErrorBoundaryP
     // In production, send error to monitoring service
     if (process.env.NODE_ENV === 'production') {
       // TODO: Send to error monitoring service (Sentry, etc.)
-      console.error('Global Error Boundary caught error:', {
-        error: error.message,
-        stack: error.stack,
-        componentStack: errorInfo.componentStack
-      })
+      // Console removed - Global Error Boundary caught error in production
     }
   }
 

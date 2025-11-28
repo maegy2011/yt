@@ -48,7 +48,7 @@ function extractAvatar(thumbnails: any): string {
     // Fallback to default avatar
     return 'https://www.gstatic.com/youtube/img/avatars/avatar_default.png'
   } catch (error) {
-    console.error('Error extracting avatar:', error)
+    // Console statement removed
     return 'https://www.gstatic.com/youtube/img/avatars/avatar_default.png'
   }
 }
@@ -59,7 +59,7 @@ export async function GET(
 ) {
   try {
     const channelId = params.channelId
-    console.log('Fetching channel avatar:', { channelId })
+    // Console statement removed
 
     // Get channel data from YouTube
     const channel = await youtube.getChannel(channelId)
@@ -74,10 +74,7 @@ export async function GET(
     // Extract the avatar URL
     const avatarUrl = extractAvatar(channel.thumbnails)
 
-    console.log('Channel avatar fetched successfully:', {
-      channelId,
-      avatarUrl
-    })
+    // Console removed - Channel avatar fetched successfully
 
     return NextResponse.json({
       channelId,
@@ -85,7 +82,7 @@ export async function GET(
       success: true
     })
   } catch (error) {
-    console.error('Get channel avatar error:', error)
+    // Console statement removed
     
     // Return fallback avatar on error
     return NextResponse.json({ 

@@ -57,7 +57,7 @@ export async function PUT(
 
     return NextResponse.json(formattedNote)
   } catch (error) {
-    console.error('Update note error:', error)
+    // Console statement removed
     return NextResponse.json({ 
       error: 'Failed to update note',
       details: error instanceof Error ? error.message : 'Unknown error'
@@ -111,7 +111,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Delete note error:', error)
+    // Console statement removed
     return NextResponse.json({ 
       error: 'Failed to delete note',
       details: error instanceof Error ? error.message : 'Unknown error'

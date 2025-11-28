@@ -63,7 +63,7 @@ export async function DELETE(request: NextRequest) {
       deletedCount: deletedNotes.count
     })
   } catch (error) {
-    console.error('Error batch deleting notes:', error)
+    // Console statement removed
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

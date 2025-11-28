@@ -32,7 +32,7 @@ function getPrismaClient(): PrismaClient {
   if (!prismaClient) {
     // Explicitly set the database URL to ensure it's loaded correctly
     const databaseUrl = process.env.DATABASE_URL || 'file:./db/custom.db'
-    console.log('Initializing Prisma client with URL:', databaseUrl)
+    // Console statement removed
     
     prismaClient = new PrismaClient(DATABASE_CONFIG)
     
@@ -59,7 +59,7 @@ export function getDb() {
   try {
     return getPrismaClient()
   } catch (error) {
-    console.error('Failed to get database client:', error)
+    // Console statement removed
     throw error
   }
 }
@@ -78,7 +78,7 @@ export async function ensureDatabaseConnection() {
     await client.$queryRaw`SELECT 1`
     
     const connectionTime = Date.now() - startTime
-    console.log(`Database connected successfully in ${connectionTime}ms`)
+    // Console statement removed
     
     return {
       connected: true,
@@ -87,7 +87,7 @@ export async function ensureDatabaseConnection() {
     }
   } catch (error) {
     const connectionTime = Date.now() - startTime
-    console.error(`Database connection failed after ${connectionTime}ms:`, error)
+    // Console statement removed
     return {
       connected: false,
       connectionTime,
@@ -109,7 +109,7 @@ export class DatabaseMonitor {
         timestamp: new Date().toISOString()
       }
     } catch (error) {
-      console.error('Failed to get connection pool stats:', error)
+      // Console statement removed
       return null
     }
   }
@@ -140,7 +140,7 @@ export class DatabaseMonitor {
         timestamp: new Date().toISOString()
       }
     } catch (error) {
-      console.error('Failed to get database stats:', error)
+      // Console statement removed
       return null
     }
   }
@@ -155,13 +155,13 @@ export class DatabaseMonitor {
       const executionTime = Date.now() - startTime
       
       if (executionTime > 1000) { // Log slow queries (> 1 second)
-        console.warn(`Slow query detected: ${queryName} took ${executionTime}ms`)
+        // Console statement removed
       }
       
       return { result, executionTime }
     } catch (error) {
       const executionTime = Date.now() - startTime
-      console.error(`Query failed: ${queryName} after ${executionTime}ms:`, error)
+      // Console statement removed
       throw error
     }
   }

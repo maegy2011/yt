@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
       categories: categories.map(c => ({ name: c.category, count: c._count.category }))
     })
   } catch (error) {
-    console.error('Error fetching notebooks:', error)
+    // Error fetching notebooks
     return NextResponse.json(
       { success: false, error: 'Failed to fetch notebooks' },
       { status: 500 }
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
       notebook: formattedNotebook
     })
   } catch (error) {
-    console.error('Error creating notebook:', error)
+    // Error creating notebook
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(

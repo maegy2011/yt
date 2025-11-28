@@ -58,12 +58,12 @@ export function IncognitoProvider({ children }: IncognitoProviderProps) {
           try {
             setIncognitoStats(JSON.parse(savedStats))
           } catch (error) {
-            console.warn('Failed to parse incognito stats:', error)
+            // Console statement removed
           }
         }
       }
     } catch (error) {
-      console.warn('Failed to load incognito state from localStorage:', error)
+      // Console statement removed
     }
   }, [])
 
@@ -86,7 +86,7 @@ export function IncognitoProvider({ children }: IncognitoProviderProps) {
         localStorage.removeItem('mytube-incognito-stats')
       }
     } catch (error) {
-      console.warn('Failed to save incognito state to localStorage:', error)
+      // Console statement removed
     }
   }, [isIncognito, incognitoStartTime, incognitoSessionId, incognitoStats])
 
@@ -106,7 +106,7 @@ export function IncognitoProvider({ children }: IncognitoProviderProps) {
     // Clear any sensitive data when entering incognito mode
     clearSensitiveData()
     
-    console.log('Incognito mode enabled at:', startTime, 'Session ID:', sessionId)
+    // Console statement removed
   }
 
   const disableIncognito = () => {
@@ -122,7 +122,7 @@ export function IncognitoProvider({ children }: IncognitoProviderProps) {
     // Clear all temporary data when exiting incognito mode
     clearIncognitoData()
     
-    console.log('Incognito mode disabled')
+    // Console statement removed
   }
 
   const toggleIncognito = () => {
@@ -163,11 +163,11 @@ export function IncognitoProvider({ children }: IncognitoProviderProps) {
         try {
           localStorage.removeItem(key)
         } catch (error) {
-          console.warn(`Failed to remove ${key}:`, error)
+          // Console statement removed
         }
       })
     } catch (error) {
-      console.warn('Failed to clear sensitive data:', error)
+      // Console statement removed
     }
   }
 
@@ -178,7 +178,7 @@ export function IncognitoProvider({ children }: IncognitoProviderProps) {
       try {
         sessionStorage.clear()
       } catch (error) {
-        console.warn('Failed to clear sessionStorage:', error)
+        // Console statement removed
       }
       
       // Clear any incognito-specific localStorage items
@@ -192,11 +192,11 @@ export function IncognitoProvider({ children }: IncognitoProviderProps) {
         try {
           localStorage.removeItem(key)
         } catch (error) {
-          console.warn(`Failed to remove ${key}:`, error)
+          // Console statement removed
         }
       })
     } catch (error) {
-      console.warn('Failed to clear incognito data:', error)
+      // Console statement removed
     }
   }
 

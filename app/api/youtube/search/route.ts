@@ -124,12 +124,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Query parameter is required' }, { status: 400 })
     }
 
-    // Search request received
-    // query, 
-    // page, 
-    // hasContinuation: !!continuation,
-    // continuationLength: continuation?.length || 0
-    })
+    // Console removed - Search request received and parsed
 
     // Use youtubei for real YouTube data only
     if (!Client) {

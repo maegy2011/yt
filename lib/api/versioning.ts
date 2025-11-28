@@ -192,15 +192,15 @@ export function createVersionedRoute(
 export function logVersionUsage(version: string, endpoint: string): void {
   const config = API_VERSIONS[version]
   if (config?.deprecated) {
-    console.warn(`[API DEPRECATION] Using deprecated API version ${version} for endpoint ${endpoint}`)
+    // Console statement removed
     
     if (config.sunsetDate) {
       const daysUntilSunset = Math.ceil((config.sunsetDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-      console.warn(`[API DEPRECATION] Version ${version} will be sunset on ${config.sunsetDate.toISOString()} (${daysUntilSunset} days)`)
+      // Console statement removed
     }
     
     if (config.migrationGuide) {
-      console.warn(`[API DEPRECATION] Migration guide: ${config.migrationGuide}`)
+      // Console statement removed
     }
   }
 }

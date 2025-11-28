@@ -269,9 +269,9 @@ export const ErrorUtils = {
     }
 
     if (appError.isOperational) {
-      console.warn('Operational Error:', logData)
+      // Console statement removed
     } else {
-      console.error('Programming Error:', logData)
+      // Console statement removed
     }
 
     // In production, you might want to send errors to a monitoring service

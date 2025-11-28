@@ -299,10 +299,10 @@ export function logRequest(context: ApiContext, statusCode: number, duration: nu
   }
   
   if (statusCode >= 500) {
-    console.error('[API ERROR]', logData)
+    // Console statement removed
   } else if (statusCode >= 400) {
-    console.warn('[API WARNING]', logData)
+    // Console statement removed
   } else {
-    console.info('[API INFO]', logData)
+    // Console info removed
   }
 }

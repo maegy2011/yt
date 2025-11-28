@@ -131,7 +131,7 @@ export function NoteEditor({ isOpen, onClose, onSave, note, videoData, mode }: N
       }
       onClose()
     } catch (error) {
-      console.error('Failed to save note:', error)
+      // Console statement removed
     } finally {
       setIsSaving(false)
     }

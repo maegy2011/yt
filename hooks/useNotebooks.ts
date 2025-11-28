@@ -37,7 +37,7 @@ export function useNotebooks(): UseNotebooksReturn {
 
       return response
     } catch (error) {
-      console.error(`Fetch error for ${url}:`, error)
+      // Console statement removed
       throw error
     }
   }
@@ -55,7 +55,7 @@ export function useNotebooks(): UseNotebooksReturn {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch notebooks'
       setError(errorMessage)
-      console.error('Failed to fetch notebooks:', error)
+      // Console statement removed
       return []
     } finally {
       setLoading(false)
@@ -69,7 +69,7 @@ export function useNotebooks(): UseNotebooksReturn {
       const data = await response.json()
       return data.notebook
     } catch (error) {
-      console.error(`Failed to fetch notebook ${id}:`, error)
+      // Console statement removed
       return null
     }
   }, [])
@@ -94,7 +94,7 @@ export function useNotebooks(): UseNotebooksReturn {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create notebook'
       setError(errorMessage)
-      console.error('Failed to create notebook:', error)
+      // Console statement removed
       throw error
     } finally {
       setLoading(false)
@@ -123,7 +123,7 @@ export function useNotebooks(): UseNotebooksReturn {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update notebook'
       setError(errorMessage)
-      console.error('Failed to update notebook:', error)
+      // Console statement removed
       throw error
     } finally {
       setLoading(false)
@@ -145,7 +145,7 @@ export function useNotebooks(): UseNotebooksReturn {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete notebook'
       setError(errorMessage)
-      console.error('Failed to delete notebook:', error)
+      // Console statement removed
       throw error
     } finally {
       setLoading(false)
@@ -168,7 +168,7 @@ export function useNotebooks(): UseNotebooksReturn {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to add note to notebook'
       setError(errorMessage)
-      console.error('Failed to add note to notebook:', error)
+      // Console statement removed
       throw error
     } finally {
       setLoading(false)
@@ -190,7 +190,7 @@ export function useNotebooks(): UseNotebooksReturn {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to remove note from notebook'
       setError(errorMessage)
-      console.error('Failed to remove note from notebook:', error)
+      // Console statement removed
       throw error
     } finally {
       setLoading(false)
@@ -204,7 +204,7 @@ export function useNotebooks(): UseNotebooksReturn {
       const data = await response.json()
       return data.notes || []
     } catch (error) {
-      console.error(`Failed to fetch notes for notebook ${notebookId}:`, error)
+      // Console statement removed
       return []
     }
   }, [])
@@ -225,7 +225,7 @@ export function useNotebooks(): UseNotebooksReturn {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to batch add notes to notebook'
       setError(errorMessage)
-      console.error('Failed to batch add notes to notebook:', error)
+      // Console statement removed
       throw error
     } finally {
       setLoading(false)
@@ -244,7 +244,7 @@ export function useNotebooks(): UseNotebooksReturn {
       return data
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to share notebook'
-      console.error('Failed to share notebook:', error)
+      // Console statement removed
       throw new Error(errorMessage)
     }
   }, [])
@@ -256,7 +256,7 @@ export function useNotebooks(): UseNotebooksReturn {
       const data = await response.json()
       return data.shareContent
     } catch (error) {
-      console.error(`Failed to get share info for notebook ${notebookId}:`, error)
+      // Console statement removed
       return null
     }
   }, [])

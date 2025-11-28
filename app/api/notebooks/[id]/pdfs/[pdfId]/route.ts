@@ -26,7 +26,7 @@ export async function GET(
 
     return NextResponse.json({ file: pdfFile })
   } catch (error) {
-    console.error('Error fetching PDF:', error)
+    // Error fetching PDF
     return NextResponse.json(
       { error: 'Failed to fetch PDF' },
       { status: 500 }
@@ -60,7 +60,7 @@ export async function DELETE(
     try {
       await unlink(filepath)
     } catch (error) {
-      console.error('Error deleting physical file:', error)
+      // Error deleting physical file
     }
 
     // Delete database record
@@ -72,7 +72,7 @@ export async function DELETE(
       message: 'PDF deleted successfully'
     })
   } catch (error) {
-    console.error('Error deleting PDF:', error)
+    // Error deleting PDF
     return NextResponse.json(
       { error: 'Failed to delete PDF' },
       { status: 500 }

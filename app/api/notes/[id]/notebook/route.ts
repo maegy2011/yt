@@ -32,7 +32,7 @@ export async function DELETE(
       note: updatedNote
     })
   } catch (error) {
-    console.error('Error removing note from notebook:', error)
+    // Console statement removed
     return NextResponse.json(
       { success: false, error: 'Failed to remove note from notebook' },
       { status: 500 }

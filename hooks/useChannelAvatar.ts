@@ -50,7 +50,7 @@ export function useChannelAvatar() {
         }
       }
     } catch (error) {
-      console.warn('Failed to fetch channel avatar:', error)
+      // Console statement removed
     } finally {
       setLoadingChannels(prev => {
         const newSet = new Set(prev)
@@ -88,7 +88,9 @@ export function useChannelAvatar() {
       
       // Start fetching the avatar in the background if we don't have it cached
       if (!cached) {
-        fetchChannelAvatar(channelId).catch(console.error)
+        fetchChannelAvatar(channelId).catch(() => {
+          // Console removed - avatar fetch error handled
+        })
       }
       
       // Return the YouTube direct avatar URL as temporary

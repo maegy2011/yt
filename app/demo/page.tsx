@@ -74,7 +74,7 @@ const AsyncDemoComponent = () => {
       })
       setData(result || [])
     } catch (error) {
-      console.error('Fetch error:', error)
+      // Console statement removed
     }
   }
 
@@ -86,7 +86,7 @@ const AsyncDemoComponent = () => {
         operations.executeOperation('fetchComments')
       ])
     } catch (error) {
-      console.error('Multiple operations error:', error)
+      // Console statement removed
     }
   }
 
@@ -151,7 +151,7 @@ const AsyncDemoComponent = () => {
 // Component wrapped with error boundary HOC
 const SafeComponent = withErrorBoundary(ErrorProneComponent, {
   onError: (error, errorInfo) => {
-    console.error('SafeComponent error:', error, errorInfo)
+    // Console statement removed
   }
 })
 
@@ -164,7 +164,9 @@ export default function FrontendImprovementsDemo() {
     <div className="min-h-screen bg-background">
       {/* Enhanced Navigation with Accessibility */}
       <NavigationEnhanced 
-        onSearch={(query) => console.log('Search:', query)}
+        onSearch={(query) => {
+          // Console statement removed - search query handled
+        }}
         className="mb-8"
       />
 

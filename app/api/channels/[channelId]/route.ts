@@ -8,10 +8,10 @@ export async function DELETE(
   try {
     const channelId = params.channelId
     
-    console.log('Unfollow channel request:', { channelId })
+    // Console statement removed
 
     if (!channelId) {
-      console.error('Missing channelId in DELETE request')
+      // Console statement removed
       return NextResponse.json({ 
         error: 'Channel ID is required' 
       }, { status: 400 })
@@ -23,7 +23,7 @@ export async function DELETE(
     })
 
     if (!existingChannel) {
-      console.log('Channel not found in favorites:', { channelId })
+      // Console statement removed
       return NextResponse.json({ 
         error: 'Channel not found in favorites' 
       }, { status: 404 })
@@ -34,10 +34,7 @@ export async function DELETE(
       where: { channelId }
     })
 
-    console.log('Channel unfollowed successfully:', { 
-      channelId, 
-      name: existingChannel.name 
-    })
+    // Console removed
 
     return NextResponse.json({ 
       success: true,
@@ -49,12 +46,7 @@ export async function DELETE(
       }
     })
   } catch (error) {
-    console.error('Failed to delete channel - Full error:', {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      name: error instanceof Error ? error.name : 'Unknown',
-      channelId: params.channelId
-    })
+    // Console removed - Failed to delete channel error logged
     
     // Handle specific database errors
     if (error instanceof Error && 'code' in error && error.code === 'P2025') {
