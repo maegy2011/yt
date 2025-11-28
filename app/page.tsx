@@ -56,20 +56,24 @@ import type { WatchedVideo } from '@/types/watched'
 // Blacklist and Whitelist types
 interface BlacklistedItem {
   id: string
+  itemId: string
   title: string
   type: 'video' | 'playlist' | 'channel'
   thumbnail?: string
   channelName?: string
   addedAt: string
+  updatedAt?: string
 }
 
 interface WhitelistedItem {
   id: string
+  itemId: string
   title: string
   type: 'video' | 'playlist' | 'channel'
   thumbnail?: string
   channelName?: string
   addedAt: string
+  updatedAt?: string
 }
 // Unified VideoCard component with enhanced design
 import { VideoCard as UnifiedVideoCard, toVideoCardData, PlaylistCard, ChannelCard } from '@/components/video'
@@ -864,7 +868,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       }
       const data = await response.json()
       // Convert database videos to SimpleVideo format
-      let favoritesData = []
+      let favoritesData: any[] = []
       
       if (Array.isArray(data?.data)) {
         favoritesData = data.data
@@ -997,7 +1001,6 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         videoId: selectedVideo.id,
         videoTitle: selectedVideo.title,
         channelName: getChannelName(selectedVideo),
-        channelThumbnail: getChannelThumbnailUrl(selectedVideo.channel || selectedVideo),
         thumbnail: getThumbnailUrl(selectedVideo)
       })
     } else {
@@ -1834,7 +1837,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         channelName: video.channelName,
         thumbnail: video.thumbnail,
         duration: video.duration,
-        viewCount: video.viewCount
+        viewCount: video.viewCount?.toString()
       })
       console.log('Added to watch history:', video.title)
     } else {

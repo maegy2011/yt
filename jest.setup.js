@@ -67,7 +67,21 @@ jest.mock('@/lib/db', () => ({
       update: jest.fn(),
       delete: jest.fn(),
     },
+    favoriteChannel: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
     blacklistedItem: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    whitelistedItem: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
@@ -78,10 +92,10 @@ jest.mock('@/lib/db', () => ({
   },
 }))
 
-// Mock fetch
+// Mock fetch with proper typing
 global.fetch = jest.fn()
 
-// Mock localStorage
+// Mock localStorage with proper typing
 const localStorageMock = {
   getItem: jest.fn(),
   setItem: jest.fn(),
@@ -90,7 +104,7 @@ const localStorageMock = {
 }
 global.localStorage = localStorageMock
 
-// Mock window.matchMedia
+// Mock window.matchMedia with proper typing
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: jest.fn().mockImplementation(query => ({
@@ -105,14 +119,14 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
-// Mock ResizeObserver
+// Mock ResizeObserver with proper typing
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   unobserve: jest.fn(),
   disconnect: jest.fn(),
 }))
 
-// Mock IntersectionObserver
+// Mock IntersectionObserver with proper typing
 global.IntersectionObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),
   unobserve: jest.fn(),

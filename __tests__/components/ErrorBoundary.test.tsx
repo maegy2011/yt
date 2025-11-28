@@ -2,6 +2,7 @@
  * @jest-environment jsdom
  */
 
+import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
@@ -153,42 +154,80 @@ describe('ErrorBoundary', () => {
 
   it('should show error details in development mode', async () => {
     const originalEnv = process.env.NODE_ENV
-    process.env.NODE_ENV = 'development'
-
-    render(
-      <ErrorBoundary>
-        <ThrowErrorComponent shouldThrow={true} />
-      </ErrorBoundary>
-    )
-
-    await waitFor(() => {
-      expect(screen.getByText(/Test error/)).toBeInTheDocument()
-      expect(console.error).toHaveBeenCalledWith(
-        'ErrorBoundary caught an error:',
-        expect.any(Error),
-        expect.any(Object)
-      )
+    
+    // Use a type-safe approach to modify NODE_ENV
+    const originalDescriptor = Object.getOwnPropertyDescriptor(process, 'NODE_ENV')
+    Object.defineProperty(process, 'NODE_ENV', {
+      value: 'development',
+      writable: true,
+      configurable: true
     })
 
-    process.env.NODE_ENV = originalEnv
+    try {
+      render(
+        <ErrorBoundary>
+          <ThrowErrorComponent shouldThrow={true} />
+        </ErrorBoundary>
+      )
+
+      await waitFor(() => {
+        expect(screen.getByText(/Test error/)).toBeInTheDocument()
+        expect(console.error).toHaveBeenCalledWith(
+          'ErrorBoundary caught an error:',
+          expect.any(Error),
+          expect.any(Object)
+        )
+      })
+    } finally {
+      // Restore original NODE_ENV
+      if (originalDescriptor) {
+        Object.defineProperty(process, 'NODE_ENV', originalDescriptor)
+      } else {
+        // Can't delete read-only property, so just set it to undefined
+        Object.defineProperty(process, 'NODE_ENV', {
+          value: undefined,
+          writable: true,
+          configurable: true
+        })
+      }
+    }
   })
 
   it('should not show error details in production mode', async () => {
     const originalEnv = process.env.NODE_ENV
-    process.env.NODE_ENV = 'production'
-
-    render(
-      <ErrorBoundary>
-        <ThrowErrorComponent shouldThrow={true} />
-      </ErrorBoundary>
-    )
-
-    await waitFor(() => {
-      expect(screen.getByText(/Oops! Something went wrong/)).toBeInTheDocument()
-      expect(screen.queryByText(/Test error/)).not.toBeInTheDocument()
+    
+    // Use a type-safe approach to modify NODE_ENV
+    const originalDescriptor = Object.getOwnPropertyDescriptor(process, 'NODE_ENV')
+    Object.defineProperty(process, 'NODE_ENV', {
+      value: 'production',
+      writable: true,
+      configurable: true
     })
 
-    process.env.NODE_ENV = originalEnv
+    try {
+      render(
+        <ErrorBoundary>
+          <ThrowErrorComponent shouldThrow={true} />
+        </ErrorBoundary>
+      )
+
+      await waitFor(() => {
+        expect(screen.getByText(/Oops! Something went wrong/)).toBeInTheDocument()
+        expect(screen.queryByText(/Test error/)).not.toBeInTheDocument()
+      })
+    } finally {
+      // Restore original NODE_ENV
+      if (originalDescriptor) {
+        Object.defineProperty(process, 'NODE_ENV', originalDescriptor)
+      } else {
+        // Can't delete read-only property, so just set it to undefined
+        Object.defineProperty(process, 'NODE_ENV', {
+          value: undefined,
+          writable: true,
+          configurable: true
+        })
+      }
+    }
   })
 
   it('should handle nested ErrorBoundaries', async () => {

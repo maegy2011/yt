@@ -70,8 +70,8 @@ export function sortFavoritesByTitle(favorites: FavoriteVideo[]): FavoriteVideo[
 
 export function sortFavoritesByViews(favorites: FavoriteVideo[]): FavoriteVideo[] {
   return [...favorites].sort((a, b) => {
-    const viewsA = a.viewCount || 0
-    const viewsB = b.viewCount || 0
+    const viewsA = typeof a.viewCount === 'string' ? parseInt(a.viewCount) : (a.viewCount || 0)
+    const viewsB = typeof b.viewCount === 'string' ? parseInt(b.viewCount) : (b.viewCount || 0)
     return viewsB - viewsA // Highest views first
   })
 }
@@ -99,7 +99,10 @@ export function getFavoritesStats(favorites: FavoriteVideo[]): {
   uniqueChannels: number
   mostRecent: Date | null
 } {
-  const totalViews = favorites.reduce((sum, fav) => sum + (fav.viewCount || 0), 0)
+  const totalViews = favorites.reduce((sum, fav) => {
+    const viewCount = typeof fav.viewCount === 'string' ? parseInt(fav.viewCount) : (fav.viewCount || 0)
+    return sum + viewCount
+  }, 0)
   const uniqueChannels = new Set(favorites.map(fav => fav.channelName)).size
   const mostRecent = favorites.length > 0 
     ? new Date(Math.max(...favorites.map(fav => new Date(fav.addedAt).getTime())))

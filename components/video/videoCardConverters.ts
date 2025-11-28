@@ -12,15 +12,15 @@ export function favoriteVideoToCardData(favorite: FavoriteVideo | SimpleFavorite
     channelName: favorite.channelName,
     thumbnail: favorite.thumbnail,
     duration: favorite.duration,
-    viewCount: favorite.viewCount,
+    viewCount: typeof favorite.viewCount === 'string' ? parseInt(favorite.viewCount) : favorite.viewCount,
     addedAt: favorite.addedAt,
     isFavorite: true,
-    description: favorite.description,
-    channelThumbnail: favorite.channelThumbnail,
-    channelHandle: favorite.channelHandle,
-    quality: favorite.quality,
-    isLive: favorite.isLive,
-    subscriberCount: favorite.subscriberCount
+    description: favorite.notes || undefined, // Use notes as description
+    channelThumbnail: undefined, // Not available in FavoriteVideo
+    channelHandle: undefined, // Not available in FavoriteVideo
+    quality: undefined, // Not available in FavoriteVideo
+    isLive: false, // Not available in FavoriteVideo
+    subscriberCount: undefined // Not available in FavoriteVideo
   }
 }
 
@@ -32,15 +32,15 @@ export function watchedVideoToCardData(watched: WatchedVideo): VideoCardData {
     channelName: watched.channelName,
     thumbnail: watched.thumbnail,
     duration: watched.duration,
-    viewCount: watched.viewCount,
+    viewCount: watched.viewCount ? parseInt(watched.viewCount) : undefined,
     watchedAt: watched.watchedAt,
-    progress: watched.progress,
-    description: watched.description,
-    channelThumbnail: watched.channelThumbnail,
-    channelHandle: watched.channelHandle,
-    quality: watched.quality,
-    isLive: watched.isLive,
-    subscriberCount: watched.subscriberCount
+    progress: 0, // Default progress since WatchedVideo doesn't have progress field
+    description: undefined, // WatchedVideo doesn't have description field
+    channelThumbnail: undefined, // WatchedVideo doesn't have channelThumbnail field
+    channelHandle: undefined, // WatchedVideo doesn't have channelHandle field
+    quality: undefined, // WatchedVideo doesn't have quality field
+    isLive: false, // WatchedVideo doesn't have isLive field
+    subscriberCount: undefined // WatchedVideo doesn't have subscriberCount field
   }
 }
 

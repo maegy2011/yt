@@ -1,7 +1,8 @@
 'use client'
 
+import React from 'react'
 import { toast } from 'sonner'
-import { AppError, ErrorUtils } from '@/lib/errors'
+import { AppError, ErrorUtils, ValidationError, AuthenticationError, AuthorizationError, DatabaseError, FileUploadError, YouTubeApiError, RateLimitError } from '@/lib/errors'
 
 export interface ToastOptions {
   duration?: number

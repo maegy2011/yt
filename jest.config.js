@@ -20,6 +20,15 @@ const createJestConfig = nextJest({
   transformIgnorePatterns: [
     'node_modules/(?!(.*\\.mjs$)',
   ],
+  // Add TypeScript type checking
+  preset: 'ts-jest',
+  globals: {
+    'ts-jest': {
+      tsconfig: 'tsconfig.json',
+    },
+  },
+  // Setup files for types
+  setupFiles: ['<rootDir>/types/test.d.ts'],
   collectCoverageFrom: [
     'components/**/*.{js,jsx,ts,tsx}',
     'hooks/**/*.{js,jsx,ts,tsx}',

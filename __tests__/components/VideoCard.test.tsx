@@ -200,11 +200,11 @@ describe('VideoCard', () => {
     
     // Rerender with favorite variant
     rerender(<VideoCard video={mockVideo} variant="favorite" />)
-    expect(screen.getByRole('article')).toHaveClass(/ring-red/)
+    expect(screen.getByRole('article')).toHaveClass('ring-red')
     
     // Rerender with watched variant
     rerender(<VideoCard video={mockVideo} variant="watched" />)
-    expect(screen.getByRole('article')).toHaveClass(/ring-blue/)
+    expect(screen.getByRole('article')).toHaveClass('ring-blue')
   })
 
   it('should show progress bar when showProgress is true and progress is provided', () => {
@@ -213,7 +213,7 @@ describe('VideoCard', () => {
 
     const progressBar = screen.getByRole('progressbar')
     expect(progressBar).toBeInTheDocument()
-    expect(progressBar).toHaveStyle({ width: '50%' })
+    expect(progressBar).toHaveStyle('width', '50%')
   })
 
   it('should handle live badge', () => {

@@ -340,9 +340,8 @@ export function FavoriteList({
                 key={favorite.id}
                 video={favoriteVideoToCardData(favorite)}
                 variant="favorite"
-                onRemove={onRemove}
-                onPlay={onPlay}
-                size="md"
+                onRemove={() => onRemove(favorite.id)}
+                onPlay={(videoCardData) => onPlay(favorite)}
               />
             ))}
           </div>

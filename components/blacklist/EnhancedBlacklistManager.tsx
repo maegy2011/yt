@@ -352,6 +352,7 @@ export function EnhancedBlacklistManager({ isOpen, onClose, type }: BlacklistMan
         const pollProgress = async () => {
           try {
             const progress = await getImportProgress(result.batchId)
+            const progress = await getImportProgress(result.batchId)
             setImportProgress(progress)
             
             if (!progress.isComplete) {

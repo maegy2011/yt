@@ -8,12 +8,19 @@ export interface SimpleVideo {
   title: string
   channelName: string
   thumbnail: string
-  duration?: string
-  viewCount?: number
-  publishedAt?: string
+  duration?: string | number
+  viewCount?: number | string
+  publishedAt?: string | null
   isLive?: boolean
   description?: string
   type?: 'video'
+  channel?: {
+    name: string
+    thumbnail?: string
+    handle?: string
+  }
+  // Allow additional properties for flexibility
+  [key: string]: any
 }
 
 export interface SimplePlaylist {
@@ -50,8 +57,12 @@ export interface BaseVideoData {
   title: string
   channelName: string
   thumbnail: string
-  duration?: string
-  viewCount?: number
+  duration?: string | number
+  viewCount?: number | string
+  addedAt?: string
+  updatedAt?: string
+  // Allow additional properties for flexibility
+  [key: string]: any
 }
 
 export type FavoriteVideo = BaseVideoData

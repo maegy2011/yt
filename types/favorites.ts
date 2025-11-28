@@ -1,15 +1,29 @@
 // Enhanced types for advanced favorites features
 
+export interface FavoriteChannel {
+  id: string
+  channelId: string
+  name: string
+  thumbnail?: string
+  subscriberCount?: number
+  videoCount?: number
+  viewCount?: number
+  addedAt: string
+  updatedAt: string
+  isFavorite?: boolean
+}
+
 export interface FavoriteVideo {
   id: string
   videoId: string
   title: string
   channelName: string
-  thumbnail?: string
-  duration?: string
-  viewCount?: number
+  thumbnail: string | undefined
+  duration: string | undefined
+  viewCount: string | number | undefined  // Accept both string and number
   addedAt: string
   updatedAt: string
+  // Optional properties that may not be in database
   isPrivate?: boolean
   tags?: string[]
   category?: string

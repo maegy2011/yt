@@ -9,8 +9,10 @@ export interface Notebook {
   tags: string
   createdAt: string
   updatedAt: string
+  thumbnail?: string
   notes?: VideoNote[]
   noteCount?: number
+  category?: string
 }
 
 export interface VideoNote {
@@ -29,6 +31,7 @@ export interface VideoNote {
   color?: string
   priority?: 'low' | 'medium' | 'high'
   notebookId?: string
+  linkType?: string
   createdAt: string
   updatedAt: string
 }

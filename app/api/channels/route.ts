@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
         channelId,
         name,
         thumbnail: thumbnail || null,
-        subscriberCount: subscriberCount ? parseInt(subscriberCount.toString()) : null,
-        viewCount: viewCount ? parseInt(viewCount.toString()) : null
+        subscriberCount: subscriberCount ? parseInt(subscriberCount.toString()) : 0,
+        viewCount: viewCount ? parseInt(viewCount.toString()) : 0
       }
     })
 

@@ -43,10 +43,9 @@ export function WatchedVideoCard({
       isSelectable={true}
       isSelected={isSelected}
       onSelect={(videoId, selected) => onSelect(videoId)}
-      onPlay={onPlay}
+      onPlay={(videoCardData) => onPlay(video)}
       onRemove={onDelete}
       showProgress={true}
-      size="sm"
     />
   )
 }
@@ -264,7 +263,6 @@ export function WatchedHistoryList({
                 onSelect={onSelectVideo}
                 onPlay={onPlayVideo}
                 onDelete={onDeleteVideo}
-                size={viewMode === 'list' ? 'sm' : 'md'}
               />
             </div>
           ))}

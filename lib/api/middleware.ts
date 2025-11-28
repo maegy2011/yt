@@ -2,8 +2,35 @@ import { NextRequest, NextResponse } from 'next/server'
 import { RateLimitConfig, RateLimitResult, ApiContext, ApiError, ApiResponse } from './types'
 import { AppError, ErrorUtils } from '@/lib/errors'
 
+// In-memory metrics store (for production, consider Redis)
+const metricsStore = {
+  requests: {
+    total: 0,
+    success: 0,
+    error: 0,
+    responseTimes: [] as number[]
+  }
+}
+
 // In-memory rate limiting store (for production, consider Redis)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
+
+// Record request metrics
+export function recordRequestMetrics(success: boolean, responseTime: number): void {
+  metricsStore.requests.total++
+  
+  if (success) {
+    metricsStore.requests.success++
+  } else {
+    metricsStore.requests.error++
+  }
+  
+  // Keep only last 1000 response times for average calculation
+  metricsStore.requests.responseTimes.push(responseTime)
+  if (metricsStore.requests.responseTimes.length > 1000) {
+    metricsStore.requests.responseTimes.shift()
+  }
+}
 
 // Generate a unique request ID
 function generateRequestId(): string {

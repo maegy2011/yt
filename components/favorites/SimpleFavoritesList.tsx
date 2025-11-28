@@ -139,7 +139,6 @@ export function SimpleFavoritesList({
                 variant="favorite"
                 onRemove={onRemove}
                 onPlay={onPlay}
-                size="md"
               />
             ))}
           </div>

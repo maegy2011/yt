@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
 // Pattern management API endpoints
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     if (!db) {
       console.error('Database connection not available')
       return NextResponse.json({ error: 'Database connection not available' }, { status: 500 })
     }
 
-    const { searchParams } = new URL(new URL(request.url).search)
+    const { searchParams } = new URL(request.url)
     const activeOnly = searchParams.get('activeOnly') === 'true'
 
     const where = activeOnly ? { isActive: true } : {}

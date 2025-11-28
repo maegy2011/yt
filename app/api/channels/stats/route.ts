@@ -98,8 +98,8 @@ async function getSingleChannelStats(channelId: string, includeComparison: boole
     // Add comparison data if requested
     if (includeComparison) {
       const allChannels = await db.favoriteChannel.findMany()
-      const avgSubscribers = allChannels.reduce((sum, ch) => sum + (ch.subscriberCount || 0), 0) / allChannels.length
-      const avgVideos = allChannels.reduce((sum, ch) => sum + ((ch as any).videoCount || 0), 0) / allChannels.length
+      const avgSubscribers = allChannels.reduce((sum, ch) => sum + (Number(ch.subscriberCount) || 0), 0) / allChannels.length
+      const avgVideos = allChannels.reduce((sum, ch) => sum + (Number((ch as any).videoCount) || 0), 0) / allChannels.length
       
       stats.comparison = {
         subscriberRank: allChannels.filter(ch => Number(ch.subscriberCount || 0) > Number(channelData.subscriberCount || 0)).length + 1,

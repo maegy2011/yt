@@ -119,7 +119,10 @@ export function useFavorites(): FavoritesState & FavoriteOperations {
     try {
       const response = await fetch('/api/favorites', {
         method: 'POST',
-        headers: addIncognitoHeaders({ 'Content-Type': 'application/json' }, isIncognito),
+        headers: {
+          'Content-Type': 'application/json',
+          ...addIncognitoHeaders({}, isIncognito)
+        },
         body: JSON.stringify(data)
       })
       

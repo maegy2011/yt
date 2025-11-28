@@ -179,3 +179,70 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     throw error
   }
 })
+
+// DELETE /api/favorites - Remove a favorite video by video ID
+export const DELETE = withErrorHandler(async (request: NextRequest) => {
+  const context = createApiContext(request)
+  const isIncognito = isIncognitoRequest(request)
+  
+  // Skip deleting favorites in incognito mode
+  if (shouldSkipInIncognito(isIncognito)) {
+    throw new AuthorizationError('Favorites are disabled in incognito mode')
+  }
+  
+  const { searchParams } = new URL(request.url)
+  const videoId = searchParams.get('videoId')
+
+  // Validate required parameter
+  if (!videoId) {
+    throw new ValidationError('Video ID is required', { field: 'videoId' })
+  }
+
+  // Validate and sanitize video ID
+  const sanitizedVideoId = sanitizeVideoId(videoId)
+  
+  if (!sanitizedVideoId) {
+    throw new ValidationError('Invalid video ID format', { 
+      field: 'videoId',
+      providedValue: videoId 
+    })
+  }
+
+  try {
+    // Check if favorite exists
+    const existing = await db.favoriteVideo.findUnique({
+      where: { videoId: sanitizedVideoId }
+    })
+
+    if (!existing) {
+      throw new ConflictError('Favorite not found', { 
+        videoId: sanitizedVideoId
+      })
+    }
+
+    // Delete the favorite
+    await db.favoriteVideo.delete({
+      where: { videoId: sanitizedVideoId }
+    })
+
+    return createSuccessResponse(context, null, {
+      message: 'Video removed from favorites successfully'
+    })
+    
+  } catch (error) {
+    // Re-throw our custom errors
+    if (error instanceof ConflictError || error instanceof ValidationError) {
+      throw error
+    }
+    
+    // Handle database errors
+    if (error instanceof Error) {
+      throw new DatabaseError(`Failed to remove favorite: ${error.message}`, {
+        originalError: error.message,
+        videoId: sanitizedVideoId
+      })
+    }
+    
+    throw error
+  }
+})

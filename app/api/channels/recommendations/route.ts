@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     // Get favorite channels for analysis
     const favoriteChannels = await db.favoriteChannel.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { addedAt: 'desc' }
     })
 
     if (favoriteChannels.length === 0) {

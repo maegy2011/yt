@@ -48,6 +48,12 @@ export interface VideoCardData {
   // Watched specific
   watchedAt?: string
   progress?: number
+  // Note specific
+  hasNotes?: boolean
+  noteCount?: number
+  // Database specific
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface VideoCardProps {

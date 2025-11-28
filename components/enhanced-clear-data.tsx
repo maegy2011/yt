@@ -1,26 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Trash2, 
-  Settings, 
-  Database, 
-  Clock, 
-  Bookmark, 
-  FileText, 
-  PlayCircle, 
-  History,
-  AlertTriangle,
-  CheckCircle,
-  Users,
-  Search,
-  BookOpen,
-  Link
-} from 'lucide-react'
+import { AlertTriangle, Trash2, Search, BookOpen, Link } from 'lucide-react'
 
 interface DataStatistics {
   favoriteChannels: number
@@ -99,148 +84,173 @@ export function EnhancedClearData({ statistics, onClearData, onCancel, loading }
   }, [selectedCount, hasAnyData])
 
   const handleOptionChange = (key: keyof ClearDataOptions, checked: boolean) => {
+    setOptions(prev => ({ ...prev, [key]: checked }))
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    setSelectAll(checked)
     setOptions(prev => ({
       ...prev,
-      [key]: checked
+      favoriteChannels: checked,
+      favoriteVideos: checked,
+      videoNotes: checked,
+      watchedVideos: checked,
+      notebooks: checked,
+      playbackPositions: checked,
+      noteLinks: checked,
+      localStorage: checked,
+      searchCache: checked,
+      userPreferences: checked
     }))
-    setSelectAll(false) // Reset select all when manually changing options
   }
 
   const handleClearData = async () => {
-    if (selectedCount === 0) {
-      return
-    }
     await onClearData(options)
   }
 
-  const getDataIcon = (key: keyof ClearDataOptions) => {
-    const iconMap = {
-      favoriteChannels: Users,
-      favoriteVideos: Bookmark,
-      videoNotes: FileText,
-      watchedVideos: History,
-      notebooks: BookOpen,
-      playbackPositions: PlayCircle,
-      noteLinks: Link,
-      localStorage: Database,
-      searchCache: Search,
-      userPreferences: Settings
-    }
-    return iconMap[key] || Database
-  }
-
-  const getDataLabel = (key: keyof ClearDataOptions) => {
-    const labelMap = {
-      favoriteChannels: 'Favorite Channels',
-      favoriteVideos: 'Favorite Videos',
-      videoNotes: 'Video Notes',
-      watchedVideos: 'Watch History',
-      notebooks: 'Notebooks',
-      playbackPositions: 'Playback Positions',
-      noteLinks: 'Note Links',
-      localStorage: 'Local Storage Data',
-      searchCache: 'Search Cache',
-      userPreferences: 'User Preferences'
-    }
-    return labelMap[key] || key
-  }
-
+  // Helper functions to get data for each option
   const getDataCount = (key: keyof ClearDataOptions): number => {
-    if (!statistics) return 0
-    return statistics[key as keyof DataStatistics] || 0
+    switch (key) {
+      case 'favoriteChannels':
+        return statistics?.favoriteChannels || 0
+      case 'favoriteVideos':
+        return statistics?.favoriteVideos || 0
+      case 'videoNotes':
+        return statistics?.videoNotes || 0
+      case 'watchedVideos':
+        return statistics?.watchedVideos || 0
+      case 'notebooks':
+        return statistics?.notebooks || 0
+      case 'playbackPositions':
+        return statistics?.playbackPositions || 0
+      case 'noteLinks':
+        return statistics?.noteLinks || 0
+      case 'localStorage':
+        return 1 // Always available
+      case 'searchCache':
+        return 1 // Always available
+      case 'userPreferences':
+        return 1 // Always available
+      default:
+        return 0
+    }
   }
 
-  const getStorageWarning = (key: keyof ClearDataOptions) => {
-    const storageItems = ['localStorage', 'searchCache', 'userPreferences']
-    return storageItems.includes(key)
+  const getDataLabel = (key: keyof ClearDataOptions): string => {
+    switch (key) {
+      case 'favoriteChannels':
+        return 'Favorite Channels'
+      case 'favoriteVideos':
+        return 'Favorite Videos'
+      case 'videoNotes':
+        return 'Video Notes'
+      case 'watchedVideos':
+        return 'Watched Videos'
+      case 'notebooks':
+        return 'Notebooks'
+      case 'playbackPositions':
+        return 'Playback Positions'
+      case 'noteLinks':
+        return 'Note Links'
+      case 'localStorage':
+        return 'Local Storage'
+      case 'searchCache':
+        return 'Search Cache'
+      case 'userPreferences':
+        return 'User Preferences'
+      default:
+        return key
+    }
+  }
+
+  const getDataIcon = (key: keyof ClearDataOptions): React.ComponentType<any> => {
+    switch (key) {
+      case 'favoriteChannels':
+        return BookOpen
+      case 'favoriteVideos':
+        return BookOpen
+      case 'videoNotes':
+        return BookOpen
+      case 'watchedVideos':
+        return BookOpen
+      case 'notebooks':
+        return BookOpen
+      case 'playbackPositions':
+        return BookOpen
+      case 'noteLinks':
+        return Link
+      case 'localStorage':
+        return Search
+      case 'userPreferences':
+        return Search
+      default:
+        return BookOpen
+    }
+  }
+
+  const getStorageWarning = (key: keyof ClearDataOptions): boolean => {
+    return ['localStorage', 'searchCache', 'userPreferences'].includes(key)
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <div className="flex items-center justify-center gap-3">
-          <AlertTriangle className="w-6 h-6 text-destructive" />
-          <h2 className="text-xl font-semibold text-foreground">Clear Data</h2>
-        </div>
-        <p className="text-muted-foreground max-w-md mx-auto">
-          Select what data you want to clear. This action cannot be undone.
-        </p>
-      </div>
-
-      {/* Statistics Overview */}
-      {hasAnyData && (
-        <Card className="border-orange-200 bg-orange-50/50">
-          <CardHeader>
-            <CardTitle className="text-orange-800 flex items-center gap-2">
-              <Database className="w-5 h-5" />
-              Current Data Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(statistics).map(([key, count]) => (
-                <div key={key} className="flex items-center justify-between p-3 bg-white rounded-lg border">
-                  <span className="text-sm font-medium capitalize">
-                    {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
-                  </span>
-                  <Badge variant={count > 0 ? "destructive" : "secondary"}>
-                    {count}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-            <div className="text-center pt-2 border-t">
-              <p className="text-lg font-semibold text-orange-800">
-                Total Items: <span className="text-2xl">{statistics.total}</span>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Selection Options */}
+    <div className="space-y-4">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Select Data to Clear
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectAll(!selectAll)}
-              >
-                {selectAll ? 'Deselect All' : 'Select All'}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-              >
-                {showAdvanced ? 'Basic' : 'Advanced'}
-              </Button>
-            </div>
-          </div>
+          <CardTitle className="flex items-center justify-between">
+            Clear Data
+            <Badge variant="secondary" className="ml-2">
+              {statistics?.total || 0} items
+            </Badge>
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Basic Options */}
-          <div className="space-y-3">
-            {(['favoriteChannels', 'favoriteVideos', 'videoNotes', 'watchedVideos'] as const).map((key) => {
-              const Icon = getDataIcon(key as keyof ClearDataOptions)
-              const count = getDataCount(key as keyof ClearDataOptions)
-              return (
-                <div key={key} className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+          {(['favoriteVideos', 'watchedVideos', 'favoriteChannels', 'notebooks', 'videoNotes', 'playbackPositions'] as const).map((key) => {
+            const count = getDataCount(key as keyof ClearDataOptions)
+            return (
+              <div key={key} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-3">
                   <Checkbox
                     id={key}
                     checked={options[key as keyof ClearDataOptions]}
-                    onCheckedChange={(checked) => handleOptionChange(key as keyof ClearDataOptions, checked)}
+                    onCheckedChange={(checked) => handleOptionChange(key as keyof ClearDataOptions, checked as boolean)}
                   />
-                  <div className="flex items-center justify-between flex-1">
-                    <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4 text-muted-foreground" />
+                  <BookOpen className="w-4 h-4 text-muted-foreground" />
+                  <label htmlFor={key} className="text-sm font-medium cursor-pointer">
+                    {getDataLabel(key as keyof ClearDataOptions)}
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  {count > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {count}
+                    </Badge>
+                  )}
+                  {getStorageWarning(key as keyof ClearDataOptions) && (
+                    <Badge variant="outline" className="text-xs">
+                      Local
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+          
+          {/* Advanced Options */}
+          {showAdvanced && (
+            <div className="space-y-3 pt-4 border-t">
+              <h4 className="text-sm font-semibold text-muted-foreground mb-3">Advanced Options</h4>
+              {(['noteLinks', 'localStorage', 'searchCache', 'userPreferences'] as const).map((key) => {
+                const count = getDataCount(key as keyof ClearDataOptions)
+                return (
+                  <div key={key} className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
+                    <Checkbox
+                      id={key}
+                      checked={options[key as keyof ClearDataOptions]}
+                      onCheckedChange={(checked) => handleOptionChange(key as keyof ClearDataOptions, checked as boolean)}
+                    />
+                    <div className="flex items-center justify-between flex-1">
+                      <BookOpen className="w-4 h-4 text-muted-foreground" />
                       <label htmlFor={key} className="text-sm font-medium cursor-pointer">
                         {getDataLabel(key as keyof ClearDataOptions)}
                       </label>
@@ -258,103 +268,61 @@ export function EnhancedClearData({ statistics, onClearData, onCancel, loading }
                       )}
                     </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* Advanced Options */}
-          {showAdvanced && (
-            <div className="space-y-3 pt-4 border-t">
-              <h4 className="text-sm font-semibold text-muted-foreground mb-3">Advanced Options</h4>
-              {(['notebooks', 'noteLinks', 'playbackPositions', 'localStorage', 'searchCache', 'userPreferences'] as const).map((key) => {
-                const Icon = getDataIcon(key as keyof ClearDataOptions)
-                const count = getDataCount(key as keyof ClearDataOptions)
-                return (
-                  <div key={key} className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                    <Checkbox
-                      id={key}
-                      checked={options[key as keyof ClearDataOptions]}
-                      onCheckedChange={(checked) => handleOptionChange(key as keyof ClearDataOptions, checked)}
-                    />
-                    <div className="flex items-center justify-between flex-1">
-                      <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4 text-muted-foreground" />
-                        <label htmlFor={key} className="text-sm font-medium cursor-pointer">
-                          {getDataLabel(key as keyof ClearDataOptions)}
-                        </label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {count > 0 && (
-                          <Badge variant="secondary" className="text-xs">
-                            {count}
-                          </Badge>
-                        )}
-                        <Badge variant="outline" className="text-xs">
-                          Local
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
                 )
               })}
             </div>
           )}
+          
+          {/* Select All Option */}
+          <div className="flex items-center justify-between p-3 border-t">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="select-all"
+                checked={selectAll}
+                onCheckedChange={handleSelectAll}
+              />
+              <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                Select All
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground">
+                {selectedCount} of {statistics?.total || 0} selected
+              </p>
+            </div>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={onCancel}
+              disabled={loading}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleClearData}
+              disabled={loading || selectedCount === 0}
+              className="flex-1"
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Clearing...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear Selected ({selectedCount})
+                </>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
-
-      {/* Warning Section */}
-      {selectedCount > 0 && (
-        <Card className="border-destructive/50 bg-destructive/5">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-destructive mt-0.5" />
-              <div className="space-y-2">
-                <h3 className="font-semibold text-destructive">Warning</h3>
-                <p className="text-sm text-destructive/90">
-                  You are about to permanently delete <strong>{selectedCount}</strong> type{selectedCount !== 1 ? 's' : ''} of data. 
-                  This action cannot be undone and will immediately remove all selected information.
-                </p>
-                {selectedCount >= 5 && (
-                  <p className="text-xs text-destructive/70 bg-destructive/10 p-2 rounded">
-                    ⚠️ You're clearing a large amount of data. Consider creating a backup if needed.
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        <Button
-          variant="outline"
-          onClick={onCancel}
-          disabled={loading}
-          className="w-full sm:w-auto"
-        >
-          Cancel
-        </Button>
-        <Button
-          variant="destructive"
-          onClick={handleClearData}
-          disabled={loading || selectedCount === 0}
-          className="w-full sm:w-auto"
-        >
-          {loading ? (
-            <>
-              <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-destructive border-t-transparent"></div>
-              Clearing Data...
-            </>
-          ) : (
-            <>
-              <Trash2 className="w-4 h-4 mr-2" />
-              Clear Selected Data ({selectedCount})
-            </>
-          )}
-        </Button>
-      </div>
     </div>
   )
 }

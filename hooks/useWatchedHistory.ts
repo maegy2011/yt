@@ -50,9 +50,10 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
       
       const response = await fetch('/api/watched', {
         method: 'POST',
-        headers: addIncognitoHeaders({
+        headers: {
           'Content-Type': 'application/json',
-        }, isIncognito),
+          ...addIncognitoHeaders({}, isIncognito)
+        },
         body: JSON.stringify(video),
       })
       
@@ -75,12 +76,12 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
             // Update existing video with latest data
             return prev.map(v => 
               v.videoId === video.videoId 
-                ? { ...v, ...video, watchedAt: new Date(), updatedAt: new Date() }
+                ? { ...v, ...video, watchedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
                 : v
             )
           } else {
             // Add new video
-            return [...prev, { ...video, watchedAt: new Date(), updatedAt: new Date() }]
+            return [...prev, { ...video, watchedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }]
           }
         })
       }
