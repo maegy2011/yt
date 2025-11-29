@@ -164,7 +164,7 @@ export default function MyTubeApp() {
   const [loading, setLoading] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [multiSelectMode, setMultiSelectMode] = useState(false)
-  const [showSplashScreen, setShowSplashScreen] = useState(false) // Start with app directly - disable splash screen
+  const [showSplashScreen, setShowSplashScreen] = useState(false) // Start with app directly
   const [dynamicLoadingMessage, setDynamicLoadingMessage] = useState('')
   const [searchInputTimeout, setSearchInputTimeout] = useState<NodeJS.Timeout | null>(null)
   const [isIntersectionLoading, setIsIntersectionLoading] = useState(false)
@@ -2580,52 +2580,24 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       setFavoritesPaused(savedFavoritesPaused === 'true')
     }
 
+    
+    
+    // Load initial data when component mounts (simplified)
+  useEffect(() => {
     const loadInitialData = async () => {
-      console.log('App: Starting initial data load')
       try {
-        console.log('App: Loading favorite channels, videos, and notes...')
-        const results = await Promise.all([
+        await Promise.all([
           loadFavoriteChannels(),
           loadFavoriteVideos(),
           loadNotes()
         ])
-        console.log('App: Initial data load completed', results)
-        
-        // The second result is favoriteChannels data
-        const favoriteChannelsData = results[1]
-        if (favoriteChannelsData && favoriteChannelsData.length > 0) {
-          console.log('App: Loading channel videos for', favoriteChannelsData.length, 'channels')
-          await loadChannelVideos(favoriteChannelsData)
-        }
       } catch (error) {
         console.error('App: Failed to load initial data:', error)
       }
     }
     
-    // Debug splash screen state changes
-    console.log('App: showSplashScreen changed to:', showSplashScreen)
-    if (!showSplashScreen) {
-      console.log('App: Splash screen hidden, triggering initial data load')
-      loadInitialData()
-      
-      // Add a fallback timeout to show the app even if data loading fails
-      setTimeout(() => {
-        console.log('App: Fallback timeout - showing app regardless of data load status')
-        // The app should already be visible, but this ensures we're not stuck
-      }, 5000) // 5 seconds after splash screen
-    }
-  }, [showSplashScreen, loadFavoriteChannels, loadFavoriteVideos, loadNotes])
-
-  // Load followed channels content when favorite channels change
-  useEffect(() => {
-    if (!showSplashScreen && favoriteChannels.length > 0) {
-      loadChannelVideos()
-      // Load followed channels content when there are channels to follow
-      if (followedChannelsContent === null) {
-        loadFollowedChannelsContent(true)
-      }
-    }
-  }, [favoriteChannels.length, showSplashScreen, loadChannelVideos, followedChannelsContent])
+    loadInitialData()
+  }, []) // Run only once on mount
 
   // Monitor network status and retry when connection is restored
   useEffect(() => {
