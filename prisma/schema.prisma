@@ -185,21 +185,26 @@ model BlacklistedItem {
   channelName String?
   addedAt     DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  expiresAt   DateTime? // Temporary blacklisting
   
   // Performance optimizations for large-scale blacklisting
-  videoHash   String?  // MD5 hash of video ID for faster lookups
-  channelHash String?  // MD5 hash of channel ID for channel blocking
   isChannelBlock Boolean @default(false) // Quick filter for channel-level blocks
   priority    Int      @default(0) // Priority for conflict resolution
   batchId     String?  // Track batch imports for management
+  categoryId  String?  // Category-based filtering
   
+  // Relations
+  category    BlacklistCategory? @relation(fields: [categoryId], references: [id])
+  
+  // Optimized indexes for direct lookups (removed MD5 hashing)
   @@index([itemId])
   @@index([type])
-  @@index([videoHash])
-  @@index([channelHash])
   @@index([isChannelBlock, type])
   @@index([addedAt])
   @@index([priority])
+  @@index([channelName]) // Added for channel-based lookups
+  @@index([expiresAt]) // Added for temporary blacklisting
+  @@index([categoryId]) // Added for category-based filtering
 }
 
 model WhitelistedItem {
@@ -211,21 +216,82 @@ model WhitelistedItem {
   channelName String?
   addedAt     DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  expiresAt   DateTime? // Temporary whitelisting
   
   // Performance optimizations for large-scale whitelisting
-  videoHash   String?  // MD5 hash of video ID for faster lookups
-  channelHash String?  // MD5 hash of channel ID for channel whitelisting
   isChannelWhitelist Boolean @default(false) // Quick filter for channel-level whitelists
   priority    Int      @default(0) // Priority for conflict resolution
   batchId     String?  // Track batch imports for management
   
+  // Optimized indexes for direct lookups (removed MD5 hashing)
   @@index([itemId])
   @@index([type])
-  @@index([videoHash])
-  @@index([channelHash])
   @@index([isChannelWhitelist, type])
   @@index([addedAt])
   @@index([priority])
+  @@index([channelName]) // Added for channel-based lookups
+  @@index([expiresAt]) // Added for temporary whitelisting
+}
+
+// New model for audit logging
+model BlacklistAuditLog {
+  id          String   @id @default(cuid())
+  action      String   // 'add' | 'remove' | 'modify' | 'expire'
+  itemType    String   // 'blacklist' | 'whitelist'
+  itemId      String
+  previousData String?  // JSON string of previous state
+  newData     String?  // JSON string of new state
+  reason      String?
+  userId      String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  
+  // Indexes for audit queries
+  @@index([action])
+  @@index([itemType])
+  @@index([itemId])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+// New model for undo/redo operations
+model BlacklistOperation {
+  id          String   @id @default(cuid())
+  operationId String   @unique // Unique identifier for the operation
+  action      String   // 'add' | 'remove' | 'modify'
+  itemType    String   // 'blacklist' | 'whitelist'
+  itemId      String
+  itemData    String   // JSON string of the item data
+  isUndo     Boolean  @default(false)
+  isRedo     Boolean  @default(false)
+  userId      String?
+  createdAt   DateTime @default(now())
+  appliedAt   DateTime?
+  
+  // Indexes for operation tracking
+  @@index([operationId])
+  @@index([action])
+  @@index([itemType])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// New model for category-based filtering
+model BlacklistCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  color       String   @default("#ff0000")
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  items       BlacklistedItem[]
+  
+  @@index([name])
+  @@index([isActive])
 }
 
 // New model for pattern-based blocking

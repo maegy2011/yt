@@ -1,14 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { createHash } from 'crypto'
+import { AuditLogger } from '@/lib/audit-logger'
+import { UndoRedoManager } from '@/lib/undo-redo-manager'
 
-// Helper function to create MD5 hash
-function createMD5Hash(input: string): string {
-  return createHash('md5').update(input).digest('hex')
+// WebSocket notification function
+async function notifyBlacklistUpdate(event: any) {
+  try {
+    await fetch('http://localhost:3003/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(event)
+    })
+  } catch (error) {
+    // WebSocket service might not be available, don't fail the main operation
+    console.warn('Failed to notify WebSocket service:', error)
+  }
+}
+
+// Simple rate limiting using in-memory store
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
+const RATE_LIMIT = 100 // requests per minute for general operations
+const RATE_WINDOW = 60 * 1000 // 1 minute
+
+function checkRateLimit(request: NextRequest): { allowed: boolean; resetTime?: number } {
+  const clientIP = request.headers.get('x-forwarded-for') || 
+                   request.headers.get('x-real-ip') || 
+                   'unknown'
+  
+  const now = Date.now()
+  const record = rateLimitStore.get(clientIP)
+  
+  if (!record || now > record.resetTime) {
+    rateLimitStore.set(clientIP, { count: 1, resetTime: now + RATE_WINDOW })
+    return { allowed: true }
+  }
+  
+  if (record.count >= RATE_LIMIT) {
+    return { allowed: false, resetTime: record.resetTime }
+  }
+  
+  record.count++
+  return { allowed: true }
 }
 
 export async function GET(request: NextRequest) {
   try {
+    // Check rate limit
+    const rateLimit = checkRateLimit(request)
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ 
+        error: 'Too many requests',
+        resetTime: rateLimit.resetTime 
+      }, { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': RATE_LIMIT.toString(),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': rateLimit.resetTime?.toString() || ''
+        }
+      })
+    }
+
     // Check if database is available
     if (!db) {
       return NextResponse.json({ error: 'Database connection not available' }, { status: 500 })
@@ -71,6 +123,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check rate limit
+    const rateLimit = checkRateLimit(request)
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ 
+        error: 'Too many requests',
+        resetTime: rateLimit.resetTime 
+      }, { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': RATE_LIMIT.toString(),
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': rateLimit.resetTime?.toString() || ''
+        }
+      })
+    }
+
     const body = await request.json()
     const { itemId, title, type, thumbnail, channelName } = body
 
@@ -95,10 +163,34 @@ export async function POST(request: NextRequest) {
         type,
         thumbnail: thumbnail?.trim() || null,
         channelName: channelName?.trim() || null,
-        videoHash: type === 'video' ? createMD5Hash(itemId) : null,
-        channelHash: type === 'channel' ? createMD5Hash(itemId) : null,
         isChannelBlock: type === 'channel'
       }
+    })
+
+    // Log audit event
+    await AuditLogger.logAdd('blacklist', blacklistedItem, {
+      userId: request.headers.get('x-user-id'),
+      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
+      userAgent: request.headers.get('user-agent')
+    })
+
+    // Create operation for undo/redo
+    const operationId = await UndoRedoManager.createOperation({
+      action: 'add',
+      itemType: 'blacklist',
+      itemId: blacklistedItem.itemId,
+      itemData: blacklistedItem,
+      userId: request.headers.get('x-user-id')
+    })
+
+    // Notify WebSocket clients
+    await notifyBlacklistUpdate({
+      type: 'blacklist',
+      action: 'add',
+      item: blacklistedItem,
+      userId: request.headers.get('x-user-id'),
+      timestamp: new Date().toISOString(),
+      operationId
     })
 
     return NextResponse.json(blacklistedItem)
@@ -200,8 +292,6 @@ export async function PATCH(request: NextRequest) {
               thumbnail: thumbnail?.trim() || null,
               channelName: channelName?.trim() || null,
               updatedAt: new Date(),
-              videoHash: type === 'video' ? createMD5Hash(itemId) : null,
-              channelHash: type === 'channel' ? createMD5Hash(itemId) : null,
               isChannelBlock: type === 'channel'
             },
             create: {
@@ -210,8 +300,6 @@ export async function PATCH(request: NextRequest) {
               type,
               thumbnail: thumbnail?.trim() || null,
               channelName: channelName?.trim() || null,
-              videoHash: type === 'video' ? createMD5Hash(itemId) : null,
-              channelHash: type === 'channel' ? createMD5Hash(itemId) : null,
               isChannelBlock: type === 'channel'
             }
           })

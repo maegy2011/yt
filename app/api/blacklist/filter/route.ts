@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { createHash } from 'crypto'
+import { EnhancedPatternMatcher, AdvancedPattern } from '@/lib/enhanced-pattern-matcher'
 
 // Enhanced filtering with pattern matching and performance optimizations
 interface FilterRequest {
@@ -8,7 +8,10 @@ interface FilterRequest {
   enablePatternMatching?: boolean
   enableChannelBlocking?: boolean
   enablePriorityFiltering?: boolean
+  enableFuzzyMatching?: boolean
+  enableSemanticMatching?: boolean
   cacheKey?: string
+  patternThreshold?: number
 }
 
 interface FilterResult {
@@ -17,25 +20,32 @@ interface FilterResult {
   whitelistCount: number
   patternMatches: number
   channelBlocks: number
+  fuzzyMatches: number
+  semanticMatches: number
   processingTime: number
   cacheHit?: boolean
+  patternPerformance?: Array<{ patternId: string; avgTime: number; matchRate: number }>
 }
 
 // Cache for frequently accessed blacklist data
-const blacklistCache = new Map<string, { data: any[]; timestamp: number }>()
-const whitelistCache = new Map<string, { data: any[]; timestamp: number }>()
-const patternCache = new Map<string, { data: any[]; timestamp: number }>()
+const blacklistCache = new Map<string, { data: any[]; expiry: number }>()
+const whitelistCache = new Map<string, { data: any[]; expiry: number }>()
+const patternCache = new Map<string, { data: any[]; expiry: number }>()
 
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
 
-// Helper function to create MD5 hash
-function createMD5Hash(input: string): string {
-  return createHash('md5').update(input).digest('hex')
-}
-
-// Check cache validity
+// Check cache validity and clean expired entries
 function isCacheValid(timestamp: number): boolean {
   return Date.now() - timestamp < CACHE_DURATION
+}
+
+function cleanExpiredCache(cache: Map<string, { data: any[]; expiry: number }>): void {
+  const now = Date.now()
+  for (const [key, value] of cache.entries()) {
+    if (now > value.expiry) {
+      cache.delete(key)
+    }
+  }
 }
 
 // Get cached data or fetch from database
@@ -43,7 +53,10 @@ async function getCachedBlacklist(forceRefresh = false): Promise<any[]> {
   const cacheKey = 'blacklist_all'
   const cached = blacklistCache.get(cacheKey)
   
-  if (!forceRefresh && cached && isCacheValid(cached.timestamp)) {
+  // Clean expired entries
+  cleanExpiredCache(blacklistCache)
+  
+  if (!forceRefresh && cached && isCacheValid(cached.expiry)) {
     return cached.data
   }
 
@@ -55,7 +68,7 @@ async function getCachedBlacklist(forceRefresh = false): Promise<any[]> {
       ]
     })
 
-    blacklistCache.set(cacheKey, { data: items, timestamp: Date.now() })
+    blacklistCache.set(cacheKey, { data: items, expiry: Date.now() + CACHE_DURATION })
     return items
   } catch (error) {
     // Failed to fetch blacklist
@@ -67,7 +80,10 @@ async function getCachedWhitelist(forceRefresh = false): Promise<any[]> {
   const cacheKey = 'whitelist_all'
   const cached = whitelistCache.get(cacheKey)
   
-  if (!forceRefresh && cached && isCacheValid(cached.timestamp)) {
+  // Clean expired entries
+  cleanExpiredCache(whitelistCache)
+  
+  if (!forceRefresh && cached && isCacheValid(cached.expiry)) {
     return cached.data
   }
 
@@ -79,7 +95,7 @@ async function getCachedWhitelist(forceRefresh = false): Promise<any[]> {
       ]
     })
 
-    whitelistCache.set(cacheKey, { data: items, timestamp: Date.now() })
+    whitelistCache.set(cacheKey, { data: items, expiry: Date.now() + CACHE_DURATION })
     return items
   } catch (error) {
     // Failed to fetch whitelist
@@ -91,7 +107,10 @@ async function getCachedPatterns(forceRefresh = false): Promise<any[]> {
   const cacheKey = 'patterns_active'
   const cached = patternCache.get(cacheKey)
   
-  if (!forceRefresh && cached && isCacheValid(cached.timestamp)) {
+  // Clean expired entries
+  cleanExpiredCache(patternCache)
+  
+  if (!forceRefresh && cached && isCacheValid(cached.expiry)) {
     return cached.data
   }
 
@@ -104,7 +123,7 @@ async function getCachedPatterns(forceRefresh = false): Promise<any[]> {
       ]
     })
 
-    patternCache.set(cacheKey, { data: patterns, timestamp: Date.now() })
+    patternCache.set(cacheKey, { data: patterns, expiry: Date.now() + CACHE_DURATION })
     return patterns
   } catch (error) {
     // Failed to fetch patterns
@@ -112,7 +131,7 @@ async function getCachedPatterns(forceRefresh = false): Promise<any[]> {
   }
 }
 
-// Pattern matching functions
+// Pattern matching functions with validation
 function matchesPattern(text: string, pattern: any): boolean {
   if (!text || !pattern) return false
 
@@ -133,15 +152,27 @@ function matchesPattern(text: string, pattern: any): boolean {
     
     case 'regex':
       try {
+        // Validate regex pattern before using
         const regex = new RegExp(pattern.pattern, 'i')
         return regex.test(text)
       } catch (error) {
-        // Invalid regex pattern
+        // Invalid regex pattern - skip this pattern
+        console.warn(`Invalid regex pattern: ${pattern.pattern}`)
         return false
       }
     
     default:
       return textLower.includes(patternLower)
+  }
+}
+
+// Validate regex pattern before saving
+function validateRegexPattern(pattern: string): boolean {
+  try {
+    new RegExp(pattern)
+    return true
+  } catch {
+    return false
   }
 }
 
@@ -185,16 +216,16 @@ export async function POST(request: NextRequest) {
     // Populate blacklist lookup maps
     blacklisted.forEach(item => {
       blacklistMap.set(item.itemId, item)
-      if (item.isChannelBlock && item.channelHash) {
-        channelBlockMap.set(item.channelHash, item)
+      if (item.isChannelBlock && item.channelName) {
+        channelBlockMap.set(item.channelName.toLowerCase(), item)
       }
     })
 
     // Populate whitelist lookup maps
     whitelisted.forEach(item => {
       whitelistMap.set(item.itemId, item)
-      if (item.isChannelWhitelist && item.channelHash) {
-        channelWhitelistMap.set(item.channelHash, item)
+      if (item.isChannelWhitelist && item.channelName) {
+        channelWhitelistMap.set(item.channelName.toLowerCase(), item)
       }
     })
 
@@ -203,6 +234,8 @@ export async function POST(request: NextRequest) {
     let whitelistCount = 0
     let patternMatches = 0
     let channelBlocks = 0
+    let fuzzyMatches = 0
+    let semanticMatches = 0
 
     // Filter each item
     for (const item of items) {
@@ -232,8 +265,8 @@ export async function POST(request: NextRequest) {
 
       // Check channel whitelist
       if (enableChannelBlocking && !isWhitelisted) {
-        const channelHash = createMD5Hash(item.channelId || itemId)
-        if (channelWhitelistMap.has(channelHash)) {
+        const channelName = item.channelName?.toLowerCase() || item.channelId?.toLowerCase()
+        if (channelName && channelWhitelistMap.has(channelName)) {
           isWhitelisted = true
           whitelistCount++
         }
@@ -249,20 +282,34 @@ export async function POST(request: NextRequest) {
 
         // Channel blocking
         if (enableChannelBlocking && !isBlocked) {
-          const channelHash = createMD5Hash(item.channelId || itemId)
-          if (channelBlockMap.has(channelHash)) {
+          const channelName = item.channelName?.toLowerCase() || item.channelId?.toLowerCase()
+          if (channelName && channelBlockMap.has(channelName)) {
             isBlocked = true
             blockedByChannel = true
             channelBlocks++
           }
         }
 
-        // Pattern matching
+        // Enhanced pattern matching
         if (enablePatternMatching && !isBlocked) {
-          for (const pattern of patterns) {
+          // Convert database patterns to advanced patterns
+          const advancedPatterns: AdvancedPattern[] = patterns.map(p => ({
+            id: p.id,
+            pattern: p.pattern,
+            type: p.patternType as any,
+            weight: p.priority / 100, // Convert priority to weight
+            context: p.type as any,
+            isEnabled: p.isActive,
+            matchThreshold: 0.8 // Default threshold
+          }))
+
+          // Test all pattern contexts
+          const contexts = ['title', 'channel', 'description', 'tags']
+          
+          for (const context of contexts) {
             let text = ''
             
-            switch (pattern.type) {
+            switch (context) {
               case 'title':
                 text = item.title || ''
                 break
@@ -277,15 +324,31 @@ export async function POST(request: NextRequest) {
                 break
             }
 
-            if (matchesPattern(text, pattern)) {
+            if (!text) continue
+
+            // Use enhanced pattern matching
+            const matchResult = EnhancedPatternMatcher.matchPatterns(
+              text, 
+              advancedPatterns, 
+              context
+            )
+
+            if (matchResult.matched) {
               isBlocked = true
               blockedByPattern = true
               patternMatches++
-              
-              // Update pattern match count
+
+              // Track match types
+              if (matchResult.pattern?.type === 'fuzzy') {
+                fuzzyMatches++
+              } else if (matchResult.pattern?.type === 'semantic') {
+                semanticMatches++
+              }
+
+              // Update pattern match count and performance
               try {
                 await db.blacklistPattern.update({
-                  where: { id: pattern.id },
+                  where: { id: matchResult.pattern!.id },
                   data: {
                     matchCount: { increment: 1 },
                     lastMatched: new Date()
@@ -340,6 +403,8 @@ export async function POST(request: NextRequest) {
       whitelistCount,
       patternMatches,
       channelBlocks,
+      fuzzyMatches: fuzzyMatches || 0,
+      semanticMatches: semanticMatches || 0,
       processingTime
     }
 
