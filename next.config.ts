@@ -31,6 +31,14 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Add cache-busting configuration for development
+  generateBuildId: async () => {
+    return `build-${Date.now()}`
+  },
+  // Ensure proper chunk loading
+  compiler: {
+    removeConsole: false,
+  },
 };
 
 export default nextConfig;

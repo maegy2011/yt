@@ -379,6 +379,25 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   const [dataStatistics, setDataStatistics] = useState<any>(null)
   const [favoritesEnabled, setFavoritesEnabled] = useState(true)
   const [favoritesPaused, setFavoritesPaused] = useState(false)
+  const [blacklistWhitelistVisibility, setBlacklistWhitelistVisibility] = useState<'always' | 'hover' | 'hidden'>('always')
+  
+  // Load blacklist/whitelist visibility setting from localStorage
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('mytube-app-settings')
+    if (savedSettings) {
+      try {
+        const settings = JSON.parse(savedSettings)
+        if (settings.blacklistWhitelistVisibility) {
+          setBlacklistWhitelistVisibility(settings.blacklistWhitelistVisibility)
+        }
+      } catch (error) {
+        // Failed to load settings
+      }
+    } else {
+      // No saved settings, use default 'always'
+      setBlacklistWhitelistVisibility('always')
+    }
+  }, [])
   
   
 
@@ -2743,6 +2762,14 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     const isFavorite = favoriteVideoIds.has(videoId)
     const isSelected = selectedItems.has(videoId)
     
+    // Check blacklist/whitelist status for videos
+    const isBlacklisted = blacklisted.some(listItem => 
+      listItem.id === videoId && listItem.type === 'video'
+    )
+    const isWhitelisted = whitelisted.some(listItem => 
+      listItem.id === videoId && listItem.type === 'video'
+    )
+    
     return (
       <UnifiedVideoCard
         video={toVideoCardData(video)}
@@ -2757,10 +2784,11 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         onAddToWhitelist={handleAddToWhitelist}
         isBlacklisted={isBlacklisted}
         isWhitelisted={isWhitelisted}
+        blacklistWhitelistVisibility={blacklistWhitelistVisibility}
         size="md"
       />
     )
-  }, [favoriteVideoIds, selectedItems, multiSelectMode, toggleItemSelection, handleVideoSelect, toggleFavorite])
+  }, [favoriteVideoIds, selectedItems, multiSelectMode, toggleItemSelection, handleVideoSelect, toggleFavorite, handleAddToBlacklist, handleAddToWhitelist, blacklisted, whitelisted, blacklistWhitelistVisibility])
 
   const ChannelCard = useCallback(({ channel }: { channel: Channel }) => {
     return (
