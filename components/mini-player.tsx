@@ -19,7 +19,8 @@ import {
   SkipForward,
   ChevronUp,
   ChevronDown,
-
+  Shield,
+  ShieldOff,
 } from 'lucide-react'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
 import { usePlaybackPosition } from '@/hooks/use-playback-position'
@@ -48,6 +49,21 @@ export function MiniPlayer() {
   } = useBackgroundPlayer()
 
   const { savePlaybackPosition, loadPlaybackPosition } = usePlaybackPosition(backgroundVideo?.videoId || '')
+
+  // Mock blacklist/whitelist functions for mini player
+  const handleAddToBlacklist = () => {
+    if (backgroundVideo) {
+      // In a real implementation, this would call the blacklist API
+      console.log('Add to blacklist:', backgroundVideo.title)
+    }
+  }
+
+  const handleAddToWhitelist = () => {
+    if (backgroundVideo) {
+      // In a real implementation, this would call the whitelist API
+      console.log('Add to whitelist:', backgroundVideo.title)
+    }
+  }
 
 
 
@@ -342,6 +358,27 @@ export function MiniPlayer() {
                 >
                   {isMuted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 </Button>
+                
+                {/* Blacklist/Whitelist Buttons */}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleAddToWhitelist}
+                  className="h-8 w-8 p-0 hover:bg-green-50 hover:text-green-600"
+                  title="Add to Whitelist"
+                >
+                  <Shield className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleAddToBlacklist}
+                  className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+                  title="Add to Blacklist"
+                >
+                  <ShieldOff className="h-4 w-4" />
+                </Button>
+                
                 {isExpanded && (
                   <div className="w-20">
                     <Slider

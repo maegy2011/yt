@@ -120,6 +120,7 @@ interface AppSettings {
   skipIntro: boolean
   skipOutro: boolean
   skipAds: boolean
+  blacklistWhitelistVisibility: 'always' | 'hover' | 'hidden'
 }
 
 export function SettingsContainerEnhanced({
@@ -173,7 +174,8 @@ export function SettingsContainerEnhanced({
     playbackSpeed: 1.0,
     skipIntro: false,
     skipOutro: false,
-    skipAds: false
+    skipAds: false,
+    blacklistWhitelistVisibility: 'always'
   })
 
   // Load settings from localStorage on mount
@@ -273,7 +275,8 @@ export function SettingsContainerEnhanced({
         playbackSpeed: 1.0,
         skipIntro: false,
         skipOutro: false,
-        skipAds: false
+        skipAds: false,
+        blacklistWhitelistVisibility: 'always'
       }
       setAppSettings(defaultSettings)
       toast({
@@ -634,6 +637,24 @@ export function SettingsContainerEnhanced({
                         checked={appSettings.watchHistory}
                         onCheckedChange={(checked) => updateSetting('watchHistory', checked)}
                       />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label>Blacklist/Whitelist Buttons</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Control when blacklist and whitelist buttons are visible
+                        </p>
+                      </div>
+                      <Select value={appSettings.blacklistWhitelistVisibility} onValueChange={(value: 'always' | 'hover' | 'hidden') => updateSetting('blacklistWhitelistVisibility', value)}>
+                        <SelectTrigger className="w-[140px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="always">Always Visible</SelectItem>
+                          <SelectItem value="hover">On Hover</SelectItem>
+                          <SelectItem value="hidden">Always Hidden</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </CardContent>
                 </Card>

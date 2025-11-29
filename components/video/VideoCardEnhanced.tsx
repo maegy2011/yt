@@ -74,6 +74,7 @@ export interface VideoCardProps {
   className?: string
   size?: 'sm' | 'md' | 'lg'
   loading?: boolean
+  blacklistWhitelistVisibility?: 'always' | 'hover' | 'hidden'
 }
 
 export function VideoCard({
@@ -97,12 +98,27 @@ export function VideoCard({
   isWhitelisted = false,
   className = '',
   size = 'md',
-  loading = false
+  loading = false,
+  blacklistWhitelistVisibility = 'always'
 }: VideoCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
+  
+  // Determine if blacklist/whitelist buttons should be visible
+  const shouldShowBlacklistWhitelistButtons = () => {
+    switch (blacklistWhitelistVisibility) {
+      case 'always':
+        return true
+      case 'hover':
+        return isHovered
+      case 'hidden':
+        return false
+      default:
+        return true
+    }
+  }
   
   // Async operations with loading states
   const playOperation = useAsyncOperation({
@@ -437,6 +453,54 @@ export function VideoCard({
             </div>
           )}
           
+          {/* Always Visible Blacklist/Whitelist Buttons */}
+          {shouldShowBlacklistWhitelistButtons() && (
+            <div className="absolute top-2 right-2 flex gap-1 z-10">
+              {onAddToWhitelist && !isWhitelisted && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-6 w-6 min-h-[24px] min-w-[24px] p-0 touch-manipulation mobile-touch-feedback bg-green-500/90 hover:bg-green-600 text-white shadow-lg border border-green-400/30 transition-all duration-300 hover:scale-110 disabled:opacity-50 ${
+                    blacklistWhitelistVisibility === 'hover' ? (isHovered ? 'opacity-100' : 'opacity-0') : 'opacity-100'
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleAddToWhitelist(e)
+                  }}
+                  disabled={whitelistOperation.loading}
+                  title="Add to Whitelist"
+                >
+                  {whitelistOperation.loading ? (
+                    <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Shield className="w-3 h-3" />
+                  )}
+                </Button>
+              )}
+              {onAddToBlacklist && !isBlacklisted && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-6 w-6 min-h-[24px] min-w-[24px] p-0 touch-manipulation mobile-touch-feedback bg-red-500/90 hover:bg-red-600 text-white shadow-lg border border-red-400/30 transition-all duration-300 hover:scale-110 disabled:opacity-50 ${
+                    blacklistWhitelistVisibility === 'hover' ? (isHovered ? 'opacity-100' : 'opacity-0') : 'opacity-100'
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleAddToBlacklist(e)
+                  }}
+                  disabled={blacklistOperation.loading}
+                  title="Add to Blacklist"
+                >
+                  {blacklistOperation.loading ? (
+                    <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <ShieldOff className="w-3 h-3" />
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
+          
           {/* Enhanced Play Overlay - Mobile Optimized */}
           <div 
             className={`absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent transition-all duration-300 flex items-center justify-center ${
@@ -549,20 +613,41 @@ export function VideoCard({
                 <ExternalLink className="w-4 h-4" />
               </Button>
               
-              {(onAddToBlacklist || onAddToWhitelist) && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleAddToBlacklist}
-                  disabled={blacklistOperation.loading}
-                  className="h-8 px-2 text-xs hover:bg-gray-50 hover:text-gray-600 dark:hover:bg-gray-950/20"
-                >
-                  {blacklistOperation.loading ? (
-                    <LoadingSpinner size="sm" />
-                  ) : (
-                    <ShieldOff className="w-4 h-4" />
+              {shouldShowBlacklistWhitelistButtons() && (onAddToBlacklist || onAddToWhitelist) && (
+                <>
+                  {onAddToWhitelist && !isWhitelisted && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAddToWhitelist}
+                      disabled={whitelistOperation.loading}
+                      className="h-8 px-2 text-xs hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-950/20"
+                      title="Add to Whitelist"
+                    >
+                      {whitelistOperation.loading ? (
+                        <LoadingSpinner size="sm" />
+                      ) : (
+                        <Shield className="w-4 h-4" />
+                      )}
+                    </Button>
                   )}
-                </Button>
+                  {onAddToBlacklist && !isBlacklisted && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAddToBlacklist}
+                      disabled={blacklistOperation.loading}
+                      className="h-8 px-2 text-xs hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20"
+                      title="Add to Blacklist"
+                    >
+                      {blacklistOperation.loading ? (
+                        <LoadingSpinner size="sm" />
+                      ) : (
+                        <ShieldOff className="w-4 h-4" />
+                      )}
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           )}

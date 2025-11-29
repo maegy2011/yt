@@ -224,13 +224,37 @@ export function ChannelCard({
             </div>
           </div>
 
-          {/* Quick Add Buttons - Always Visible on Hover and Mobile */}
-          {(onAddToBlacklist || onAddToWhitelist) && (
-            <div className={`absolute top-2 right-2 flex flex-col gap-2 transition-all duration-300 z-10 ${
-              isHovered || isMobile ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-            }`}>
-            </div>
-          )}
+          {/* Always Visible Blacklist/Whitelist Buttons */}
+          <div className="absolute top-2 right-2 flex gap-1 z-10">
+            {onAddToWhitelist && !isWhitelisted && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 min-h-[24px] min-w-[24px] p-0 touch-manipulation mobile-touch-feedback bg-green-500/90 hover:bg-green-600 text-white shadow-lg border border-green-400/30 transition-all duration-300 hover:scale-110"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleAddToWhitelist(e)
+                }}
+                title="Add to Whitelist"
+              >
+                <Shield className="w-3 h-3" />
+              </Button>
+            )}
+            {onAddToBlacklist && !isBlacklisted && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 min-h-[24px] min-w-[24px] p-0 touch-manipulation mobile-touch-feedback bg-red-500/90 hover:bg-red-600 text-white shadow-lg border border-red-400/30 transition-all duration-300 hover:scale-110"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleAddToBlacklist(e)
+                }}
+                title="Add to Blacklist"
+              >
+                <ShieldOff className="w-3 h-3" />
+              </Button>
+            )}
+          </div>
 
           {/* Blacklist/Whitelist Badges */}
           {isBlacklisted && (
@@ -336,6 +360,28 @@ export function ChannelCard({
                   <Play className="w-4 h-4 mr-3" />
                   View Channel
                 </Button>
+                {onAddToWhitelist && !isWhitelisted && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-sm h-11 min-h-[44px] px-3 hover:bg-green-50 hover:text-green-700 transition-colors touch-manipulation mobile-touch-feedback"
+                    onClick={handleAddToWhitelist}
+                  >
+                    <Shield className="w-4 h-4 mr-3" />
+                    Add to Whitelist
+                  </Button>
+                )}
+                {onAddToBlacklist && !isBlacklisted && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-sm h-11 min-h-[44px] px-3 hover:bg-red-50 hover:text-red-700 transition-colors touch-manipulation mobile-touch-feedback"
+                    onClick={handleAddToBlacklist}
+                  >
+                    <ShieldOff className="w-4 h-4 mr-3" />
+                    Add to Blacklist
+                  </Button>
+                )}
                 
                 {onRemove && (
                   <Button

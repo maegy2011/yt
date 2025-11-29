@@ -45,6 +45,8 @@ import {
   Clock,
   History,
   MoreVertical,
+  Shield,
+  ShieldOff,
   BookOpen
 } from 'lucide-react'
 import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
@@ -76,7 +78,7 @@ interface WhitelistedItem {
   updatedAt?: string
 }
 // Unified VideoCard component with enhanced design
-import { VideoCard as UnifiedVideoCard, toVideoCardData, PlaylistCard, ChannelCard } from '@/components/video'
+import { VideoCard as UnifiedVideoCard, toVideoCardData, ChannelCard } from '@/components/video'
 import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleton'
 import { SplashScreen } from '@/components/splash-screen'
 import { VideoNote as VideoNoteComponent } from '@/components/video-note'
@@ -379,6 +381,39 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   const [dataStatistics, setDataStatistics] = useState<any>(null)
   const [favoritesEnabled, setFavoritesEnabled] = useState(true)
   const [favoritesPaused, setFavoritesPaused] = useState(false)
+  const [blacklistWhitelistVisibility, setBlacklistWhitelistVisibility] = useState<'always' | 'hover' | 'hidden'>('always')
+  
+  // Load blacklist/whitelist visibility setting from localStorage
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('mytube-app-settings')
+    if (savedSettings) {
+      try {
+        const settings = JSON.parse(savedSettings)
+        if (settings.blacklistWhitelistVisibility) {
+          setBlacklistWhitelistVisibility(settings.blacklistWhitelistVisibility)
+        }
+      } catch (error) {
+        // Failed to load settings
+      }
+    }
+    
+    // Listen for changes to settings
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'mytube-app-settings' && e.newValue) {
+        try {
+          const settings = JSON.parse(e.newValue)
+          if (settings.blacklistWhitelistVisibility) {
+            setBlacklistWhitelistVisibility(settings.blacklistWhitelistVisibility)
+          }
+        } catch (error) {
+          // Failed to parse settings
+        }
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
   
   
 
@@ -1673,61 +1708,63 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
           throw new Error('Invalid playlist data received')
         }
         
-        // Convert videos to SimpleVideo format (limit to first 5 for inline display)
-        const convertedVideos = data.videos
-          .slice(0, 5) // Limit to 5 videos for inline display
-          .map((video: any) => {
-            try {
-              return convertYouTubeVideo(video)
-            } catch (conversionError) {
-              // Console statement removed
-              return null
+        // Convert videos to SimpleVideo format and filter to get 5 visible videos
+        // Load more videos if needed to get 5 non-blocked videos
+        let visibleVideos: Video[] = []
+        let videoIndex = 0
+        const maxVideosToCheck = 50 // Check up to 50 videos to find 5 visible ones
+        
+        while (visibleVideos.length < 5 && videoIndex < data.videos.length && videoIndex < maxVideosToCheck) {
+          const video = data.videos[videoIndex]
+          try {
+            const convertedVideo = convertYouTubeVideo(video)
+            
+            // Apply blacklist/whitelist filtering
+            const isExplicitlyBlacklisted = blacklisted.some(listItem => 
+              listItem.type === 'video' && listItem.itemId === convertedVideo.videoId
+            )
+            
+            const isFromBlockedChannel = blacklisted.some(listItem => 
+              listItem.type === 'channel' && listItem.itemId === convertedVideo.channelId
+            )
+            
+            const isExplicitlyWhitelisted = whitelisted.some(listItem => 
+              listItem.type === 'video' && listItem.itemId === convertedVideo.videoId
+            )
+            
+            const isFromWhitelistedChannel = whitelisted.some(listItem => 
+              listItem.type === 'channel' && listItem.itemId === convertedVideo.channelId
+            )
+            
+            // Apply whitelist rules first (whitelist takes precedence)
+            let showVideo = false
+            if (whitelisted.length > 0) {
+              // Show if explicitly whitelisted or from whitelisted channel
+              showVideo = isExplicitlyWhitelisted || isFromWhitelistedChannel
+            } else {
+              // Apply blacklist rules
+              if (blacklisted.length > 0) {
+                // Hide if explicitly blacklisted or from blocked channel
+                showVideo = !isExplicitlyBlacklisted && !isFromBlockedChannel
+              } else {
+                // No filtering rules, show all videos
+                showVideo = true
+              }
             }
-          })
-          .filter((video): video is Video => video !== null)
-        
-        // Apply blacklist/whitelist filtering to playlist videos
-        const filteredPlaylistVideos = convertedVideos.filter(video => {
-          // Check if video is explicitly blacklisted
-          const isExplicitlyBlacklisted = blacklisted.some(listItem => 
-            listItem.type === 'video' && listItem.itemId === video.videoId
-          )
-          
-          // Check if video is from a blocked channel
-          const isFromBlockedChannel = blacklisted.some(listItem => 
-            listItem.type === 'channel' && listItem.itemId === video.channelId
-          )
-          
-          // Check if video is explicitly whitelisted
-          const isExplicitlyWhitelisted = whitelisted.some(listItem => 
-            listItem.type === 'video' && listItem.itemId === video.videoId
-          )
-          
-          // Check if video is from a whitelisted channel
-          const isFromWhitelistedChannel = whitelisted.some(listItem => 
-            listItem.type === 'channel' && listItem.itemId === video.channelId
-          )
-          
-          // Apply whitelist rules first (whitelist takes precedence)
-          if (whitelisted.length > 0) {
-            // Show if explicitly whitelisted or from whitelisted channel
-            return isExplicitlyWhitelisted || isFromWhitelistedChannel
+            
+            if (showVideo) {
+              visibleVideos.push(convertedVideo)
+            }
+          } catch (conversionError) {
+            // Skip invalid videos
           }
-          
-          // Apply blacklist rules
-          if (blacklisted.length > 0) {
-            // Hide if explicitly blacklisted or from blocked channel
-            return !isExplicitlyBlacklisted && !isFromBlockedChannel
-          }
-          
-          // No filtering rules, show all videos
-          return true
-        })
+          videoIndex++
+        }
         
-        setExpandedPlaylistVideos(prev => new Map(prev).set(playlistId, filteredPlaylistVideos))
+        setExpandedPlaylistVideos(prev => new Map(prev).set(playlistId, visibleVideos))
         setExpandedPlaylists(prev => new Set(prev).add(playlistId))
         
-        if (convertedVideos.length > 0) {
+        if (visibleVideos.length > 0) {
           
         }
         
@@ -2157,6 +2194,107 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     })
   }, [])
 
+  // Refresh expanded playlists to apply new blacklist/whitelist rules instantly
+  const refreshExpandedPlaylists = useCallback(async () => {
+    const currentlyExpandedPlaylists = Array.from(expandedPlaylists)
+    
+    for (const playlistId of currentlyExpandedPlaylists) {
+      try {
+        // Set loading state
+        setExpandedPlaylistLoading(prev => new Map(prev).set(playlistId, true))
+        
+        // Re-fetch playlist data
+        const response = await fetch(`/api/youtube/playlist/${playlistId}/videos?loadAll=true`)
+        
+        if (!response.ok) {
+          throw new Error('Failed to refresh playlist videos')
+        }
+        
+        const data = await response.json()
+        
+        if (!data.videos || !Array.isArray(data.videos)) {
+          throw new Error('Invalid playlist data received')
+        }
+        
+        // Apply the same filtering logic as in togglePlaylistExpansion
+        let visibleVideos: Video[] = []
+        let videoIndex = 0
+        const maxVideosToCheck = 50
+        
+        while (visibleVideos.length < 5 && videoIndex < data.videos.length && videoIndex < maxVideosToCheck) {
+          const video = data.videos[videoIndex]
+          try {
+            const convertedVideo = convertYouTubeVideo(video)
+            
+            // Apply blacklist/whitelist filtering
+            const isExplicitlyBlacklisted = blacklisted.some(listItem => 
+              listItem.type === 'video' && listItem.itemId === convertedVideo.videoId
+            )
+            
+            const isFromBlockedChannel = blacklisted.some(listItem => 
+              listItem.type === 'channel' && listItem.itemId === convertedVideo.channelId
+            )
+            
+            const isExplicitlyWhitelisted = whitelisted.some(listItem => 
+              listItem.type === 'video' && listItem.itemId === convertedVideo.videoId
+            )
+            
+            const isFromWhitelistedChannel = whitelisted.some(listItem => 
+              listItem.type === 'channel' && listItem.itemId === convertedVideo.channelId
+            )
+            
+            // Apply whitelist rules first (whitelist takes precedence)
+            let showVideo = false
+            if (whitelisted.length > 0) {
+              // Show if explicitly whitelisted or from whitelisted channel
+              showVideo = isExplicitlyWhitelisted || isFromWhitelistedChannel
+            } else {
+              // Apply blacklist rules
+              if (blacklisted.length > 0) {
+                // Hide if explicitly blacklisted or from blocked channel
+                showVideo = !isExplicitlyBlacklisted && !isFromBlockedChannel
+              } else {
+                // No filtering rules, show all videos
+                showVideo = true
+              }
+            }
+            
+            if (showVideo) {
+              visibleVideos.push(convertedVideo)
+            }
+          } catch (conversionError) {
+            // Skip invalid videos
+          }
+          videoIndex++
+        }
+        
+        // Update the playlist with filtered videos
+        setExpandedPlaylistVideos(prev => new Map(prev).set(playlistId, visibleVideos))
+        
+      } catch (error) {
+        // Failed to refresh playlist, remove from expanded state
+        setExpandedPlaylists(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(playlistId)
+          return newSet
+        })
+        
+        setExpandedPlaylistVideos(prev => {
+          const newMap = new Map(prev)
+          newMap.delete(playlistId)
+          return newMap
+        })
+      } finally {
+        // Clear loading state
+        setExpandedPlaylistLoading(prev => {
+          const newMap = new Map(prev)
+          newMap.delete(playlistId)
+          return newMap
+        })
+      }
+    }
+  }, [expandedPlaylists, blacklisted, whitelisted])
+
   // Confirm action handler
   const handleConfirmAction = useCallback(async () => {
     const { type, item, itemType, itemTitle } = confirmDialog
@@ -2173,6 +2311,14 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
           const updatedBlacklist = await fetchBlacklistedItems()
           setBlacklisted(updatedBlacklist)
           handleBlacklistChange(updatedBlacklist)
+          
+          // Instant re-render expanded playlists to hide blocked videos
+          await refreshExpandedPlaylists()
+          
+          // Also refresh main playlist videos if currently showing
+          if (showPlaylistVideos && selectedPlaylist) {
+            await loadPlaylistVideos(selectedPlaylist)
+          }
         }
       } else if (type === 'whitelist') {
         success = await addToWhitelist(item)
@@ -2182,6 +2328,14 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
           const updatedWhitelist = await fetchWhitelistedItems()
           setWhitelisted(updatedWhitelist)
           handleWhitelistChange(updatedWhitelist)
+          
+          // Instant re-render expanded playlists to show whitelisted videos
+          await refreshExpandedPlaylists()
+          
+          // Also refresh main playlist videos if currently showing
+          if (showPlaylistVideos && selectedPlaylist) {
+            await loadPlaylistVideos(selectedPlaylist)
+          }
         }
       }
       
@@ -2738,6 +2892,14 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     const isFavorite = favoriteVideoIds.has(videoId)
     const isSelected = selectedItems.has(videoId)
     
+    // Check blacklist/whitelist status for videos
+    const isBlacklisted = blacklisted.some(listItem => 
+      listItem.id === videoId && listItem.type === 'video'
+    )
+    const isWhitelisted = whitelisted.some(listItem => 
+      listItem.id === videoId && listItem.type === 'video'
+    )
+    
     return (
       <UnifiedVideoCard
         video={toVideoCardData(video)}
@@ -2752,10 +2914,11 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         onAddToWhitelist={handleAddToWhitelist}
         isBlacklisted={isBlacklisted}
         isWhitelisted={isWhitelisted}
+        blacklistWhitelistVisibility={blacklistWhitelistVisibility}
         size="md"
       />
     )
-  }, [favoriteVideoIds, selectedItems, multiSelectMode, toggleItemSelection, handleVideoSelect, toggleFavorite])
+  }, [favoriteVideoIds, selectedItems, multiSelectMode, toggleItemSelection, handleVideoSelect, toggleFavorite, blacklisted, whitelisted, blacklistWhitelistVisibility])
 
   const ChannelCard = useCallback(({ channel }: { channel: Channel }) => {
     return (
@@ -2840,6 +3003,14 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     const videos = playlistId ? expandedPlaylistVideos.get(playlistId) || [] : []
     const thumbnailUrl = playlist.thumbnail
     
+    // Check blacklist/whitelist status - moved outside return statement
+    const isBlacklisted = blacklisted.some(listItem => 
+      listItem.id === playlistId && listItem.type === 'playlist'
+    )
+    const isWhitelisted = whitelisted.some(listItem => 
+      listItem.id === playlistId && listItem.type === 'playlist'
+    )
+    
     return (
       <Card className={`group relative overflow-hidden hover:shadow-2xl transition-all duration-300 hover:scale-[1.03] border-border/50 hover:border-primary/40 bg-card ${
         isSelected ? 'ring-2 ring-primary ring-offset-2 ring-offset-background' : ''
@@ -2867,10 +3038,58 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
               </div>
               
               {/* Playlist Badge - Smaller on Mobile */}
-              <div className="absolute top-1.5 sm:top-2 sm:top-2.5 left-1.5 sm:left-2 sm:left-2.5 bg-gradient-to-r from-primary to-accent text-primary-foreground text-sm font-bold px-1.5 sm:px-2 py-0.5 rounded shadow-lg border border-primary/30 flex items-center gap-1">
-                <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
-                Playlist
-              </div>
+              {isBlacklisted && (
+                <div className="absolute top-1.5 sm:top-2 sm:top-2.5 left-1.5 sm:left-2 sm:left-2.5 bg-red-600 text-white text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded shadow-lg flex items-center gap-1">
+                  <ShieldOff className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                  Blacklisted
+                </div>
+              )}
+              {isWhitelisted && (
+                <div className="absolute top-1.5 sm:top-2 sm:top-2.5 left-1.5 sm:left-2 sm:left-2.5 bg-green-600 text-white text-xs font-bold px-1.5 sm:px-2 py-0.5 rounded shadow-lg flex items-center gap-1">
+                  <Shield className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                  Whitelisted
+                </div>
+              )}
+              {!isBlacklisted && !isWhitelisted && (
+                <div className="absolute top-1.5 sm:top-2 sm:top-2.5 left-1.5 sm:left-2 sm:left-2.5 bg-gradient-to-r from-primary to-accent text-primary-foreground text-sm font-bold px-1.5 sm:px-2 py-0.5 rounded shadow-lg border border-primary/30 flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
+                  Playlist
+                </div>
+              )}
+              
+              {/* Blacklist/Whitelist Buttons */}
+              {blacklistWhitelistVisibility !== 'hidden' && (
+                <div className={`absolute top-1.5 sm:top-2 sm:top-2.5 right-1.5 sm:right-2 sm:right-2.5 flex gap-1 z-10 transition-opacity duration-300 ${
+                  blacklistWhitelistVisibility === 'hover' ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
+                }`}>
+                  {!isWhitelisted && (
+                    <Button
+                      size="sm"
+                      className="h-5 w-5 sm:h-6 sm:w-6 p-0 bg-green-500/90 hover:bg-green-600 text-white shadow-lg border border-green-400/30 transition-all duration-300 hover:scale-110"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleAddToWhitelist(playlist)
+                      }}
+                      title="Add to Whitelist"
+                    >
+                      <Shield className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                    </Button>
+                  )}
+                  {!isBlacklisted && (
+                    <Button
+                      size="sm"
+                      className="h-5 w-5 sm:h-6 sm:w-6 p-0 bg-red-500/90 hover:bg-red-600 text-white shadow-lg border border-red-400/30 transition-all duration-300 hover:scale-110"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleAddToBlacklist(playlist)
+                      }}
+                      title="Add to Blacklist"
+                    >
+                      <ShieldOff className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                    </Button>
+                  )}
+                </div>
+              )}
               
               {/* Mobile-First Persistent Action Bar - Always Visible on Mobile */}
               <div className="sm:hidden absolute bottom-1.5 left-1.5 right-1.5 flex justify-between items-end pointer-events-none">
@@ -3318,6 +3537,78 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                 handlePlayVideo(video)
               }}
             >
+              {/* Blacklist/Whitelist Buttons - Always Visible */}
+              {blacklistWhitelistVisibility !== 'hidden' && (
+                <div className={`absolute top-2 right-2 flex gap-1 z-10 transition-opacity duration-300 ${
+                  blacklistWhitelistVisibility === 'hover' ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
+                }`}>
+                  {(() => {
+                    const isVideoBlacklisted = blacklisted.some(listItem => 
+                      listItem.id === (video.videoId || video.id) && listItem.type === 'video'
+                    )
+                    const isVideoWhitelisted = whitelisted.some(listItem => 
+                      listItem.id === (video.videoId || video.id) && listItem.type === 'video'
+                    )
+                    return (
+                      <>
+                        {!isVideoWhitelisted && (
+                          <Button
+                            size="sm"
+                            className="h-5 w-5 p-0 bg-green-500/90 hover:bg-green-600 text-white shadow-lg border border-green-400/30 transition-all duration-300 hover:scale-110"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleAddToWhitelist(video)
+                            }}
+                            title="Add to Whitelist"
+                          >
+                            <Shield className="w-2.5 h-2.5" />
+                          </Button>
+                        )}
+                        {!isVideoBlacklisted && (
+                          <Button
+                            size="sm"
+                            className="h-5 w-5 p-0 bg-red-500/90 hover:bg-red-600 text-white shadow-lg border border-red-400/30 transition-all duration-300 hover:scale-110"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleAddToBlacklist(video)
+                            }}
+                            title="Add to Blacklist"
+                          >
+                            <ShieldOff className="w-2.5 h-2.5" />
+                          </Button>
+                        )}
+                      </>
+                    )
+                  })()}
+                </div>
+              )}
+              
+              {/* Blacklist/Whitelist Status Badges */}
+              {(() => {
+                const isVideoBlacklisted = blacklisted.some(listItem => 
+                  listItem.id === (video.videoId || video.id) && listItem.type === 'video'
+                )
+                const isVideoWhitelisted = whitelisted.some(listItem => 
+                  listItem.id === (video.videoId || video.id) && listItem.type === 'video'
+                )
+                return (
+                  <>
+                    {isVideoBlacklisted && (
+                      <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded shadow-lg flex items-center gap-1">
+                        <ShieldOff className="w-2.5 h-2.5" />
+                        Blacklisted
+                      </div>
+                    )}
+                    {isVideoWhitelisted && (
+                      <div className="absolute top-2 left-2 bg-green-600 text-white text-xs font-bold px-1.5 py-0.5 rounded shadow-lg flex items-center gap-1">
+                        <Shield className="w-2.5 h-2.5" />
+                        Whitelisted
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
+              
               <div className="flex gap-3">
                 {/* Thumbnail */}
                 <div className="relative flex-shrink-0">
@@ -3396,7 +3687,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         </div>
         
         {/* View Full Playlist Button */}
-        {videos.length >= 5 && (
+        {playlist.videoCount > 5 && (
           <div className="text-center pt-2">
             <Button
               variant="outline"
@@ -3822,40 +4113,15 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                             listItem.id === (item as Playlist).playlistId && listItem.type === 'playlist'
                           )
                           return (
-                            <div key={item.playlistId || item.id} className="relative group">
-                              <PlaylistCard playlist={item as Playlist} />
-                              {/* Status indicator */}
-                              {isBlacklisted && (
-                                <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded-full">
-                                  Blacklisted
-                                </div>
-                              )}
-                              {isWhitelisted && (
-                                <div className="absolute top-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full">
-                                  Whitelisted
-                                </div>
-                              )}
-                              {/* Blacklist/Whitelist overlay buttons */}
-                              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="h-8 w-8 p-0 bg-black/70 hover:bg-black/80 text-white"
-                                  onClick={() => handleAddToBlacklist(item)}
-                                  title="Add to Blacklist"
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  className="h-8 w-8 p-0 bg-green-600/70 hover:bg-green-600/80 text-white"
-                                  onClick={() => handleAddToWhitelist(item)}
-                                  title="Add to Whitelist"
-                                >
-                                  <Check className="h-3 w-3" />
-                                </Button>
-                              </div>
+                            <div key={item.playlistId || item.id} className="relative">
+                              <PlaylistCard 
+                                playlist={item as Playlist} 
+                                onAddToBlacklist={handleAddToBlacklist}
+                                onAddToWhitelist={handleAddToWhitelist}
+                                isBlacklisted={isBlacklisted}
+                                isWhitelisted={isWhitelisted}
+                                blacklistWhitelistVisibility={blacklistWhitelistVisibility}
+                              />
                             </div>
                           )
                         } else if (item.type === 'channel') {
@@ -3918,6 +4184,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                                 onAddToWhitelist={handleAddToWhitelist}
                                 isBlacklisted={isBlacklisted}
                                 isWhitelisted={isWhitelisted}
+                                blacklistWhitelistVisibility={blacklistWhitelistVisibility}
                               />
                               {/* Blacklist/Whitelist overlay buttons */}
                               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">

@@ -23,6 +23,7 @@ import {
   ShieldOff
 } from 'lucide-react'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
+import { useBlacklistWhitelistVisibility } from '@/hooks/useBlacklistWhitelistVisibility'
 import { formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
 
 // Enhanced types for unified video card
@@ -77,6 +78,7 @@ export interface VideoCardProps {
   isWhitelisted?: boolean
   className?: string
   size?: 'sm' | 'md' | 'lg'
+  blacklistWhitelistVisibility?: 'always' | 'hover' | 'hidden'
 }
 
 export function VideoCard({
@@ -99,12 +101,15 @@ export function VideoCard({
   isBlacklisted = false,
   isWhitelisted = false,
   className = '',
-  size = 'md'
+  size = 'md',
+  blacklistWhitelistVisibility = 'always'
 }: VideoCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
+  
+  const { shouldShowButtons } = useBlacklistWhitelistVisibility()
   
   const {
     backgroundVideo,
@@ -359,6 +364,40 @@ export function VideoCard({
             </div>
           )}
           
+          {/* Always Visible Blacklist/Whitelist Buttons */}
+          {shouldShowButtons(isHovered) && (
+            <div className="absolute top-2 right-2 flex gap-1 z-10">
+              {onAddToWhitelist && !isWhitelisted && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 min-h-[24px] min-w-[24px] p-0 touch-manipulation mobile-touch-feedback bg-green-500/90 hover:bg-green-600 text-white shadow-lg border border-green-400/30 transition-all duration-300 hover:scale-110"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleAddToWhitelist(e)
+                  }}
+                  title="Add to Whitelist"
+                >
+                  <Shield className="w-3 h-3" />
+                </Button>
+              )}
+              {onAddToBlacklist && !isBlacklisted && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 min-h-[24px] min-w-[24px] p-0 touch-manipulation mobile-touch-feedback bg-red-500/90 hover:bg-red-600 text-white shadow-lg border border-red-400/30 transition-all duration-300 hover:scale-110"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleAddToBlacklist(e)
+                  }}
+                  title="Add to Blacklist"
+                >
+                  <ShieldOff className="w-3 h-3" />
+                </Button>
+              )}
+            </div>
+          )}
+          
           {/* Enhanced Play Overlay - Mobile Optimized */}
           <div 
             className={`absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent transition-all duration-300 flex items-center justify-center ${
@@ -467,6 +506,28 @@ export function VideoCard({
                         >
                           <ExternalLink className="w-4 h-4 mr-3" />
                           Open on YouTube
+                        </Button>
+                      )}
+                      {onAddToWhitelist && !isWhitelisted && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start text-sm h-11 min-h-[44px] px-3 hover:bg-green-50 hover:text-green-700 transition-colors touch-manipulation mobile-touch-feedback"
+                          onClick={handleAddToWhitelist}
+                        >
+                          <Shield className="w-4 h-4 mr-3" />
+                          Add to Whitelist
+                        </Button>
+                      )}
+                      {onAddToBlacklist && !isBlacklisted && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-start text-sm h-11 min-h-[44px] px-3 hover:bg-red-50 hover:text-red-700 transition-colors touch-manipulation mobile-touch-feedback"
+                          onClick={handleAddToBlacklist}
+                        >
+                          <ShieldOff className="w-4 h-4 mr-3" />
+                          Add to Blacklist
                         </Button>
                       )}
                       {onRemove && (
