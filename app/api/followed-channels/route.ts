@@ -228,7 +228,7 @@ export async function GET(request: NextRequest) {
             // `Searching for videos from ${channel.name}...`)
             
             // Add retry logic for YouTube API calls
-            let videoSearch = null
+            let videoSearch: any = null
             let retries = 0
             const maxRetries = 3
             
@@ -321,7 +321,7 @@ export async function GET(request: NextRequest) {
               // `Searching for playlists from ${channel.name}...`)
               
               // Add retry logic for YouTube API calls
-              let playlistSearch = null
+              let playlistSearch: any = null
               let retries = 0
               const maxRetries = 3
               

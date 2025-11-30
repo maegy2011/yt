@@ -41,7 +41,12 @@ export function withMiddleware(
   config: Partial<ApiMiddlewareConfig> = {}
 ) {
   const finalConfig = {
-    rateLimit: { ...DEFAULT_MIDDLEWARE_CONFIG.rateLimit, ...config.rateLimit },
+    rateLimit: { 
+      windowMs: DEFAULT_MIDDLEWARE_CONFIG.rateLimit?.windowMs || 15 * 60 * 1000,
+      max: DEFAULT_MIDDLEWARE_CONFIG.rateLimit?.max || 100,
+      message: DEFAULT_MIDDLEWARE_CONFIG.rateLimit?.message || 'Too many requests from this IP',
+      ...config.rateLimit 
+    },
     cors: { ...DEFAULT_MIDDLEWARE_CONFIG.cors, ...config.cors },
     validation: { ...DEFAULT_MIDDLEWARE_CONFIG.validation, ...config.validation },
     logging: { ...DEFAULT_MIDDLEWARE_CONFIG.logging, ...config.logging },
@@ -91,7 +96,7 @@ export function withMiddleware(
       if (finalConfig.cors) {
         addCORSHeaders(
           response,
-          finalConfig.cors.origin,
+          finalConfig.cors.origin || '*',
           finalConfig.cors.credentials,
           finalConfig.cors.methods,
           finalConfig.cors.headers
@@ -127,7 +132,7 @@ export function withMiddleware(
       if (finalConfig.cors) {
         addCORSHeaders(
           response,
-          finalConfig.cors.origin,
+          finalConfig.cors.origin || '*',
           finalConfig.cors.credentials,
           finalConfig.cors.methods,
           finalConfig.cors.headers
@@ -152,7 +157,7 @@ export function withValidation<T>(
   config: Partial<ApiMiddlewareConfig> = {}
 ) {
   return withMiddleware(async (request: NextRequest, context: any) => {
-    const validationResult = await validationMiddleware.validateRequestBody(request, schema)
+    const validationResult = await validationMiddleware.validateFavoriteVideo(request, schema)
     
     if (!validationResult.isValid) {
       const response = await import('./middleware').then(m => 
@@ -202,7 +207,7 @@ export const middleware = {
   health: (handler: (request: NextRequest, context: any) => Promise<NextResponse>) =>
     withMiddleware(handler, {
       rateLimit: undefined,
-      logging: { enabled: false }
+      logging: { enabled: false, level: 'info' }
     }),
   
   // Search endpoints (higher rate limits)

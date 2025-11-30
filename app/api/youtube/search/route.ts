@@ -40,7 +40,7 @@ function extractThumbnail(thumbnails: YouTubeThumbnails | string | undefined): {
     }
 
     // Handle YouTubei v1.8.0 Thumbnails array
-    if (thumbnails.thumbnails && Array.isArray(thumbnails.thumbnails) && thumbnails.thumbnails.length > 0) {
+    if (typeof thumbnails === 'object' && thumbnails.thumbnails && Array.isArray(thumbnails.thumbnails) && thumbnails.thumbnails.length > 0) {
       // Use best thumbnail (highest resolution) - usually the last one
       const bestThumbnail = thumbnails.thumbnails[thumbnails.thumbnails.length - 1]
       if (bestThumbnail && bestThumbnail.url) {
@@ -115,7 +115,7 @@ function extractChannel(channel: YouTubeChannel | undefined | null): { id: strin
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const query = searchParams.get('query')
+    const query = searchParams.get('query') || searchParams.get('q')
     const type = searchParams.get('type') || 'video'
     const continuation = searchParams.get('continuation')
     const page = searchParams.get('page') || '1'
@@ -277,7 +277,7 @@ export async function GET(request: NextRequest) {
         
         results = {
           items: channelItems,
-          continuation: null // Channel search doesn't support pagination
+          continuation: undefined // Channel search doesn't support pagination
         }
         
         // 'Channel search completed, items count:', channelItems.length)
@@ -296,7 +296,7 @@ export async function GET(request: NextRequest) {
       }
       
       // Type assertion for item properties
-      const itemRecord = item as Record<string, unknown>
+      const itemRecord = item as unknown as Record<string, unknown>
       
       // Check if this is a playlist by ID pattern (starts with PL) or has videoCount
       const itemId = typeof itemRecord.id === 'string' ? itemRecord.id : ''
@@ -314,10 +314,10 @@ export async function GET(request: NextRequest) {
           type: 'playlist',
           title: typeof itemRecord.title === 'string' ? itemRecord.title : '',
           description: itemRecord.description as string | undefined,
-          thumbnail: extractThumbnail(itemRecord.thumbnails as YouTubeThumbnails | string | undefined),
+          thumbnail: extractThumbnail(itemRecord.thumbnails as YouTubeThumbnails | string | undefined).url,
           videoCount: videoCount || 0,
           viewCount: itemRecord.viewCount as string | number | undefined,
-          lastUpdatedAt: itemRecord.lastUpdatedAt as string | undefined,
+          lastUpdatedAt: undefined, // Remove this field as it's not in the interface
           channel: channelInfo
         }
       }
@@ -370,7 +370,7 @@ export async function GET(request: NextRequest) {
           type: 'video',
           title: typeof itemRecord.title === 'string' ? itemRecord.title : '',
           description: itemRecord.description as string | undefined,
-          thumbnail: extractThumbnail(itemRecord.thumbnails as YouTubeThumbnails | string | undefined),
+          thumbnail: extractThumbnail(itemRecord.thumbnails as YouTubeThumbnails | string | undefined).url,
           duration: formattedDuration,
           viewCount: itemRecord.viewCount as string | number | undefined,
           publishedAt: itemRecord.uploadDate as string | undefined, // YouTubei v1.8.0 API: uploadDate provides human-readable relative dates
@@ -387,10 +387,10 @@ export async function GET(request: NextRequest) {
           type: 'playlist',
           title: typeof itemRecord.title === 'string' ? itemRecord.title : '',
           description: itemRecord.description as string | undefined,
-          thumbnail: extractThumbnail(itemRecord.thumbnails as YouTubeThumbnails | string | undefined),
+          thumbnail: extractThumbnail(itemRecord.thumbnails as YouTubeThumbnails | string | undefined).url,
           videoCount: videoCount || 0,
           viewCount: itemRecord.viewCount as string | number | undefined,
-          lastUpdatedAt: itemRecord.lastUpdatedAt as string | undefined,
+          lastUpdatedAt: undefined, // Remove this field as it's not in the interface
           channel: channelInfo
         }
       }

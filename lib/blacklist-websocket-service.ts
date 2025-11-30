@@ -357,7 +357,7 @@ export class BlacklistWebSocketService {
     
     const [total, recent, typeStats] = await Promise.all([
       model.count(),
-      model.count({
+      await model.count({
         where: {
           addedAt: {
             gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days

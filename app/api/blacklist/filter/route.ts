@@ -381,7 +381,7 @@ export async function POST(request: NextRequest) {
         update: {
           filterHits: { increment: 1 },
           avgFilterTime: {
-            set: (current) => {
+            set: (current: number | undefined) => {
               const currentAvg = current || 0
               return (currentAvg + processingTime) / 2
             }

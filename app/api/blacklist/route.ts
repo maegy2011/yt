@@ -169,9 +169,9 @@ export async function POST(request: NextRequest) {
 
     // Log audit event
     await AuditLogger.logAdd('blacklist', blacklistedItem, {
-      userId: request.headers.get('x-user-id'),
-      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
-      userAgent: request.headers.get('user-agent')
+      userId: request.headers.get('x-user-id') || undefined,
+      ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || undefined,
+      userAgent: request.headers.get('user-agent') || undefined
     })
 
     // Create operation for undo/redo
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
       itemType: 'blacklist',
       itemId: blacklistedItem.itemId,
       itemData: blacklistedItem,
-      userId: request.headers.get('x-user-id')
+      userId: request.headers.get('x-user-id') || undefined
     })
 
     // Notify WebSocket clients
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
       type: 'blacklist',
       action: 'add',
       item: blacklistedItem,
-      userId: request.headers.get('x-user-id'),
+      userId: request.headers.get('x-user-id') || undefined,
       timestamp: new Date().toISOString(),
       operationId
     })

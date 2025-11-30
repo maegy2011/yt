@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { RateLimitConfig, RateLimitResult, ApiContext, ApiError, ApiResponse } from './types'
+export { RateLimitConfig, RateLimitResult, ApiContext, ApiError, ApiResponse } from './types'
 import { AppError, ErrorUtils } from '@/lib/errors'
 
 // In-memory metrics store (for production, consider Redis)
@@ -56,8 +56,8 @@ function getClientIP(request: NextRequest): string {
     return cfConnectingIP
   }
   
-  // Fallback to request IP
-  return request.ip || 'unknown'
+  // Fallback to request IP (NextRequest doesn't have ip property)
+  return 'unknown'
 }
 
 // Rate limiting middleware

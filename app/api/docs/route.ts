@@ -931,10 +931,11 @@ All errors follow a consistent format:
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
+  let format = 'json'; // Define format in outer scope
   
   try {
     const { searchParams } = new URL(request.url);
-    const format = searchParams.get('format') || 'json';
+    format = searchParams.get('format') || 'json';
     
     // Log the documentation request
     monitoring.info('API documentation accessed', {

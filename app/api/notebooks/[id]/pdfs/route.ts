@@ -28,7 +28,17 @@ export async function POST(
       // Directory might already exist
     }
 
-    const uploadedFiles = []
+    let uploadedFiles: Array<{
+    id: string;
+    notebookId: string;
+    path: string;
+    filename: string;
+    originalName: string;
+    size: number;
+    mimeType: string;
+    uploadedAt: Date;
+    updatedAt: Date;
+  }> = []
 
     for (const file of files) {
       // Validate file type

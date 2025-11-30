@@ -28,13 +28,13 @@ import { formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtub
 
 // Enhanced types for unified video card
 export interface VideoCardData {
-  videoId?: string
+  videoId: string // Required
   id?: string
   title: string
   channelName: string
   channelHandle?: string
   channelThumbnail?: string
-  thumbnail?: string
+  thumbnail: string // Required
   duration?: string
   viewCount?: number
   publishedAt?: string

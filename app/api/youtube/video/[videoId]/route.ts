@@ -39,7 +39,7 @@ function extractThumbnail(thumbnails: YouTubeThumbnails | string | undefined): {
   }
 
   // Handle YouTubei v1.8.0 Thumbnails array
-  if (Array.isArray(thumbnails) && thumbnails.length > 0) {
+  if (typeof thumbnails === 'object' && Array.isArray(thumbnails) && thumbnails.length > 0) {
     // Use the best thumbnail (highest resolution) - usually the last one
     const bestThumbnail = thumbnails[thumbnails.length - 1]
     if (bestThumbnail && bestThumbnail.url) {
@@ -52,11 +52,12 @@ function extractThumbnail(thumbnails: YouTubeThumbnails | string | undefined): {
   }
 
   // Handle single thumbnail object
-  if (thumbnails.url) {
+  if (typeof thumbnails === 'object' && (thumbnails as any).url) {
+    const thumb = thumbnails as any
     return {
-      url: thumbnails.url,
-      width: thumbnails.width || 320,
-      height: thumbnails.height || 180
+      url: thumb.url,
+      width: thumb.width || 320,
+      height: thumb.height || 180
     }
   }
 
@@ -141,7 +142,7 @@ export async function GET(
       id: (videoRecord.id as string) || sanitizedVideoId,
       title: (videoRecord.title as string) || 'Unknown Video',
       description: (videoRecord.description as string) || '',
-      thumbnail: extractThumbnail(videoRecord.thumbnails as YouTubeThumbnails | string | undefined),
+      thumbnail: extractThumbnail(videoRecord.thumbnails as YouTubeThumbnails | string | undefined).url,
       duration: videoRecord.duration as string | number | null,
       viewCount: (videoRecord.viewCount as string | number) || 0,
       publishedAt: videoRecord.uploadDate as string | null,

@@ -80,11 +80,8 @@ export const ErrorHandlers = {
 
   // Handle rate limit errors
   rateLimit: (message: string = 'Rate limit exceeded', retryAfter?: number) => {
-    const error = new AppError(message, 429, 'RATE_LIMIT_EXCEEDED', true)
-    if (retryAfter) {
-      error.context = { retryAfter }
-    }
-    throw error
+    const context = retryAfter ? { retryAfter } : undefined
+    throw new AppError(message, 429, 'RATE_LIMIT_EXCEEDED', true, context)
   },
 
   // Handle database errors

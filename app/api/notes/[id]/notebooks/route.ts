@@ -42,7 +42,7 @@ export async function GET(
       })
     }
 
-    const notebooks = noteLinks.map(link => link.notebook)
+    const notebooks = noteLinks.map(link => link.notebook).filter(Boolean)
     if (legacyNotebook) {
       notebooks.push(legacyNotebook)
     }

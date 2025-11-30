@@ -94,8 +94,7 @@ const getHandler = routeMiddleware.authenticated(async (request: NextRequest, co
 // POST handler with validation
 const postHandler = withValidation(
   commonSchemas.favoriteVideo,
-  async (request: NextRequest, context: any) => {
-    const validatedData = await validationMiddleware(commonSchemas.favoriteVideo)(request, context)
+  async (request: NextRequest, context: any, validatedData: any) => {
     const isIncognito = isIncognitoRequest(request)
     
     // Skip saving favorites in incognito mode

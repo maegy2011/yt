@@ -86,17 +86,14 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   // Validate required fields
   if (!videoId) {
-    throw new ValidationError('Video ID is required', { field: 'videoId' })
+    throw new ValidationError('Video ID is required', 'videoId')
   }
 
   // Validate and sanitize video ID
   const sanitizedVideoId = sanitizeVideoId(videoId)
   
   if (!sanitizedVideoId) {
-    throw new ValidationError('Invalid video ID format', { 
-      field: 'videoId',
-      providedValue: videoId 
-    })
+    throw new ValidationError('Invalid video ID format', 'videoId')
   }
 
   // Validate optional string fields
@@ -108,19 +105,13 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   
   for (const field of stringFields) {
     if (field.value !== undefined && typeof field.value !== 'string') {
-      throw new ValidationError(`${field.name} must be a string`, { 
-        field: field.name,
-        receivedType: typeof field.value 
-      })
+      throw new ValidationError(`${field.name} must be a string`, field.name)
     }
   }
   
   // Validate viewCount (allow string formats like "1.4B", "1.5M", etc.)
   if (viewCount !== undefined && typeof viewCount !== 'string' && typeof viewCount !== 'number') {
-    throw new ValidationError('View count must be a string or number', { 
-      field: 'viewCount',
-      receivedType: typeof viewCount 
-    })
+    throw new ValidationError('View count must be a string or number', 'viewCount')
   }
 
   // Convert duration and viewCount to strings for database
@@ -134,10 +125,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     })
 
     if (existing) {
-      throw new ConflictError('Video already in favorites', { 
-        videoId: sanitizedVideoId,
-        existingId: existing.id 
-      })
+      throw new ConflictError('Video already in favorites')
     }
 
     // Create new favorite
@@ -201,10 +189,7 @@ export const DELETE = withErrorHandler(async (request: NextRequest) => {
   const sanitizedVideoId = sanitizeVideoId(videoId)
   
   if (!sanitizedVideoId) {
-    throw new ValidationError('Invalid video ID format', { 
-      field: 'videoId',
-      providedValue: videoId 
-    })
+    throw new ValidationError('Invalid video ID format', 'videoId')
   }
 
   try {
@@ -214,9 +199,7 @@ export const DELETE = withErrorHandler(async (request: NextRequest) => {
     })
 
     if (!existing) {
-      throw new ConflictError('Favorite not found', { 
-        videoId: sanitizedVideoId
-      })
+      throw new ConflictError('Favorite not found')
     }
 
     // Delete the favorite
@@ -224,9 +207,7 @@ export const DELETE = withErrorHandler(async (request: NextRequest) => {
       where: { videoId: sanitizedVideoId }
     })
 
-    return createSuccessResponse(context, null, {
-      message: 'Video removed from favorites successfully'
-    })
+    return createSuccessResponse(context, null)
     
   } catch (error) {
     // Re-throw our custom errors

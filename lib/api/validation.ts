@@ -125,7 +125,7 @@ export async function validateRequestBody<T>(
       const errors: ValidationError[] = result.error.issues.map(issue => ({
         field: issue.path.join('.'),
         message: issue.message,
-        value: issue.received,
+        value: undefined, // Zod issue doesn't have received property in this version
         code: issue.code
       }))
       
@@ -172,7 +172,7 @@ export function validateQueryParams<T>(
       const errors: ValidationError[] = result.error.issues.map(issue => ({
         field: issue.path.join('.'),
         message: issue.message,
-        value: issue.received,
+        value: undefined, // Zod issue doesn't have received property in this version
         code: issue.code
       }))
       
@@ -211,7 +211,7 @@ export function validatePathParams<T>(
       const errors: ValidationError[] = result.error.issues.map(issue => ({
         field: issue.path.join('.'),
         message: issue.message,
-        value: issue.received,
+        value: undefined, // Zod issue doesn't have received property in this version
         code: issue.code
       }))
       
@@ -257,7 +257,7 @@ export function validateHeaders<T>(
       const errors: ValidationError[] = result.error.issues.map(issue => ({
         field: issue.path.join('.'),
         message: issue.message,
-        value: issue.received,
+        value: undefined, // Zod issue doesn't have received property in this version
         code: issue.code
       }))
       

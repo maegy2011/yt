@@ -92,16 +92,7 @@ async function checkDatabaseHealth(): Promise<ServiceStatus> {
     return {
       status,
       responseTime: queryTest.executionTime,
-      lastCheck: new Date().toISOString(),
-      metadata: {
-        connectionTime: connectionStatus.connectionTime,
-        databaseStats: dbStats,
-        poolStats,
-        queryPerformance: {
-          executionTime: queryTest.executionTime,
-          status: queryTest.executionTime < 1000 ? 'good' : queryTest.executionTime < 3000 ? 'fair' : 'poor'
-        }
-      }
+      lastCheck: new Date().toISOString()
     }
   } catch (error) {
     return {

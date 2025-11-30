@@ -1,5 +1,5 @@
 import { createServer } from 'http'
-import { getBlacklistWebSocketService } from '../lib/blacklist-websocket-service'
+import { getBlacklistWebSocketService } from '../../lib/blacklist-websocket-service'
 
 const PORT = 3003
 const HOST = '0.0.0.0'

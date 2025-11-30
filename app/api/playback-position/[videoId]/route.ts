@@ -25,7 +25,7 @@ export async function GET(
     const formattedPosition = {
       ...playbackPosition,
       lastWatched: playbackPosition.lastWatched.toISOString(),
-      createdAt: playbackPosition.createdAt.toISOString(),
+      createdAt: playbackPosition.lastWatched.toISOString(),
       updatedAt: playbackPosition.updatedAt.toISOString()
     }
 
@@ -85,7 +85,7 @@ export async function PUT(
     const formattedPosition = {
       ...playbackPosition,
       lastWatched: playbackPosition.lastWatched.toISOString(),
-      createdAt: playbackPosition.createdAt.toISOString(),
+      createdAt: playbackPosition.lastWatched.toISOString(),
       updatedAt: playbackPosition.updatedAt.toISOString()
     }
 
