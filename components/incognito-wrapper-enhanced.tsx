@@ -177,7 +177,7 @@ interface IncognitoStatusProps {
 
 export function IncognitoStatus({ className }: IncognitoStatusProps) {
   const { isIncognito, getIncognitoDuration } = useIncognito()
-  const { getIncognitoStats } = useIncognitoStats()
+  const { getIncognitoStats } = useIncognito()
 
   if (!isIncognito) {
     return null

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
-import { FavoriteVideo, CreateFavoriteRequest, FavoritesState, FavoriteOperations, FavoriteFilters, FavoriteSortOptions } from '@/types/favorites'
+import { FavoriteVideo, CreateFavoriteRequest, UpdateFavoriteRequest, FavoritesState, FavoriteOperations, FavoriteFilters, FavoriteSortOptions } from '@/types/favorites'
 import { useIncognito } from '@/contexts/incognito-context'
 import { addIncognitoHeaders } from '@/lib/incognito-utils'
 
@@ -81,8 +81,8 @@ export function useFavorites(): FavoritesState & FavoriteOperations {
         }
         
         if (field === 'viewCount') {
-          const viewA = a[field] || 0
-          const viewB = b[field] || 0
+          const viewA = typeof a[field] === 'number' ? a[field] : parseInt(String(a[field] || '0'))
+          const viewB = typeof b[field] === 'number' ? b[field] : parseInt(String(b[field] || '0'))
           return (viewA - viewB) * direction
         }
         
@@ -121,7 +121,7 @@ export function useFavorites(): FavoritesState & FavoriteOperations {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...addIncognitoHeaders({}, isIncognito)
+          ...(addIncognitoHeaders({}, isIncognito).headers || {})
         },
         body: JSON.stringify(data)
       })
@@ -228,8 +228,55 @@ export function useFavorites(): FavoritesState & FavoriteOperations {
     sort,
     enabled,
     paused,
+    viewMode: 'grid' as const,
+    displaySettings: {
+      showThumbnails: true,
+      showDuration: true,
+      showViewCount: true,
+      showRating: false,
+      showWatchProgress: true,
+      compactMode: false
+    },
     addFavorite,
     removeFavorite,
+    updateFavorite: async (videoId: string, data: UpdateFavoriteRequest) => {
+      // Placeholder implementation
+      const favorite = favorites.find(f => f.videoId === videoId)
+      if (favorite) {
+        Object.assign(favorite, data)
+        setFavorites([...favorites])
+      }
+      return favorite as FavoriteVideo
+    },
+    batchUpdateFavorites: async (updates) => {
+      // Placeholder implementation
+      updates.forEach(({ videoId, data }) => {
+        const favorite = favorites.find(f => f.videoId === videoId)
+        if (favorite) {
+          Object.assign(favorite, data)
+        }
+      })
+      setFavorites([...favorites])
+      return updates.map(u => favorites.find(f => f.videoId === u.videoId) as FavoriteVideo)
+    },
+    batchDeleteFavorites: async (videoIds) => {
+      // Placeholder implementation
+      setFavorites(favorites.filter(f => !videoIds.includes(f.videoId)))
+    },
+    exportFavorites: async (format) => {
+      // Placeholder implementation
+      return JSON.stringify(favorites, null, 2)
+    },
+    importFavorites: async (data) => {
+      // Placeholder implementation
+      try {
+        const imported = JSON.parse(data)
+        setFavorites([...favorites, ...imported])
+        return imported
+      } catch {
+        return []
+      }
+    },
     fetchFavorites,
     isFavorite,
     toggleFavorite,

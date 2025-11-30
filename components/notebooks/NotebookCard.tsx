@@ -204,10 +204,10 @@ export function NotebookCard({
           <Badge variant="outline" className="text-xs">
             {getCategoryLabel(notebook.category || 'general')}
           </Badge>
-          {notebook.pdfCount > 0 && (
+          {(notebook.pdfCount || 0) > 0 && (
             <Badge variant="secondary" className="text-xs">
               <FileText className="h-3 w-3 mr-1" />
-              {notebook.pdfCount} PDF{notebook.pdfCount !== 1 ? 's' : ''}
+              {(notebook.pdfCount || 0)} PDF{(notebook.pdfCount || 0) !== 1 ? 's' : ''}
             </Badge>
           )}
         </div>

@@ -326,11 +326,10 @@ export function useIncognitoRestriction() {
 
 // Export hook for tracking incognito stats
 export function useIncognitoStats() {
-  const { getIncognitoStats, updateIncognitoStats, clearIncognitoSession } = useIncognito()
+  const { getIncognitoStats, clearIncognitoSession } = useIncognito()
   
   return {
     getIncognitoStats,
-    updateIncognitoStats,
     clearIncognitoSession
   }
 }

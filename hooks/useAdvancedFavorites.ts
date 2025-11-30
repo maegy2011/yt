@@ -180,7 +180,7 @@ export function useAdvancedFavorites(): FavoritesState & FavoriteOperations & {
         if (durationRange) {
           filteredFavorites = filteredFavorites.filter((favorite: FavoriteVideo) => {
             if (!favorite.duration) return true
-            const duration = parseInt(favorite.duration.replace(/[^0-9]/g, ''))
+            const duration = parseInt(String(favorite.duration).replace(/[^0-9]/g, ''))
             return duration >= durationRange.min && duration <= durationRange.max
           })
         }
@@ -202,8 +202,8 @@ export function useAdvancedFavorites(): FavoritesState & FavoriteOperations & {
         }
         
         if (field === 'viewCount') {
-          const viewsA = a.viewCount || 0
-          const viewsB = b.viewCount || 0
+          const viewsA = typeof a.viewCount === 'number' ? a.viewCount : parseInt(String(a.viewCount || '0'))
+          const viewsB = typeof b.viewCount === 'number' ? b.viewCount : parseInt(String(b.viewCount || '0'))
           return (viewsA - viewsB) * direction
         }
         
@@ -220,9 +220,10 @@ export function useAdvancedFavorites(): FavoritesState & FavoriteOperations & {
         }
         
         if (field === 'duration') {
-          const getDurationSeconds = (duration: string | undefined) => {
+          const getDurationSeconds = (duration: string | number | undefined) => {
             if (!duration) return 0
-            const parts = duration.split(':').map(Number)
+            const durationStr = typeof duration === 'string' ? duration : String(duration)
+            const parts = durationStr.split(':').map(Number)
             if (parts.length === 2) return parts[0] * 60 + parts[1]
             if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
             return 0
@@ -566,7 +567,8 @@ export function useAdvancedFavorites(): FavoritesState & FavoriteOperations & {
       : 0,
     totalWatchTime: favorites.reduce((sum, fav) => {
       if (fav.watchProgress && fav.duration) {
-        const duration = parseInt(fav.duration.replace(/[^0-9]/g, ''))
+        const durationStr = typeof fav.duration === 'string' ? fav.duration : String(fav.duration)
+        const duration = parseInt(durationStr.replace(/[^0-9]/g, ''))
         return sum + (duration * (fav.watchProgress / 100))
       }
       return sum

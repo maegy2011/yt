@@ -532,7 +532,7 @@ export function VideoNote({
       if (response.ok) {
         setNotes(prevNotes => 
           prevNotes.map(note => 
-            note.id === noteId ? { ...note, title, note } : note
+            note.id === noteId ? { ...note, title: title } : note
           )
         )
         setEditingNoteId(null)

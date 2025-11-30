@@ -157,7 +157,7 @@ export function withValidation<T>(
   config: Partial<ApiMiddlewareConfig> = {}
 ) {
   return withMiddleware(async (request: NextRequest, context: any) => {
-    const validationResult = await validationMiddleware.validateFavoriteVideo(request, schema)
+    const validationResult = await validationMiddleware.validateFavoriteVideo(request)
     
     if (!validationResult.isValid) {
       const response = await import('./middleware').then(m => 
@@ -166,7 +166,7 @@ export function withValidation<T>(
       return response
     }
     
-    return validator(request, context, validationResult.data)
+    return await validator(request, context)
   }, config)
 }
 

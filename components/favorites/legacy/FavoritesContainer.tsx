@@ -3,11 +3,12 @@
 import { useCallback } from 'react'
 import { FavoriteList } from './FavoriteList'
 import { FavoriteVideo } from '@/types/favorites'
+import { SimpleVideo } from '@/types'
 import { useFavorites } from '@/hooks/useFavorites'
 
 interface FavoritesContainerProps {
   className?: string
-  onVideoPlay?: (video: FavoriteVideo) => void
+  onVideoPlay?: (video: SimpleVideo) => void
 }
 
 export function FavoritesContainer({ className = '', onVideoPlay }: FavoritesContainerProps) {
@@ -32,8 +33,8 @@ export function FavoritesContainer({ className = '', onVideoPlay }: FavoritesCon
   }, [removeFavorite])
 
   const handlePlay = useCallback((favorite: FavoriteVideo) => {
-    // Convert FavoriteVideo to Video format for the main app
-    const video = {
+    // Convert FavoriteVideo to SimpleVideo format for the main app
+    const video: SimpleVideo = {
       videoId: favorite.videoId,
       id: favorite.videoId, // Also set id for compatibility
       title: favorite.title,
@@ -41,8 +42,9 @@ export function FavoritesContainer({ className = '', onVideoPlay }: FavoritesCon
       thumbnail: favorite.thumbnail,
       duration: favorite.duration,
       viewCount: favorite.viewCount,
-      publishedAt: null, // Favorite videos don't have publishedAt
-      description: ''
+      publishedAt: favorite.addedAt, // Use addedAt as publishedAt
+      description: '',
+      type: 'video'
     }
     
     // Call the parent's onVideoPlay function if provided

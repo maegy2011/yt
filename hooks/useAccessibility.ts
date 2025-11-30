@@ -124,7 +124,7 @@ export function useKeyboardShortcuts(shortcuts: Record<string, () => void>) {
         return
       }
 
-      const key = []
+      const key: string[] = []
       if (e.ctrlKey) key.push('ctrl')
       if (e.shiftKey) key.push('shift')
       if (e.altKey) key.push('alt')

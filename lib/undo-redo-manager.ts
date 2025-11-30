@@ -52,17 +52,17 @@ export class UndoRedoManager {
       switch (operation.action) {
         case 'add':
           // Undo add = remove the item
-          success = await this.removeItem(operation.itemType, operation.itemId)
+          success = await this.removeItem(operation.itemType as 'blacklist' | 'whitelist', operation.itemId)
           break
 
         case 'remove':
           // Undo remove = re-add the item
-          success = await this.addItem(operation.itemType, itemData)
+          success = await this.addItem(operation.itemType as 'blacklist' | 'whitelist', itemData)
           break
 
         case 'modify':
           // Undo modify = restore previous state (requires audit log)
-          success = await this.restorePreviousState(operation.itemType, operation.itemId)
+          success = await this.restorePreviousState(operation.itemType as 'blacklist' | 'whitelist', operation.itemId)
           break
       }
 
@@ -77,7 +77,7 @@ export class UndoRedoManager {
 
         // Log the undo action
         await AuditLogger.logModify(
-          operation.itemType,
+          operation.itemType as 'blacklist' | 'whitelist',
           operation.itemId,
           itemData,
           null,
@@ -119,17 +119,17 @@ export class UndoRedoManager {
       switch (operation.action) {
         case 'add':
           // Redo add = add the item again
-          success = await this.addItem(operation.itemType, itemData)
+          success = await this.addItem(operation.itemType as 'blacklist' | 'whitelist', itemData)
           break
 
         case 'remove':
           // Redo remove = remove the item again
-          success = await this.removeItem(operation.itemType, operation.itemId)
+          success = await this.removeItem(operation.itemType as 'blacklist' | 'whitelist', operation.itemId)
           break
 
         case 'modify':
           // Redo modify = re-apply the modification
-          success = await this.applyModification(operation.itemType, operation.itemId, itemData)
+          success = await this.applyModification(operation.itemType as 'blacklist' | 'whitelist', operation.itemId, itemData)
           break
       }
 
@@ -144,7 +144,7 @@ export class UndoRedoManager {
 
         // Log the redo action
         await AuditLogger.logModify(
-          operation.itemType,
+          operation.itemType as 'blacklist' | 'whitelist',
           operation.itemId,
           null,
           itemData,

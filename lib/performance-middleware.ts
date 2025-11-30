@@ -78,6 +78,7 @@ class PerformanceMonitor {
         method: request.method,
         url: url.pathname + url.search,
         startTime,
+        errors: [],
         metadata: {
           userAgent: request.headers.get('user-agent'),
           ip: request.headers.get('x-forwarded-for') || 'unknown',

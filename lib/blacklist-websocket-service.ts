@@ -355,23 +355,25 @@ export class BlacklistWebSocketService {
   private async getTypeStats(type: 'blacklist' | 'whitelist') {
     const model = type === 'blacklist' ? db.blacklistedItem : db.whitelistedItem
     
-    const [total, recent, typeStats] = await Promise.all([
+    const [total, recent] = await Promise.all([
       model.count(),
-      await model.count({
+      (model.count as any)({
         where: {
           addedAt: {
             gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
           }
         }
-      }),
-      model.groupBy({
-        by: ['type'],
-        _count: { id: true }
       })
     ])
+    
+    // Simplified type stats
+    const typeStats = await (model.groupBy as any)({
+      by: ['type'],
+      _count: true
+    })
 
     const byType = typeStats.reduce((acc, stat) => {
-      acc[stat.type] = stat._count.id
+      acc[stat.type] = stat._count.all
       return acc
     }, {} as Record<string, number>)
 

@@ -326,16 +326,33 @@ export function useNotes(): NotesState & NoteOperations {
     error,
     filters,
     sort,
+    viewMode: 'grid' as const,
+    displaySettings: {
+      showThumbnails: true,
+      showTimestamps: true,
+      showTags: true,
+      showPriority: true,
+      compactMode: false
+    },
     createNote,
     updateNote,
     deleteNote,
-    linkNoteToNotebook,
-    unlinkNoteFromNotebook,
-    batchLinkNotesToNotebook,
-    batchUnlinkNotesFromNotebook,
-    batchDeleteNotes,
-    getNoteNotebooks,
     fetchNotes,
-    searchNotes
+    searchNotes,
+    batchDeleteNotes,
+    exportNotes: async (format) => {
+      // Placeholder implementation
+      return JSON.stringify(notes, null, 2)
+    },
+    importNotes: async (data) => {
+      // Placeholder implementation
+      try {
+        const imported = JSON.parse(data)
+        setNotes([...notes, ...imported])
+        return imported
+      } catch {
+        return []
+      }
+    }
   }
 }

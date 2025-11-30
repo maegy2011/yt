@@ -63,7 +63,7 @@ export function simpleVideoToCardData(video: SimpleVideo): VideoCardData {
     channelHandle: video.channel?.handle || video.channelHandle,
     quality: video.quality,
     isLive: video.isLive,
-    subscriberCount: video.channel?.subscriberCount || video.subscriberCount,
+    subscriberCount: (video as any).channel?.subscriberCount || (video as any).subscriberCount,
     isFavorite: video.isFavorite
   }
 }
@@ -100,7 +100,7 @@ export function toVideoCardData(video: any): VideoCardData {
     channelHandle: video.channel?.handle || video.channelHandle,
     quality: video.quality,
     isLive: video.isLive,
-    subscriberCount: video.channel?.subscriberCount || video.subscriberCount,
+    subscriberCount: (video as any).channel?.subscriberCount || (video as any).subscriberCount,
     isFavorite: video.isFavorite
   }
 }

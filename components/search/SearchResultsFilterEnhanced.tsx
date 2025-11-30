@@ -1,215 +1,74 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { 
-  Video, 
-  List, 
-  Users,
-  Filter,
-  X,
-  Shield,
   ShieldOff,
   Eye,
   EyeOff
 } from 'lucide-react'
 import { BlacklistManager } from '@/components/blacklist'
+import { BlacklistedItem as BlacklistedItemType, WhitelistedItem as WhitelistedItemType } from '@/types'
 
 type FilterType = 'all' | 'video' | 'playlist' | 'channel'
 
-interface BlacklistedItem {
-  id: string
-  itemId: string
-  title: string
-  type: 'video' | 'playlist' | 'channel'
-  thumbnail?: string
-  channelName?: string
-  addedAt: string
-  updatedAt: string
-}
-
-interface WhitelistedItem {
-  id: string
-  itemId: string
-  title: string
-  type: 'video' | 'playlist' | 'channel'
-  thumbnail?: string
-  channelName?: string
-  addedAt: string
-  updatedAt: string
-}
-
 interface SearchResultsFilterProps {
-  searchType: FilterType
-  onSearchTypeChange: (type: FilterType) => void
-  searchResults: {
-    items: any[]
-    error?: string
-  } | null
+  items: any[]
+  error?: string
   className?: string
-  onBlacklistChange?: (blacklisted: BlacklistedItem[]) => void
-  onWhitelistChange?: (whitelisted: WhitelistedItem[]) => void
+  onBlacklistChange?: (blacklisted: BlacklistedItemType[]) => void
+  onWhitelistChange?: (whitelisted: WhitelistedItemType[]) => void
   onAddToBlacklist?: (item: any) => void
   onAddToWhitelist?: (item: any) => void
 }
 
-// Simplified API functions
-const fetchBlacklistedItems = async (): Promise<BlacklistedItem[]> => {
-  try {
-    const response = await fetch('/api/blacklist')
-    if (!response.ok) throw new Error('Failed to fetch blacklist')
-    const result = await response.json()
-    return result.items || []
-  } catch (error) {
-    return []
-  }
-}
-
-const fetchWhitelistedItems = async (): Promise<WhitelistedItem[]> => {
-  try {
-    const response = await fetch('/api/whitelist')
-    if (!response.ok) throw new Error('Failed to fetch whitelist')
-    const result = await response.json()
-    return result.items || []
-  } catch (error) {
-    return []
-  }
-}
-
-const addToBlacklist = async (item: BlacklistedItem): Promise<boolean> => {
-  try {
-    const response = await fetch('/api/blacklist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(item)
-    })
-    return response.ok
-  } catch (error) {
-    return false
-  }
-}
-
-const addToWhitelist = async (item: WhitelistedItem): Promise<boolean> => {
-  try {
-    const response = await fetch('/api/whitelist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(item)
-    })
-    return response.ok
-  } catch (error) {
-    return false
-  }
-}
-
-export function SearchResultsFilter({ 
-  searchType, 
-  onSearchTypeChange, 
-  searchResults,
+export function SearchResultsFilterEnhanced({ 
+  items, 
+  error, 
   className = '',
   onBlacklistChange,
   onWhitelistChange,
   onAddToBlacklist,
   onAddToWhitelist
 }: SearchResultsFilterProps) {
+  const [searchType, setSearchType] = useState<FilterType>('all')
   const [isExpanded, setIsExpanded] = useState(false)
-  const [showBlacklistManager, setShowBlacklistManager] = useState(false)
-  const [showWhitelistManager, setShowWhitelistManager] = useState(false)
-  const [blacklisted, setBlacklisted] = useState<BlacklistedItem[]>([])
-  const [whitelisted, setWhitelisted] = useState<WhitelistedItem[]>([])
+  const [blacklistedItems, setBlacklistedItems] = useState<BlacklistedItemType[]>([])
+  const [whitelistedItems, setWhitelistedItems] = useState<WhitelistedItemType[]>([])
 
-  // Load blacklisted/whitelisted items from database on mount
+  // Fetch blacklist/whitelist data on mount
   useEffect(() => {
-    const loadItems = async () => {
+    const fetchData = async () => {
       try {
-        const [blacklistedData, whitelistedData] = await Promise.all([
-          fetchBlacklistedItems(),
-          fetchWhitelistedItems()
+        const [blacklisted, whitelisted] = await Promise.all([
+          BlacklistManager.fetchBlacklistedItems(),
+          BlacklistManager.fetchWhitelistedItems()
         ])
-        setBlacklisted(blacklistedData)
-        setWhitelisted(whitelistedData)
-        onBlacklistChange?.(blacklistedData)
-        onWhitelistChange?.(whitelistedData)
-      } catch (error) {
-        // Error loading items handled silently
+        
+        setBlacklistedItems(blacklisted)
+        setWhitelistedItems(whitelisted)
+        
+        // Call parent callbacks with server-generated data
+        onBlacklistChange?.(blacklisted)
+        onWhitelistChange?.(whitelisted)
+      } catch (err) {
+        console.error('Failed to fetch blacklist/whitelist data:', err)
       }
     }
-    
-    loadItems()
+
+    fetchData()
   }, [])
 
-  // Refresh function to reload data from database
-  const refreshLists = useCallback(async () => {
-    try {
-      const [blacklistedData, whitelistedData] = await Promise.all([
-        fetchBlacklistedItems(),
-        fetchWhitelistedItems()
-      ])
-      setBlacklisted(blacklistedData)
-      setWhitelisted(whitelistedData)
-      onBlacklistChange?.(blacklistedData)
-      onWhitelistChange?.(whitelistedData)
-    } catch (error) {
-      // Error refreshing items handled silently
-    }
-  }, [onBlacklistChange, onWhitelistChange])
-
-  // Update parent when lists change
-  useEffect(() => {
-    onBlacklistChange?.(blacklisted)
-  }, [blacklisted, onBlacklistChange])
-
-  useEffect(() => {
-    onWhitelistChange?.(whitelisted)
-  }, [whitelisted, onWhitelistChange])
-
-  // Calculate counts for each type
-  const counts = {
-    all: searchResults?.items.length || 0,
-    video: searchResults?.items.filter(item => (item as any).type === 'video').length || 0,
-    playlist: searchResults?.items.filter(item => (item as any).type === 'playlist').length || 0,
-    channel: searchResults?.items.filter(item => (item as any).type === 'channel').length || 0
-  }
-
-  const filterOptions = [
-    {
-      id: 'all' as FilterType,
-      label: 'All',
-      icon: Filter,
-      count: counts.all,
-      description: 'Show all results'
-    },
-    {
-      id: 'video' as FilterType,
-      label: 'Videos',
-      icon: Video,
-      count: counts.video,
-      description: 'Show only videos'
-    },
-    {
-      id: 'playlist' as FilterType,
-      label: 'Playlists',
-      icon: List,
-      count: counts.playlist,
-      description: 'Show only playlists'
-    },
-    {
-      id: 'channel' as FilterType,
-      label: 'Channels',
-      icon: Users,
-      count: counts.channel,
-      description: 'Show only channels'
-    }
-  ]
-
-  const handleFilterChange = (type: FilterType) => {
-    onSearchTypeChange(type)
-    // Auto-collapse on mobile after selection
-    if (window.innerWidth < 768) {
-      setIsExpanded(false)
-    }
-  }
+  // Filter items based on search type
+  const filteredItems = items.filter(item => {
+    if (searchType === 'all') return true
+    
+    const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
+    if (itemType === 'unknown') return false
+    
+    return searchType === itemType
+  })
 
   // Add search result items to blacklist/whitelist
   const addSearchResultToBlacklist = async (item: any) => {
@@ -218,22 +77,25 @@ export function SearchResultsFilter({
     
     const itemId = 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId
     
-    const blacklistItem = {
+    const blacklistItem: BlacklistedItemType = {
+      id: `temp-${Date.now()}`, // Temporary ID
       itemId,
       title: item.title || item.channelName || 'Unknown',
       type: itemType,
       thumbnail: item.thumbnail,
-      channelName: item.channelName
+      channelName: item.channelName,
+      addedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
     
-    const success = await addToBlacklist(blacklistItem)
+    const success = await BlacklistManager.addToBlacklist(blacklistItem)
     if (success) {
       // Refresh lists from database to get server-generated data
-      await refreshLists()
+      await fetchData()
     }
     
     // Also call parent callback to update main app state
-    onAddToBlacklist?.(item)
+    onAddToBlacklist?.(blacklistItem as BlacklistedItemType)
   }
 
   const addSearchResultToWhitelist = async (item: any) => {
@@ -242,232 +104,247 @@ export function SearchResultsFilter({
     
     const itemId = 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId
     
-    const whitelistItem = {
+    const whitelistItem: WhitelistedItemType = {
+      id: `temp-${Date.now()}`, // Temporary ID
       itemId,
       title: item.title || item.channelName || 'Unknown',
       type: itemType,
       thumbnail: item.thumbnail,
-      channelName: item.channelName
+      channelName: item.channelName,
+      addedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
     
-    const success = await addToWhitelist(whitelistItem)
+    const success = await BlacklistManager.addToWhitelist(whitelistItem)
     if (success) {
       // Refresh lists from database to get server-generated data
-      await refreshLists()
+      await fetchData()
     }
     
     // Also call parent callback to update main app state
-    onAddToWhitelist?.(item)
+    onAddToWhitelist?.(whitelistItem as WhitelistedItemType)
   }
 
   const isItemBlacklisted = (item: any) => {
-    return blacklisted.some(blacklistedItem => {
-      // Check by type match
-      const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
-      if (blacklistedItem.type !== itemType) return false
-      
-      // PRIMARY: Check by YouTube ID matching
-      if (blacklistedItem.type === 'video' && 'videoId' in item && blacklistedItem.itemId === item.videoId) return true
-      if (blacklistedItem.type === 'playlist' && 'playlistId' in item && blacklistedItem.itemId === item.playlistId) return true
-      if (blacklistedItem.type === 'channel' && 'channelId' in item && blacklistedItem.itemId === item.channelId) return true
-      
-      // FALLBACK: Check by title match
-      return blacklistedItem.title.toLowerCase() === item.title?.toLowerCase()
-    })
+    return blacklistedItems.some(blacklistedItem => 
+      blacklistedItem.itemId === ('videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId)
+    )
   }
 
   const isItemWhitelisted = (item: any) => {
-    return whitelisted.some(whitelistedItem => {
-      // Check by type match
-      const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
-      if (whitelistedItem.type !== itemType) return false
-      
-      // PRIMARY: Check by YouTube ID matching
-      if (whitelistedItem.type === 'video' && 'videoId' in item && whitelistedItem.itemId === item.videoId) return true
-      if (whitelistedItem.type === 'playlist' && 'playlistId' in item && whitelistedItem.itemId === item.playlistId) return true
-      if (whitelistedItem.type === 'channel' && 'channelId' in item && whitelistedItem.itemId === item.channelId) return true
-      
-      // FALLBACK: Check by title match
-      return whitelistedItem.title.toLowerCase() === item.title?.toLowerCase()
-    })
+    return whitelistedItems.some(whitelistedItem => 
+      whitelistedItem.itemId === ('videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId)
+    )
   }
 
-  // Filter results based on blacklist/whitelist
-  const getFilteredResults = () => {
-    if (!searchResults?.items) return searchResults
-    
-    // If whitelist has items, only show whitelisted content
-    if (whitelisted.length > 0) {
-      return {
-        ...searchResults,
-        items: searchResults.items.filter(item => isItemWhitelisted(item))
-      }
-    }
-    
-    // If blacklist has items, exclude blacklisted content
-    if (blacklisted.length > 0) {
-      return {
-        ...searchResults,
-        items: searchResults.items.filter(item => !isItemBlacklisted(item))
-      }
-    }
-    
-    return searchResults
+  // Auto-collapse on mobile after selection
+  if (window.innerWidth < 768) {
+    setIsExpanded(false)
   }
-
-  const filteredResults = getFilteredResults()
-
+  
   return (
-    <>
-      <div className={`bg-background border border-border rounded-xl shadow-sm ${className}`}>
-        {/* Status Indicators and Controls */}
-        {searchResults?.items && searchResults.items.length > 0 && (
-          <div className="flex items-center justify-between p-3 border-b border-border bg-muted/30">
-            <div className="flex items-center gap-2">
-              {blacklisted.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <ShieldOff className="w-4 h-4 text-destructive" />
-                  <span className="text-sm font-medium text-destructive">
-                    {blacklisted.length} Blacklisted
-                  </span>
-                </div>
-              )}
-              {whitelisted.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-600">
-                    {whitelisted.length} Whitelisted
-                  </span>
-                </div>
-              )}
-              {blacklisted.length === 0 && whitelisted.length === 0 && (
-                <span className="text-sm text-muted-foreground">
-                  Filter search results
-                </span>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowBlacklistManager(true)}
-                className="h-11 min-h-[44px] px-3 touch-manipulation mobile-touch-feedback"
-              >
-                <EyeOff className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Blacklist</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowWhitelistManager(true)}
-                className="h-11 min-h-[44px] px-3 touch-manipulation mobile-touch-feedback"
-              >
-                <Eye className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Whitelist</span>
-              </Button>
-            </div>
-          </div>
-        )}
+    <div className={`w-full space-y-4 ${className}`}>
+      {/* Error Display */}
+      {error && (
+        <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+          <p className="text-sm text-destructive">{error}</p>
+        </div>
+      )}
 
-        {/* Mobile Toggle Button */}
-        <div className="md:hidden">
+      {/* Filter Controls */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Button
+          variant={searchType === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSearchType('all')}
+        >
+          All
+        </Button>
+        <Button
+          variant={searchType === 'video' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSearchType('video')}
+        >
+          Videos
+        </Button>
+        <Button
+          variant={searchType === 'playlist' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSearchType('playlist')}
+        >
+          Playlists
+        </Button>
+        <Button
+          variant={searchType === 'channel' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setSearchType('channel')}
+        >
+          Channels
+        </Button>
+      </div>
+
+      {/* Blacklist Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <ShieldOff className="w-5 h-5" />
+            Blacklist ({blacklistedItems.length})
+          </h3>
           <Button
             variant="ghost"
+            size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full h-11 min-h-[44px] flex items-center justify-between px-4 touch-manipulation mobile-touch-feedback"
           >
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4" />
-              <span className="font-medium">Filter</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {filterOptions.find(opt => opt.id === searchType)?.label}
-              </span>
-              {isExpanded ? (
-                <X className="w-4 h-4" />
-              ) : (
-                <div className="flex flex-col gap-1">
-                  <div className="w-1 h-1 bg-foreground rounded-sm" />
-                  <div className="w-1 h-1 bg-foreground rounded-sm" />
-                </div>
-              )}
-            </div>
+            {isExpanded ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
           </Button>
         </div>
 
-        {/* Filter Options */}
-        <div className={`${isExpanded ? 'block' : 'hidden'} md:block`}>
-          {/* Desktop Layout - Horizontal */}
-          <div className="hidden md:flex items-center gap-1 p-2">
-            {filterOptions.map((option) => {
-              const Icon = option.icon
-              const isActive = searchType === option.id
-              
-              return (
-                <Button
-                  key={option.id}
-                  variant={isActive ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => handleFilterChange(option.id)}
-                  className={`flex items-center gap-2 h-11 min-h-[44px] px-3 touch-manipulation mobile-touch-feedback ${
-                    isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
-                  }`}
-                  title={option.description}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="font-medium">{option.label}</span>
-                  <Badge variant={isActive ? 'secondary' : 'outline'} className="text-xs">
-                    {option.count}
-                  </Badge>
-                </Button>
-              )
-            })}
-          </div>
-
-          {/* Mobile Layout - Vertical */}
-          <div className="md:hidden p-2 space-y-1">
-            {filterOptions.map((option) => {
-              const Icon = option.icon
-              const isActive = searchType === option.id
-              
-              return (
-                <Button
-                  key={option.id}
-                  variant={isActive ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => handleFilterChange(option.id)}
-                  className={`w-full flex items-center justify-between h-11 min-h-[44px] px-3 touch-manipulation mobile-touch-feedback ${
-                    isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Icon className="w-4 h-4" />
-                    <span className="font-medium">{option.label}</span>
+        {isExpanded && (
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {filteredItems.map((item, index) => (
+              <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-card">
+                <div className="flex-1">
+                  <div className="font-medium text-sm">{item.title || item.channelName || 'Unknown'}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {item.type === 'video' && `Video ID: ${item.videoId}`}
+                    {item.type === 'playlist' && `Playlist ID: ${item.playlistId}`}
+                    {item.type === 'channel' && `Channel ID: ${item.channelId}`}
                   </div>
-                  <Badge variant={isActive ? 'secondary' : 'outline'} className="text-xs">
-                    {option.count}
-                  </Badge>
-                </Button>
-              )
-            })}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => addSearchResultToWhitelist(item)}
+                    disabled={isItemWhitelisted(item)}
+                  >
+                    Whitelist
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => addSearchResultToBlacklist(item)}
+                    disabled={isItemBlacklisted(item)}
+                  >
+                    Blacklist
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Whitelist Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Eye className="w-5 h-5" />
+            Whitelist ({whitelistedItems.length})
+          </h3>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            {isExpanded ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </Button>
+        </div>
+
+        {isExpanded && (
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {filteredItems.map((item, index) => (
+              <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-card">
+                <div className="flex-1">
+                  <div className="font-medium text-sm">{item.title || item.channelName || 'Unknown'}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {item.type === 'video' && `Video ID: ${item.videoId}`}
+                    {item.type === 'playlist' && `Playlist ID: ${item.playlistId}`}
+                    {item.type === 'channel' && `Channel ID: ${item.channelId}`}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addSearchResultToWhitelist(item)}
+                    disabled={isItemWhitelisted(item)}
+                  >
+                    Whitelist
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addSearchResultToBlacklist(item)}
+                    disabled={isItemBlacklisted(item)}
+                  >
+                    Blacklist
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Stats Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="p-4 border rounded-lg bg-card">
+          <h4 className="font-semibold mb-2">Blacklisted Items</h4>
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Total:</span>
+              <Badge variant="destructive">{blacklistedItems.length}</Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Videos:</span>
+              <Badge variant="outline">
+                {blacklistedItems.filter(item => item.type === 'video').length}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Playlists:</span>
+              <Badge variant="outline">
+                {blacklistedItems.filter(item => item.type === 'playlist').length}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Channels:</span>
+              <Badge variant="outline">
+                {blacklistedItems.filter(item => item.type === 'channel').length}
+              </Badge>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 border rounded-lg bg-card">
+          <h4 className="font-semibold mb-2">Whitelisted Items</h4>
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Total:</span>
+              <Badge variant="default">{whitelistedItems.length}</Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Videos:</span>
+              <Badge variant="outline">
+                {whitelistedItems.filter(item => item.type === 'video').length}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Playlists:</span>
+              <Badge variant="outline">
+                {whitelistedItems.filter(item => item.type === 'playlist').length}
+              </Badge>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Channels:</span>
+              <Badge variant="outline">
+                {whitelistedItems.filter(item => item.type === 'channel').length}
+              </Badge>
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Blacklist Manager Dialog */}
-      <BlacklistManager
-        isOpen={showBlacklistManager}
-        onClose={() => setShowBlacklistManager(false)}
-        type="blacklist"
-      />
-
-      {/* Whitelist Manager Dialog */}
-      <BlacklistManager
-        isOpen={showWhitelistManager}
-        onClose={() => setShowWhitelistManager(false)}
-        type="whitelist"
-      />
-    </>
+    </div>
   )
 }

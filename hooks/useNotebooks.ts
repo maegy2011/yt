@@ -279,7 +279,5 @@ export function useNotebooks(): UseNotebooksReturn {
     removeNoteFromNotebook,
     batchAddNotesToNotebook,
     getNotebookNotes,
-    shareNotebook,
-    getNotebookShareInfo,
   }
 }

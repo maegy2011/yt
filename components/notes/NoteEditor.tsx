@@ -93,7 +93,7 @@ export function NoteEditor({ isOpen, onClose, onSave, note, videoData, mode }: N
 
   const handlePlayClip = () => {
     if (backgroundVideo) {
-      seekTo(startTime[0])
+      seekTo(startTime?.[0] || 0)
       playBackgroundVideo()
       setIsPlaying(true)
     }

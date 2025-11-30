@@ -50,7 +50,7 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...addIncognitoHeaders({}, isIncognito)
+          ...(addIncognitoHeaders({}, isIncognito).headers || {})
         },
         body: JSON.stringify(video),
       })
@@ -78,7 +78,12 @@ export function useWatchedHistory(): UseWatchedHistoryReturn {
             )
           } else {
             // Add new video
-            return [...prev, { ...video, watchedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }]
+            return [...prev, {
+              id: `temp-${Date.now()}`, // Temporary ID, will be replaced by server response
+              ...video, 
+              watchedAt: new Date().toISOString(), 
+              updatedAt: new Date().toISOString() 
+            }]
           }
         })
       }

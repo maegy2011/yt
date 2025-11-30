@@ -97,18 +97,6 @@ import { ThemeSwitch } from '@/components/theme-switch'
 import { IncognitoBannerEnhanced } from '@/components/incognito-banner-enhanced'
 import { IncognitoToggleEnhanced } from '@/components/incognito-toggle-enhanced'
 import { QuickSettings } from '@/components/settings/QuickSettings'
-import { ChannelsContainer } from '@/components/channels/ChannelsContainer'
-import { useChannelAvatar } from '@/hooks/useChannelAvatar'
-import { SearchResultsFilter } from '@/components/search/SearchResultsFilterEnhanced'
-import { useToast } from '@/hooks/use-toast'
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog'
 
@@ -3810,7 +3798,6 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
             ) : searchResults ? (
               <div className="space-y-4">
                 {/* Search Results Filter */}
-                <SearchResultsFilter
                   searchType={searchType}
                   onSearchTypeChange={setSearchType}
                   searchResults={getFilteredSearchResults()}

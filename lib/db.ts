@@ -10,7 +10,6 @@ const DATABASE_CONFIG = {
   log: process.env.NODE_ENV === 'development' 
     ? ['query', 'info', 'warn', 'error']
     : ['warn', 'error'],
-  // Connection pooling configuration for better performance
   __internal: {
     engine: {
       connectionLimit: 10, // Maximum number of connections
@@ -18,10 +17,9 @@ const DATABASE_CONFIG = {
       connectTimeout: 10000, // Initial connection timeout
     },
   },
-  // Enable query batching and caching for better performance
   transactionOptions: {
     timeout: 10000, // Transaction timeout in ms
-    isolationLevel: 'ReadCommitted', // Balance between consistency and performance
+    isolationLevel: 'ReadCommitted' // Balance between consistency and performance
   }
 }
 

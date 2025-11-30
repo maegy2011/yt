@@ -31,7 +31,6 @@ interface BackgroundPlayerContextType {
   updatePlayingState: (isPlaying: boolean) => void
   resumeFromSavedPosition: () => void
   setSettingsTitle: (title: string) => void
-  setSettingsTitle: (title: string) => void
 }
 
 const BackgroundPlayerContext = createContext<BackgroundPlayerContextType | undefined>(undefined)
@@ -57,6 +56,7 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
   const [isBackgroundMode, setIsBackgroundMode] = useState(false)
   const [showMiniPlayer, setShowMiniPlayer] = useState(false)
   const [savedPosition, setSavedPosition] = useState<number | null>(null)
+  const [settingsTitle, setSettingsTitleState] = useState<string | null>(null)
   const playerRef = useRef<any>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   
@@ -190,7 +190,7 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
   }, [])
 
   const setSettingsTitle = useCallback((title: string) => {
-    setSettingsTitle(title)
+    setSettingsTitleState(title)
   }, [])
 
   const toggleBackgroundMode = useCallback(() => {
@@ -300,6 +300,7 @@ export function BackgroundPlayerProvider({ children }: BackgroundPlayerProviderP
         showMiniPlayer,
         playerRef,
         savedPosition,
+        settingsTitle,
         playBackgroundVideo,
         pauseBackgroundVideo,
         stopBackgroundVideo,
