@@ -97,8 +97,20 @@ import { ThemeSwitch } from '@/components/theme-switch'
 import { IncognitoBannerEnhanced } from '@/components/incognito-banner-enhanced'
 import { IncognitoToggleEnhanced } from '@/components/incognito-toggle-enhanced'
 import { QuickSettings } from '@/components/settings/QuickSettings'
-  AlertDialogTitle 
+import { SearchResultsFilterEnhanced } from '@/components/search/SearchResultsFilterEnhanced'
+import { ChannelsContainer } from '@/components/channels/ChannelsContainer'
+import { 
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction 
 } from '@/components/ui/alert-dialog'
+import { useToast } from '@/hooks/use-toast'
+import { useChannelAvatar } from '@/hooks/useChannelAvatar'
 
 
 // Enhanced types with better safety
@@ -3798,9 +3810,8 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
             ) : searchResults ? (
               <div className="space-y-4">
                 {/* Search Results Filter */}
-                  searchType={searchType}
-                  onSearchTypeChange={setSearchType}
-                  searchResults={getFilteredSearchResults()}
+                <SearchResultsFilterEnhanced
+                  items={getFilteredSearchResults().items}
                   onBlacklistChange={handleBlacklistChange}
                   onWhitelistChange={handleWhitelistChange}
                   onAddToBlacklist={handleAddToBlacklist}

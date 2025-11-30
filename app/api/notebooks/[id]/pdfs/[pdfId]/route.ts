@@ -5,11 +5,11 @@ import { join } from 'path'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; pdfId: string } }
+  { params }: { params: Promise<{ id: string; pdfId: string }> }
 ) {
-  try {
-    const { id: notebookId, pdfId } = params
+  const { id: notebookId, pdfId } = await params
 
+  try {
     const pdfFile = await db.pdfFile.findFirst({
       where: {
         id: pdfId,
@@ -26,7 +26,6 @@ export async function GET(
 
     return NextResponse.json({ file: pdfFile })
   } catch (error) {
-    // Error fetching PDF
     return NextResponse.json(
       { error: 'Failed to fetch PDF' },
       { status: 500 }
@@ -36,11 +35,11 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; pdfId: string } }
+  { params }: { params: Promise<{ id: string; pdfId: string }> }
 ) {
-  try {
-    const { id: notebookId, pdfId } = params
+  const { id: notebookId, pdfId } = await params
 
+  try {
     const pdfFile = await db.pdfFile.findFirst({
       where: {
         id: pdfId,
@@ -55,7 +54,6 @@ export async function DELETE(
       )
     }
 
-    // Delete physical file
     const filepath = join(process.cwd(), 'public', pdfFile.path)
     try {
       await unlink(filepath)
@@ -63,7 +61,6 @@ export async function DELETE(
       // Error deleting physical file
     }
 
-    // Delete database record
     await db.pdfFile.delete({
       where: { id: pdfId }
     })
@@ -72,7 +69,6 @@ export async function DELETE(
       message: 'PDF deleted successfully'
     })
   } catch (error) {
-    // Error deleting PDF
     return NextResponse.json(
       { error: 'Failed to delete PDF' },
       { status: 500 }

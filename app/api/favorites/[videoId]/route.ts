@@ -3,12 +3,13 @@ import { db } from '@/lib/db'
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { videoId: string } }
+  { params }: { params: Promise<{ videoId: string }> }
 ) {
+  const { videoId } = await params
   try {
     // First check if the favorite exists
     const existing = await db.favoriteVideo.findUnique({
-      where: { videoId: params.videoId }
+      where: { videoId }
     })
     
     if (!existing) {
@@ -16,7 +17,7 @@ export async function DELETE(
     }
     
     await db.favoriteVideo.delete({
-      where: { videoId: params.videoId }
+      where: { videoId }
     })
 
     return NextResponse.json({ success: true })

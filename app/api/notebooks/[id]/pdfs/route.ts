@@ -6,10 +6,9 @@ import { v4 as uuidv4 } from 'uuid'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const notebookId = params.id
+  const { id: notebookId } = await params
     const formData = await request.formData()
     const files = formData.getAll('files') as File[]
 
@@ -97,10 +96,9 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const notebookId = params.id
+  const { id: notebookId } = await params
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')
 
