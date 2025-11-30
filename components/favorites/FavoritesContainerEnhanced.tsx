@@ -71,6 +71,8 @@ export function FavoritesContainerEnhanced({ className = '', onVideoPlay }: Favo
       duration: favorite.duration,
       viewCount: favorite.viewCount,
       publishedAt: null, // Favorite videos don't have publishedAt
+      addedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       description: ''
     }
     
@@ -93,22 +95,24 @@ export function FavoritesContainerEnhanced({ className = '', onVideoPlay }: Favo
   const handleToggleEnabled = useCallback(async () => {
     try {
       await toggleEnabledOperation.execute(async () => {
-        toggleEnabled()
+        // toggleEnabled expects a boolean parameter
+        toggleEnabled(!enabled)
       })
     } catch (error) {
       // Error handled by async operation hook
     }
-  }, [toggleEnabled, toggleEnabledOperation])
+  }, [enabled, toggleEnabled, toggleEnabledOperation])
 
   const handleTogglePaused = useCallback(async () => {
     try {
       await togglePausedOperation.execute(async () => {
-        togglePaused()
+        // togglePaused expects a boolean parameter
+        togglePaused(!paused)
       })
     } catch (error) {
       // Error handled by async operation hook
     }
-  }, [togglePaused, togglePausedOperation])
+  }, [paused, togglePaused, togglePausedOperation])
 
   const getContainerClasses = () => {
     const baseClasses = 'w-full h-full'

@@ -212,8 +212,12 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Single item delete
+    if (!itemId) {
+      return NextResponse.json({ error: 'itemId is required' }, { status: 400 })
+    }
+    
     await db.whitelistedItem.delete({
-      where: { itemId }
+      where: { itemId: itemId }
     })
 
     return NextResponse.json({ success: true })

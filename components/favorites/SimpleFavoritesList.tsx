@@ -17,7 +17,47 @@ import {
 } from 'lucide-react'
 import { FavoriteVideo } from '@/types/favorites-simple'
 import { VideoCard } from '@/components/video'
-import { favoriteVideoToCardData } from '@/components/video/videoCardConverters'
+import type { FavoriteVideo as UnifiedFavoriteVideo } from '@/types'
+import type { VideoCardData } from '@/components/video/VideoCard'
+
+// Convert simple favorite video to unified favorite video format
+function simpleToUnifiedFavorite(simple: FavoriteVideo): UnifiedFavoriteVideo {
+  return {
+    ...simple,
+    thumbnail: simple.thumbnail || '', // Ensure thumbnail is string
+    notes: undefined, // Add missing field
+    publishedAt: undefined, // Add missing field
+    description: undefined, // Add missing field
+    channelThumbnail: undefined, // Add missing field
+    channelHandle: undefined, // Add missing field
+    quality: undefined, // Add missing field
+    isLive: false, // Add missing field
+    subscriberCount: undefined // Add missing field
+  }
+}
+
+// Convert to VideoCardData
+function simpleFavoriteToCardData(simple: FavoriteVideo): VideoCardData {
+  const unified = simpleToUnifiedFavorite(simple)
+  return {
+    videoId: unified.videoId,
+    id: unified.id,
+    title: unified.title,
+    channelName: unified.channelName,
+    thumbnail: unified.thumbnail,
+    duration: typeof unified.duration === 'string' ? unified.duration : undefined,
+    viewCount: typeof unified.viewCount === 'number' ? unified.viewCount : undefined,
+    addedAt: unified.addedAt,
+    updatedAt: unified.updatedAt,
+    isFavorite: true,
+    description: unified.description,
+    channelThumbnail: unified.channelThumbnail,
+    channelHandle: unified.channelHandle,
+    quality: unified.quality,
+    isLive: unified.isLive,
+    subscriberCount: unified.subscriberCount
+  }
+}
 
 interface SimpleFavoritesListProps {
   favorites: FavoriteVideo[]
@@ -135,10 +175,10 @@ export function SimpleFavoritesList({
             {filteredFavorites.map((favorite) => (
               <VideoCard
                 key={favorite.id}
-                video={favoriteVideoToCardData(favorite)}
+                video={simpleFavoriteToCardData(favorite)}
                 variant="favorite"
                 onRemove={onRemove}
-                onPlay={onPlay}
+                onPlay={(videoCardData) => onPlay(favorite)}
               />
             ))}
           </div>

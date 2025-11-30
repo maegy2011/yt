@@ -292,12 +292,9 @@ async function updateBlacklistMetrics(itemCount: number, processingTime: number)
       update: {
         totalItems: { increment: itemCount },
         filterHits: { increment: 1 },
-        avgFilterTime: { 
-          // Simple moving average calculation
-          set: (current: number | undefined) => {
-            const currentAvg = current || 0
-            return (currentAvg + processingTime) / 2
-          }
+        avgFilterTime: {
+          increment: processingTime / 2,
+          set: undefined
         }
       },
       create: {

@@ -22,7 +22,8 @@ export function SimpleFavoritesContainer({
       thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg',
       duration: '3:33',
       viewCount: 1500000000,
-      addedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days ago
+      addedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
+      updatedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days ago
     },
     {
       id: '2',
@@ -32,7 +33,8 @@ export function SimpleFavoritesContainer({
       thumbnail: 'https://img.youtube.com/vi/9bZkp7q19f0/mqdefault.jpg',
       duration: '4:13',
       viewCount: 4800000000,
-      addedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString() // 14 days ago
+      addedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days ago
+      updatedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString() // 14 days ago
     }
   ]
 
@@ -53,6 +55,8 @@ export function SimpleFavoritesContainer({
       duration: favorite.duration,
       viewCount: favorite.viewCount,
       publishedAt: null,
+      addedAt: favorite.addedAt,
+      updatedAt: new Date().toISOString(), // Use current time if not available
       description: ''
     }
     

@@ -45,7 +45,7 @@ export function ScrollingChannelBar({ channels, className = '' }: ScrollingChann
   const [isHovering, setIsHovering] = useState(false)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const scrollContentRef = useRef<HTMLDivElement>(null)
-  const animationRef = useRef<number>()
+  const animationRef = useRef<number>(0)
   const lastTimeRef = useRef<number>(0)
 
   // Duplicate channels for seamless looping
@@ -220,7 +220,7 @@ export function ScrollingChannelBar({ channels, className = '' }: ScrollingChann
               <div className="relative">
                 {/* Channel Avatar */}
                 <img
-                  src={channel.thumbnail?.url || `https://via.placeholder.com/${imageSizeMap[settings.imageSize].width}x${imageSizeMap[settings.imageSize].height}/374151/ffffff?text=${channel.name.charAt(0)}`}
+                  src={channel.thumbnail || `https://via.placeholder.com/${imageSizeMap[settings.imageSize].width}x${imageSizeMap[settings.imageSize].height}/374151/ffffff?text=${channel.name.charAt(0)}`}
                   alt={channel.name}
                   className={`${imageSizeMap[settings.imageSize].class} rounded-full object-cover border-2 border-border group-hover:border-primary transition-colors`}
                 />

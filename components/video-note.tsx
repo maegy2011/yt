@@ -348,7 +348,7 @@ export function VideoNote({
             setCurrentTime(currentTime)
             
             // Only check end time if video is actually playing (state === 1)
-            if (playerState === 1 && currentTime >= activeNote.endTime) {
+            if (playerState === 1 && currentTime >= (activeNote.endTime || 0)) {
               // Console statement removed
               setAutoStopTriggered(true)
               playerRef.current.pauseVideo()
@@ -358,7 +358,7 @@ export function VideoNote({
               setTimeout(() => {
                 if (playerRef.current) {
                   playerRef.current.seekTo(activeNote.startTime, true)
-                  setCurrentTime(activeNote.startTime)
+                  setCurrentTime(activeNote.startTime || 0)
                   setAutoStopTriggered(false)
                 }
               }, 500)
@@ -530,9 +530,11 @@ export function VideoNote({
       })
       
       if (response.ok) {
-        setNotes(notes.map(note => 
-          note.id === noteId ? { ...note, title, note } : note
-        ))
+        setNotes(prevNotes => 
+          prevNotes.map(note => 
+            note.id === noteId ? { ...note, title, note } : note
+          )
+        )
         setEditingNoteId(null)
         
         // Call parent callback to refresh notes
@@ -665,7 +667,7 @@ export function VideoNote({
     const activeNote = notes.find(note => note.id === activeNoteId)
     if (playerRef.current && activeNote) {
       playerRef.current.seekTo(activeNote.startTime, true)
-      setCurrentTime(activeNote.startTime)
+      setCurrentTime(activeNote.startTime || 0)
     }
   }
 
@@ -1324,9 +1326,9 @@ export function VideoNote({
                             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-gray-500 dark:text-gray-400">
                               <span className="flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
-                                {formatTime(note.startTime)} - {formatTime(note.endTime)}
+                                {formatTime(note.startTime || 0)} - {formatTime(note.endTime || 0)}
                               </span>
-                              <span className="hidden sm:inline">Duration: {formatTime(note.endTime - note.startTime)}</span>
+                              <span className="hidden sm:inline">Duration: {formatTime((note.endTime || 0) - (note.startTime || 0))}</span>
                             </div>
                           </>
                         )}

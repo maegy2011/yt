@@ -182,7 +182,7 @@ export const DELETE = withErrorHandler(async (request: NextRequest) => {
 
   // Validate required parameter
   if (!videoId) {
-    throw new ValidationError('Video ID is required', { field: 'videoId' })
+    throw new ValidationError('Video ID is required')
   }
 
   // Validate and sanitize video ID

@@ -1,29 +1,9 @@
-export interface WatchedVideo {
-  id: string
-  videoId: string
-  title: string
-  channelName: string
-  thumbnail: string
-  duration?: string
-  viewCount?: string
-  watchedAt: string
-  updatedAt: string
-}
+// Watched history types
+// This file now re-exports from the unified type system
 
-export interface WatchedVideoInput {
-  videoId: string
-  title: string
-  channelName: string
-  thumbnail: string
-  duration?: string
-  viewCount?: string
-}
-
-export interface WatchedHistoryStats {
-  totalVideos: number
-  totalWatchTime: number
-  averageVideoLength: number
-  mostWatchedChannel: string
-  videosThisWeek: number
-  videosThisMonth: number
-}
+// Re-export all watched-related types from the unified system
+export type {
+  WatchedVideo,
+  WatchedVideoInput,
+  WatchedHistoryStats
+} from '@/types'

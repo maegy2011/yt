@@ -34,17 +34,16 @@ export async function GET(
       }
     })
 
+    const notebooks: any[] = noteLinks.map(link => link.notebook).filter(Boolean)
+
     // Also check if note has a legacy notebookId
-    let legacyNotebook = null
     if (note.notebookId) {
-      legacyNotebook = await db.notebook.findUnique({
+      const foundNotebook = await db.notebook.findUnique({
         where: { id: note.notebookId }
       })
-    }
-
-    const notebooks = noteLinks.map(link => link.notebook).filter(Boolean)
-    if (legacyNotebook) {
-      notebooks.push(legacyNotebook)
+      if (foundNotebook) {
+        notebooks.push(foundNotebook)
+      }
     }
 
     return NextResponse.json({

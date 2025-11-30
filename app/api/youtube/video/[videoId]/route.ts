@@ -30,7 +30,7 @@ function extractThumbnail(thumbnails: YouTubeThumbnails | string | undefined): {
   }
 
   // Handle YouTubei v1.8.0 Thumbnails object (has .best property)
-  if (thumbnails.best && typeof thumbnails.best === 'string') {
+  if (typeof thumbnails === 'object' && thumbnails.best && typeof thumbnails.best === 'string') {
     return {
       url: thumbnails.best,
       width: 1280,
@@ -127,7 +127,8 @@ export async function GET(
     }
     
     const youtube = new Client()
-    const video = await youtube.getVideo(sanitizedVideoId)
+    const searchResult = await youtube.search(sanitizedVideoId, { limit: 1 })
+    const video = searchResult.items?.[0]
     
     if (!video) {
       return NextResponse.json({ error: 'Video not found' }, { status: 404 })
@@ -137,7 +138,7 @@ export async function GET(
     const channelInfo = extractChannel(video.channel)
     
     // Extract only the necessary data to avoid circular references
-    const videoRecord = video as Record<string, unknown>
+    const videoRecord = video as unknown as Record<string, unknown>
     const sanitizedVideo = {
       id: (videoRecord.id as string) || sanitizedVideoId,
       title: (videoRecord.title as string) || 'Unknown Video',

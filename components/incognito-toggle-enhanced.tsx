@@ -317,7 +317,7 @@ export function IncognitoToggleEnhanced() {
             </div>
             <AlertDialogFooter>
               <AlertDialogCancel>Close</AlertDialogCancel>
-              <AlertDialogAction onClick={handleClearSession} variant="outline">
+              <AlertDialogAction onClick={handleClearSession}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Clear Session
               </AlertDialogAction>

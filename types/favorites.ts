@@ -1,116 +1,19 @@
 // Enhanced types for advanced favorites features
+// This file now re-exports from the unified type system
 
-export interface FavoriteChannel {
-  id: string
-  channelId: string
-  name: string
-  thumbnail?: string
-  subscriberCount?: number
-  videoCount?: number
-  viewCount?: number
-  addedAt: string
-  updatedAt: string
-  isFavorite?: boolean
-}
+// Re-export all favorite-related types from the unified system
+export type {
+  FavoriteVideo,
+  FavoriteChannel,
+  CreateFavoriteRequest,
+  UpdateFavoriteRequest,
+  FavoriteFilters,
+  FavoriteSortOptions,
+  FavoritesState,
+  FavoriteOperations
+} from '@/types'
 
-export interface FavoriteVideo {
-  id: string
-  videoId: string
-  title: string
-  channelName: string
-  thumbnail: string | undefined
-  duration: string | undefined
-  viewCount: string | number | undefined  // Accept both string and number
-  addedAt: string
-  updatedAt: string
-  // Optional properties that may not be in database
-  isPrivate?: boolean
-  tags?: string[]
-  category?: string
-  rating?: number
-  notes?: string
-  watchProgress?: number
-}
-
-export interface CreateFavoriteRequest {
-  videoId: string
-  title: string
-  channelName: string
-  thumbnail?: string
-  duration?: string
-  viewCount?: number
-  isPrivate?: boolean
-  tags?: string[]
-  category?: string
-  rating?: number
-  notes?: string
-}
-
-export interface UpdateFavoriteRequest {
-  isPrivate?: boolean
-  tags?: string[]
-  category?: string
-  rating?: number
-  notes?: string
-  watchProgress?: number
-}
-
-export interface FavoriteFilters {
-  searchQuery?: string
-  channelName?: string
-  isPrivate?: boolean
-  tags?: string[]
-  category?: string
-  rating?: number
-  dateRange?: {
-    start: string
-    end: string
-  }
-  durationRange?: {
-    min: number
-    max: number
-  }
-}
-
-export interface FavoriteSortOptions {
-  field: 'addedAt' | 'updatedAt' | 'title' | 'viewCount' | 'rating' | 'watchProgress' | 'duration'
-  direction: 'asc' | 'desc'
-}
-
-export interface FavoritesState {
-  favorites: FavoriteVideo[]
-  loading: boolean
-  error: string | null
-  filters: FavoriteFilters
-  sort: FavoriteSortOptions
-  enabled: boolean
-  paused: boolean
-  viewMode: 'grid' | 'list' | 'compact'
-  displaySettings: {
-    showThumbnails: boolean
-    showDuration: boolean
-    showViewCount: boolean
-    showRating: boolean
-    showWatchProgress: boolean
-    compactMode: boolean
-  }
-}
-
-export interface FavoriteOperations {
-  addFavorite: (data: CreateFavoriteRequest) => Promise<FavoriteVideo>
-  removeFavorite: (videoId: string) => Promise<void>
-  fetchFavorites: (filters?: FavoriteFilters) => Promise<FavoriteVideo[]>
-  isFavorite: (videoId: string) => Promise<boolean>
-  toggleFavorite: (videoData: CreateFavoriteRequest) => Promise<void>
-  toggleEnabled: (enabled: boolean) => void
-  togglePaused: (paused: boolean) => void
-  updateFavorite: (videoId: string, data: UpdateFavoriteRequest) => Promise<FavoriteVideo>
-  batchUpdateFavorites: (updates: Array<{ videoId: string; data: UpdateFavoriteRequest }>) => Promise<FavoriteVideo[]>
-  batchDeleteFavorites: (videoIds: string[]) => Promise<void>
-  exportFavorites: (format: 'json' | 'csv' | 'txt') => Promise<string>
-  importFavorites: (data: string) => Promise<FavoriteVideo[]>
-}
-
+// Additional types specific to favorites features
 export interface FavoriteStats {
   total: number
   privateFavorites: number

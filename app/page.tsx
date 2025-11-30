@@ -51,7 +51,7 @@ import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from
 import { validateSearchQuery } from '@/lib/validation'
 import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from '@/lib/loading-messages'
 import type { Video as YouTubeVideo } from '@/lib/youtube'
-import { convertYouTubeVideo, convertYouTubePlaylist, convertYouTubeChannel, convertToYouTubeVideo, convertDbVideoToSimple, type SimpleVideo, type SimplePlaylist, type SimpleChannel, type FavoriteVideo, type FavoriteChannel, type VideoNote, type ChannelSearchResult, type PaginationInfo, type FollowedChannelsContent } from '@/lib/type-compatibility'
+import { convertYouTubeVideo, convertYouTubePlaylist, convertYouTubeChannel, convertToYouTubeVideo, convertDbVideoToSimple, convertSimpleVideoToCardData, type SimpleVideo, type SimplePlaylist, type SimpleChannel, type FavoriteVideo, type FavoriteChannel, type VideoNote, type ChannelSearchResult, type PaginationInfo, type FollowedChannelsContent, type VideoCardData } from '@/lib/type-compatibility'
 import type { WatchedVideo } from '@/types/watched'
 // Blacklist and Whitelist types
 interface BlacklistedItem {
@@ -160,7 +160,7 @@ export default function MyTubeApp() {
   const [searchType, setSearchType] = useState<'video' | 'playlist' | 'channel' | 'all'>('all')
   const [channelSearchQuery, setChannelSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResults | null>(null)
-  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null)
+  const [selectedVideo, setSelectedVideo] = useState<VideoCardData | null>(null)
   const [loading, setLoading] = useState(false)
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [multiSelectMode, setMultiSelectMode] = useState(false)
@@ -878,7 +878,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     }
   }, [])
 
-  const loadFavoriteVideos = useCallback(async (): Promise<void> => {
+  const loadFavoriteVideos = useCallback(async (): Promise<FavoriteVideo[]> => {
     try {
       const response = await fetchWithRetry('/api/favorites')
       if (!response.ok) {
@@ -902,19 +902,19 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       if (!Array.isArray(favoritesData)) {
         console.error('favoritesData is not an array:', favoritesData)
         setFavoriteVideos([])
-        return
+        return []
       }
       
-      const convertedVideos = favoritesData.map((video: FavoriteVideo) => convertDbVideoToSimple(video))
-      setFavoriteVideos(convertedVideos)
+      setFavoriteVideos(favoritesData)
+      return favoritesData
     } catch (error) {
       console.error('Failed to load favorite videos:', error)
       setFavoriteVideos([])
-      
+      return []
     }
   }, [])
 
-  const loadNotes = useCallback(async (): Promise<void> => {
+  const loadNotes = useCallback(async (): Promise<VideoNote[]> => {
     try {
       setNotesLoading(true)
       const response = await fetchWithRetry('/api/notes')
@@ -924,10 +924,11 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       }
       const data = await response.json()
       setAllNotes(data || [])
+      return data || []
     } catch (error) {
       console.error('Failed to load notes:', error)
       setAllNotes([])
-      
+      return []
     } finally {
       setNotesLoading(false)
     }
@@ -997,13 +998,13 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   const handleEditNote = (note: any) => {
     setEditingNote(note)
     setUpdatedNoteContent(note.note || '')
-    setUpdatedNoteTitle(note.title || '')
+    setUpdatedNoteTitle(note?.title || '')
     setEditDialogOpen(true)
   }
 
   const handleSaveNoteUpdate = async () => {
     if (editingNote && updatedNoteTitle.trim() && updatedNoteContent.trim()) {
-      await updateNote(editingNote.id, updatedNoteTitle.trim(), updatedNoteContent.trim())
+      await updateNote(editingNote?.id || '', updatedNoteTitle.trim(), updatedNoteContent.trim())
       setEditDialogOpen(false)
       setEditingNote(null)
       setUpdatedNoteContent('')
@@ -1017,7 +1018,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       setNewNote({
         title: '',
         content: '',
-        videoId: selectedVideo.id,
+        videoId: selectedVideo.videoId || selectedVideo.id || '',
         videoTitle: selectedVideo.title,
         channelName: getChannelName(selectedVideo),
         thumbnail: getThumbnailUrl(selectedVideo)
@@ -1836,7 +1837,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     }
   }
 
-  const handleVideoPlay = async (video: Video, startTime?: number) => {
+  const handleVideoPlay = async (video: VideoCardData, startTime?: number) => {
     console.log('handleVideoPlay called:', video.title, 'startTime:', startTime) // Debug log
     setPreviousTab(activeTab) // Track the previous tab
     setSelectedVideo(video)
@@ -1847,16 +1848,16 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     
     // Add to watch history immediately when video is played
     // Check if video is already watched to avoid duplicates
-    const isAlreadyWatched = isVideoWatched(video.videoId || video.id)
+    const isAlreadyWatched = isVideoWatched(video.videoId || video.id || '')
     
     if (!isAlreadyWatched) {
       await addToWatchedHistory({
-        videoId: video.videoId || video.id,
+        videoId: video.videoId || video.id || '',
         title: video.title,
         channelName: video.channelName,
         thumbnail: video.thumbnail,
-        duration: video.duration,
-        viewCount: video.viewCount?.toString()
+        duration: typeof video.duration === 'string' ? video.duration : undefined,
+        viewCount: typeof video.viewCount === 'string' ? video.viewCount : video.viewCount?.toString()
       })
       console.log('Added to watch history:', video.title)
     } else {
@@ -1865,17 +1866,17 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   }
 
   const handleFavoritesVideoPlay = (favoriteVideo: FavoriteVideo) => {
-    // Convert FavoriteVideo to Video format
-    const video = {
+    // Convert FavoriteVideo to VideoCardData format
+    const video: VideoCardData = {
       videoId: favoriteVideo.videoId,
       id: favoriteVideo.videoId,
       title: favoriteVideo.title,
       channelName: favoriteVideo.channelName,
       thumbnail: favoriteVideo.thumbnail,
-      duration: favoriteVideo.duration,
-      viewCount: favoriteVideo.viewCount,
-      publishedAt: null, // Favorite videos don't have publishedAt
-      description: ''
+      duration: typeof favoriteVideo.duration === 'string' ? favoriteVideo.duration : undefined,
+      viewCount: typeof favoriteVideo.viewCount === 'number' ? favoriteVideo.viewCount : undefined,
+      publishedAt: undefined, // Favorite videos don't have publishedAt
+      description: favoriteVideo.notes || ''
     }
     
     // Use the same handleVideoPlay function to switch to player
@@ -1883,16 +1884,16 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   }
 
   const handleWatchedVideoPlay = (watchedVideo: WatchedVideo) => {
-    // Convert WatchedVideo to Video format
-    const video = {
+    // Convert WatchedVideo to VideoCardData format
+    const video: VideoCardData = {
       videoId: watchedVideo.videoId,
       id: watchedVideo.videoId,
       title: watchedVideo.title,
       channelName: watchedVideo.channelName,
       thumbnail: watchedVideo.thumbnail,
       duration: watchedVideo.duration,
-      viewCount: watchedVideo.viewCount,
-      publishedAt: null, // Watched videos don't have publishedAt
+      viewCount: watchedVideo.viewCount ? parseInt(watchedVideo.viewCount) : undefined,
+      publishedAt: undefined, // Watched videos don't have publishedAt
       description: ''
     }
     
@@ -1907,17 +1908,34 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     window.open(`https://youtube.com/channel/${channel.channelId}`, '_blank')
   }
 
+  const handleAddToNotebook = (selectedNotes: VideoNote[]) => {
+    if (selectedNotes.length > 0) {
+      setSelectedNotes(new Set(selectedNotes.map(note => note.id)))
+      // Create a new note from the first selected note's video
+      const firstNote = selectedNotes[0]
+      setNewNote({
+        title: '',
+        content: '',
+        videoId: firstNote.videoId,
+        videoTitle: firstNote.title,
+        channelName: firstNote.channelName,
+        thumbnail: firstNote.thumbnail || ''
+      })
+      setCreateNoteDialogOpen(true)
+    }
+  }
+
   const handleNotesVideoPlay = (note: VideoNote) => {
-    // Convert VideoNote to Video format
-    const video = {
+    // Convert VideoNote to VideoCardData format
+    const video: VideoCardData = {
       videoId: note.videoId,
       id: note.videoId,
       title: note.title,
       channelName: note.channelName,
-      thumbnail: note.thumbnail,
+      thumbnail: note.thumbnail || '',
       duration: undefined, // Notes don't have duration
       viewCount: undefined, // Notes don't have view count
-      publishedAt: null, // Notes don't have publishedAt
+      publishedAt: undefined, // Notes don't have publishedAt
       description: note.note
     }
     
@@ -1950,6 +1968,16 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   const handleAddNoteToNotebook = (selectedNotes: VideoNote[]) => {
     // Set the notes for selection - the dialog will be opened when user switches to notebooks tab
     setNotesForNotebook(selectedNotes)
+  }
+
+  const handleCreateNotebookFromNotes = () => {
+    // This function will be called to create a notebook from selected notes
+    // The actual notebook creation will be handled by the NotebooksContainer
+    if (notesForNotebook.length > 0) {
+      // Create a temporary notebook name based on the notes
+      const notebookName = `Notebook from ${notesForNotebook.length} note${notesForNotebook.length > 1 ? 's' : ''}`
+      console.log('Would create notebook:', notebookName)
+    }
   }
 
   const handleBackToNotebooks = () => {
@@ -2028,7 +2056,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
 
   // Get filtered search results based on blacklist/whitelist
   const getFilteredSearchResults = useCallback(() => {
-    if (!searchResults?.items) return searchResults
+    if (!searchResults?.items) return { items: [] }
     
     // Helper function to check if an item matches a blacklist/whitelist entry
     const itemMatches = (item: any, listItem: BlacklistedItem | WhitelistedItem) => {
@@ -2154,7 +2182,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   }, [searchResults, blacklisted, whitelisted])
 
   // Handlers for adding items to blacklist/whitelist
-  const handleAddToBlacklist = useCallback(async (item: any) => {
+  const handleAddToBlacklist = useCallback(async (item: VideoCardData) => {
     const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
     const itemTitle = item.title || item.channelName || 'Unknown'
     
@@ -2168,7 +2196,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     })
   }, [])
 
-  const handleAddToWhitelist = useCallback(async (item: any) => {
+  const handleAddToWhitelist = useCallback(async (item: VideoCardData) => {
     const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
     const itemTitle = item.title || item.channelName || 'Unknown'
     
@@ -2269,7 +2297,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     // Whitelist updated
   }, [])
 
-  const handleVideoSelect = (video: Video) => {
+  const handleVideoSelect = (video: VideoCardData) => {
     console.log('handleVideoSelect called:', video.title) // Debug log
     handleVideoPlay(video)
   }
@@ -2329,7 +2357,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     }
 
     if (nextVideo) {
-      handleVideoPlay(nextVideo)
+      handleVideoPlay(convertSimpleVideoToCardData(nextVideo))
       
     } else {
       
@@ -2391,14 +2419,14 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     }
 
     if (previousVideo) {
-      handleVideoPlay(previousVideo)
+      handleVideoPlay(convertSimpleVideoToCardData(previousVideo))
       
     } else {
       
     }
   }, [selectedVideo, searchResults, channelVideos, favoriteVideos, handleVideoPlay])
 
-  const toggleFavorite = async (video: Video) => {
+  const toggleFavorite = async (video: VideoCardData) => {
     // Check if favorites are enabled
     if (!favoritesEnabled) {
       
@@ -2440,10 +2468,16 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
             channelName: getChannelName(video),
             channelThumbnail: getChannelThumbnailUrl(video.channel || video),
             thumbnail: thumbnailUrl,
-            duration: typeof video.duration === 'string' ? video.duration : 
-                       (typeof video.duration === 'number' ? video.duration.toString() : undefined),
-            viewCount: typeof video.viewCount === 'number' ? video.viewCount : 
-                       (typeof video.viewCount === 'string' && /^\d+$/.test(video.viewCount) ? parseInt(video.viewCount, 10) : undefined)
+            duration: (() => {
+              if (typeof video.duration === 'string') return video.duration
+              if (typeof video.duration === 'number') return String(video.duration)
+              return undefined
+            })(),
+            viewCount: (() => {
+              if (typeof video.viewCount === 'number') return video.viewCount
+              if (typeof video.viewCount === 'string' && /^\d+$/.test(video.viewCount)) return parseInt(video.viewCount, 10)
+              return undefined
+            })()
           })
         })
         
@@ -2610,11 +2644,10 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         ])
         console.log('App: Initial data load completed', results)
         
-        // The second result is favoriteChannels data
-        const favoriteChannelsData = results[1]
-        if (favoriteChannelsData && favoriteChannelsData.length > 0) {
-          console.log('App: Loading channel videos for', favoriteChannelsData.length, 'channels')
-          await loadChannelVideos(favoriteChannelsData)
+        // The second result is favoriteVideos data
+        const favoriteVideosData = results[1]
+        if (favoriteVideosData && Array.isArray(favoriteVideosData) && favoriteVideosData.length > 0) {
+          console.log('App: Loaded', favoriteVideosData.length, 'favorite videos')
         }
       } catch (error) {
         console.error('App: Failed to load initial data:', error)
@@ -3120,7 +3153,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                 playlist={playlist}
                 videos={videos}
                 isLoading={isLoading}
-                onVideoSelect={handleVideoPlay}
+                onVideoSelect={(video: SimpleVideo) => handleVideoPlay(convertSimpleVideoToCardData(video))}
               />
             )}
           </div>
@@ -3640,7 +3673,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                           size="sm"
                           onClick={() => {
                             if (playlistVideos.length > 0) {
-                              handleVideoPlay(playlistVideos[0])
+                              handleVideoPlay(convertSimpleVideoToCardData(playlistVideos[0]))
                             }
                           }}
                           className="h-8 sm:h-9 px-2 sm:px-3 bg-primary hover:bg-primary/90"
@@ -3874,7 +3907,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                                   size="sm"
                                   variant="destructive"
                                   className="h-8 w-8 p-0 bg-black/70 hover:bg-black/80 text-white"
-                                  onClick={() => handleAddToBlacklist(item)}
+                                  onClick={() => handleAddToBlacklist(convertSimpleVideoToCardData(item as any))}
                                   title="Add to Blacklist"
                                 >
                                   <X className="h-3 w-3" />
@@ -3883,7 +3916,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                                   size="sm"
                                   variant="default"
                                   className="h-8 w-8 p-0 bg-green-600/70 hover:bg-green-600/80 text-white"
-                                  onClick={() => handleAddToWhitelist(item)}
+                                  onClick={() => handleAddToWhitelist(convertSimpleVideoToCardData(item as any))}
                                   title="Add to Whitelist"
                                 >
                                   <Check className="h-3 w-3" />
@@ -3918,7 +3951,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                                   size="sm"
                                   variant="destructive"
                                   className="h-8 w-8 p-0 bg-black/70 hover:bg-black/80 text-white"
-                                  onClick={() => handleAddToBlacklist(item)}
+                                  onClick={() => handleAddToBlacklist(convertSimpleVideoToCardData(item as any))}
                                   title="Add to Blacklist"
                                 >
                                   <X className="h-3 w-3" />
@@ -3927,7 +3960,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                                   size="sm"
                                   variant="default"
                                   className="h-8 w-8 p-0 bg-green-600/70 hover:bg-green-600/80 text-white"
-                                  onClick={() => handleAddToWhitelist(item)}
+                                  onClick={() => handleAddToWhitelist(convertSimpleVideoToCardData(item as any))}
                                   title="Add to Whitelist"
                                 >
                                   <Check className="h-3 w-3" />
@@ -3945,7 +3978,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                           return (
                             <div key={(item as Video).videoId || item.id} className="relative group">
                               <UnifiedVideoCard 
-                                video={item as Video} 
+                                video={convertSimpleVideoToCardData(item as Video)} 
                                 onPlay={handleVideoSelect}
                                 onAddToBlacklist={handleAddToBlacklist}
                                 onAddToWhitelist={handleAddToWhitelist}
@@ -3958,7 +3991,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                                   size="sm"
                                   variant="destructive"
                                   className="h-8 w-8 p-0 bg-black/70 hover:bg-black/80 text-white"
-                                  onClick={() => handleAddToBlacklist(item)}
+                                  onClick={() => handleAddToBlacklist(convertSimpleVideoToCardData(item as any))}
                                   title="Add to Blacklist"
                                 >
                                   <X className="h-3 w-3" />
@@ -3967,7 +4000,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                                   size="sm"
                                   variant="default"
                                   className="h-8 w-8 p-0 bg-green-600/70 hover:bg-green-600/80 text-white"
-                                  onClick={() => handleAddToWhitelist(item)}
+                                  onClick={() => handleAddToWhitelist(convertSimpleVideoToCardData(item as any))}
                                   title="Add to Whitelist"
                                 >
                                   <Check className="h-3 w-3" />
@@ -4025,7 +4058,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
               <>
                 {/* Video Note Component - Video Player */}
                 <VideoNoteComponent 
-                  videoId={selectedVideo.videoId || selectedVideo.id} 
+                  videoId={selectedVideo.videoId || selectedVideo.id || ''} 
                   videoTitle={selectedVideo.title}
                   channelName={getChannelName(selectedVideo)}
                   channelThumbnail={getChannelThumbnailUrl(selectedVideo.channel || selectedVideo)}
@@ -4033,7 +4066,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                   publishedAt={selectedVideo.publishedAt}
                   thumbnail={getThumbnailUrl(selectedVideo)}
                   description={selectedVideo.description}
-                  isFavorited={favoriteVideoIds.has(selectedVideo.videoId || selectedVideo.id)}
+                  isFavorited={favoriteVideoIds.has(selectedVideo.videoId || selectedVideo.id || '')}
                   favoritesEnabled={favoritesEnabled}
                   favoritesPaused={favoritesPaused}
                   onFavoriteToggle={() => toggleFavorite(selectedVideo)}
@@ -4055,8 +4088,20 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       case 'channels':
         return <ChannelsContainer 
           onChannelSelect={handleChannelSelect}
-          onAddToBlacklist={handleAddToBlacklist}
-          onAddToWhitelist={handleAddToWhitelist}
+          onAddToBlacklist={(channel: FavoriteChannel) => handleAddToBlacklist({
+            videoId: channel.channelId,
+            title: channel.name,
+            type: 'channel',
+            thumbnail: channel.thumbnail || '',
+            channelName: channel.name || ''
+          })}
+          onAddToWhitelist={(channel: FavoriteChannel) => handleAddToWhitelist({
+            videoId: channel.channelId,
+            title: channel.name,
+            type: 'channel',
+            thumbnail: channel.thumbnail || '',
+            channelName: channel.name || ''
+          })}
           isBlacklisted={(channelId) => blacklisted.some(item => item.itemId === channelId && item.type === 'channel')}
           isWhitelisted={(channelId) => whitelisted.some(item => item.itemId === channelId && item.type === 'channel')}
         />
@@ -4086,7 +4131,17 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
               notebook={selectedNotebook}
               notes={notebookNotes}
               onBack={handleBackToNotebooks}
-              onNotePlay={handleVideoPlay}
+              onNotePlay={(note: VideoNote) => {
+                const videoData: VideoCardData = {
+                  videoId: note.videoId,
+                  id: note.videoId,
+                  title: note.title,
+                  channelName: note.channelName,
+                  thumbnail: note.thumbnail || '',
+                  description: note.note
+                }
+                handleVideoPlay(videoData)
+              }}
               onNoteEdit={handleEditNote}
               onNoteUnlink={async (noteId: string, notebookId: string) => {
                 try {
@@ -4122,7 +4177,6 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         ) : (
           <NotebooksContainer 
             onNotebookSelect={handleNotebookSelect}
-            onAddNoteToNotebook={handleAddNoteToNotebook}
             notesForSelection={notesForNotebook}
           />
         )
@@ -4158,12 +4212,12 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Video Title</label>
-                  <p className="text-sm text-muted-foreground">{editingNote.title}</p>
+                  <p className="text-sm text-muted-foreground">{editingNote?.title}</p>
                 </div>
                 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Channel</label>
-                  <p className="text-sm text-muted-foreground">{editingNote.channelName}</p>
+                  <p className="text-sm text-muted-foreground">{editingNote?.channelName}</p>
                 </div>
                 
                 <div className="space-y-2">
@@ -4179,11 +4233,11 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                   />
                 </div>
                 
-                {editingNote.isClip && (
+                {editingNote?.isClip && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Clip Duration</label>
                     <p className="text-sm text-muted-foreground">
-                      {formatTime(editingNote.startTime || 0)} - {formatTime(editingNote.endTime || 0)}
+                      {formatTime(editingNote?.startTime || 0)} - {formatTime(editingNote?.endTime || 0)}
                     </p>
                   </div>
                 )}
@@ -4331,7 +4385,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
             favoriteChannels={favoriteChannels}
             favoriteVideos={favoriteVideos}
             activeTab={activeTab}
-            setActiveTab={setActiveTab}
+            setActiveTab={(tab: string) => setActiveTab(tab as Tab)}
             loading={loading}
             onClearAllData={clearAllData}
             dataStatistics={dataStatistics}

@@ -9,6 +9,7 @@ export interface FavoriteVideo {
   duration?: string
   viewCount?: number
   addedAt: string
+  updatedAt: string
 }
 
 export interface CreateFavoriteRequest {

@@ -1,19 +1,20 @@
 import type { VideoCardData } from '@/components/video/VideoCard'
-import type { FavoriteVideo } from '@/types/favorites'
-import type { FavoriteVideo as SimpleFavoriteVideo } from '@/types/favorites-simple'
-import type { WatchedVideo } from '@/types/watched'
-import type { SimpleVideo } from '@/lib/type-compatibility'
+import type { FavoriteVideo } from '@/types'
+import type { WatchedVideo } from '@/types'
+import type { SimpleVideo } from '@/types'
 
 // Convert FavoriteVideo to VideoCardData
-export function favoriteVideoToCardData(favorite: FavoriteVideo | SimpleFavoriteVideo): VideoCardData {
+export function favoriteVideoToCardData(favorite: FavoriteVideo): VideoCardData {
   return {
     videoId: favorite.videoId,
+    id: favorite.id,
     title: favorite.title,
     channelName: favorite.channelName,
     thumbnail: favorite.thumbnail || '',
-    duration: favorite.duration,
-    viewCount: typeof favorite.viewCount === 'string' ? parseInt(favorite.viewCount) : favorite.viewCount,
+    duration: typeof favorite.duration === 'string' ? favorite.duration : undefined,
+    viewCount: typeof favorite.viewCount === 'number' ? favorite.viewCount : undefined,
     addedAt: favorite.addedAt,
+    updatedAt: favorite.updatedAt,
     isFavorite: true,
     description: favorite.notes || undefined, // Use notes as description
     channelThumbnail: undefined, // Not available in FavoriteVideo
@@ -28,12 +29,14 @@ export function favoriteVideoToCardData(favorite: FavoriteVideo | SimpleFavorite
 export function watchedVideoToCardData(watched: WatchedVideo): VideoCardData {
   return {
     videoId: watched.videoId,
+    id: watched.id,
     title: watched.title,
     channelName: watched.channelName,
     thumbnail: watched.thumbnail || '',
     duration: watched.duration,
     viewCount: watched.viewCount ? parseInt(watched.viewCount) : undefined,
     watchedAt: watched.watchedAt,
+    updatedAt: watched.updatedAt,
     progress: 0, // Default progress since WatchedVideo doesn't have progress field
     description: undefined, // WatchedVideo doesn't have description field
     channelThumbnail: undefined, // WatchedVideo doesn't have channelThumbnail field
@@ -47,15 +50,16 @@ export function watchedVideoToCardData(watched: WatchedVideo): VideoCardData {
 // Convert SimpleVideo to VideoCardData
 export function simpleVideoToCardData(video: SimpleVideo): VideoCardData {
   return {
-    videoId: video.videoId || video.id,
+    videoId: video.videoId,
+    id: video.id,
     title: video.title,
     channelName: video.channelName,
-    thumbnail: typeof video.thumbnail === 'string' ? video.thumbnail : video.thumbnail?.url || '',
-    duration: typeof video.duration === 'number' ? String(video.duration) : video.duration,
-    viewCount: typeof video.viewCount === 'string' ? parseInt(video.viewCount) : video.viewCount,
-    publishedAt: video.publishedAt,
+    thumbnail: (video.thumbnail as string) || (video.thumbnail as any)?.url || '',
+    duration: typeof video.duration === 'string' ? video.duration : undefined,
+    viewCount: typeof video.viewCount === 'number' ? video.viewCount : undefined,
+    publishedAt: video.publishedAt || undefined,
     description: video.description,
-    channelThumbnail: video.channel?.thumbnail?.url || video.channelThumbnail,
+    channelThumbnail: (video.channel as any)?.thumbnail?.url || video.channelThumbnail,
     channelHandle: video.channel?.handle || video.channelHandle,
     quality: video.quality,
     isLive: video.isLive,
@@ -84,14 +88,15 @@ export function toVideoCardData(video: any): VideoCardData {
   // Fallback - try to create VideoCardData from generic object
   return {
     videoId: video.videoId || video.id,
+    id: video.id,
     title: video.title || 'Unknown Title',
     channelName: video.channelName || 'Unknown Channel',
-    thumbnail: typeof video.thumbnail === 'string' ? video.thumbnail : video.thumbnail?.url || '',
-    duration: typeof video.duration === 'number' ? String(video.duration) : video.duration,
-    viewCount: typeof video.viewCount === 'string' ? parseInt(video.viewCount) : video.viewCount,
-    publishedAt: video.publishedAt,
+    thumbnail: (video.thumbnail as string) || (video.thumbnail as any)?.url || '',
+    duration: typeof video.duration === 'string' ? video.duration : undefined,
+    viewCount: typeof video.viewCount === 'number' ? video.viewCount : undefined,
+    publishedAt: video.publishedAt || undefined,
     description: video.description,
-    channelThumbnail: video.channel?.thumbnail?.url || video.channelThumbnail,
+    channelThumbnail: (video.channel as any)?.thumbnail?.url || video.channelThumbnail,
     channelHandle: video.channel?.handle || video.channelHandle,
     quality: video.quality,
     isLive: video.isLive,

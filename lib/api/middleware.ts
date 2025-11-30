@@ -1,6 +1,63 @@
 import { NextRequest, NextResponse } from 'next/server'
-export { RateLimitConfig, RateLimitResult, ApiContext, ApiError, ApiResponse } from './types'
 import { AppError, ErrorUtils } from '@/lib/errors'
+
+// Type definitions
+export interface RateLimitConfig {
+  windowMs: number
+  max: number
+  message?: string
+  standardHeaders?: boolean
+  legacyHeaders?: boolean
+}
+
+export interface RateLimitResult {
+  success: boolean
+  limit: number
+  remaining: number
+  resetTime: Date
+  retryAfter?: number
+}
+
+export interface ApiContext {
+  request: Request
+  response: Response
+  startTime: number
+  requestId: string
+  ip: string
+  userAgent?: string
+  method: string
+  url: string
+  path: string
+  query: Record<string, string>
+  headers: Record<string, string>
+}
+
+export interface ApiError {
+  code: string
+  message: string
+  details?: any
+  timestamp: string
+  requestId: string
+  path: string
+  method: string
+}
+
+export interface ApiResponse<T = any> {
+  success: boolean
+  data?: T
+  error?: ApiError
+  meta?: {
+    requestId: string
+    timestamp: string
+    version: string
+    pagination?: {
+      page: number
+      limit: number
+      total: number
+      hasMore: boolean
+    }
+  }
+}
 
 // In-memory metrics store (for production, consider Redis)
 const metricsStore = {

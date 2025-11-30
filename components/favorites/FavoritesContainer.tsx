@@ -43,6 +43,8 @@ export function FavoritesContainer({ className = '', onVideoPlay }: FavoritesCon
       duration: favorite.duration,
       viewCount: favorite.viewCount,
       publishedAt: null, // Favorite videos don't have publishedAt
+      addedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       description: ''
     }
     

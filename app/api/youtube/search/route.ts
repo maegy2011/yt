@@ -317,7 +317,7 @@ export async function GET(request: NextRequest) {
           thumbnail: extractThumbnail(itemRecord.thumbnails as YouTubeThumbnails | string | undefined).url,
           videoCount: videoCount || 0,
           viewCount: itemRecord.viewCount as string | number | undefined,
-          lastUpdatedAt: undefined, // Remove this field as it's not in the interface
+          // lastUpdatedAt field removed as it's not in the interface
           channel: channelInfo
         }
       }
@@ -390,7 +390,7 @@ export async function GET(request: NextRequest) {
           thumbnail: extractThumbnail(itemRecord.thumbnails as YouTubeThumbnails | string | undefined).url,
           videoCount: videoCount || 0,
           viewCount: itemRecord.viewCount as string | number | undefined,
-          lastUpdatedAt: undefined, // Remove this field as it's not in the interface
+          // lastUpdatedAt field removed as it's not in the interface
           channel: channelInfo
         }
       }
