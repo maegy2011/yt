@@ -218,7 +218,7 @@ export function WatchedHistoryContainer({ onVideoPlay }: WatchedHistoryContainer
                 className="px-3 py-2 text-sm border rounded-md bg-background hover:bg-muted/50 transition-colors min-w-[150px]"
               >
                 <option value="all">All Channels</option>
-                {uniqueChannels.slice(0, 5).map(channel => (
+                {uniqueChannels.map(channel => (
                   <option key={channel} value={channel}>{channel}</option>
                 ))}
               </select>

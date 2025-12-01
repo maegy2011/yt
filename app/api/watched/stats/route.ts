@@ -48,10 +48,7 @@ export async function GET() {
         : 0
     }
     
-    return NextResponse.json({
-      videos: watchedVideos,
-      stats
-    })
+    return NextResponse.json(stats)
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch watched history stats' }, { status: 500 })
   }

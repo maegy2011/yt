@@ -10,12 +10,10 @@ import {
   Shield, 
   Play, 
   Database, 
-  Zap,
   ChevronRight,
   Sun,
   Moon,
-  Volume2,
-  Wifi,
+  Monitor,
   HardDrive
 } from 'lucide-react'
 import {
@@ -35,10 +33,8 @@ export function QuickSettings({ className }: QuickSettingsProps) {
   const { toast } = useToast()
   const [settings, setSettings] = useState({
     theme: 'system',
-    volume: 70,
     autoPlay: true,
-    dataSaver: false,
-    notifications: true
+    showThumbnails: true
   })
 
   const updateSetting = (key: string, value: any) => {
@@ -71,25 +67,16 @@ export function QuickSettings({ className }: QuickSettingsProps) {
       }
     },
     {
-      icon: <Volume2 className="h-4 w-4" />,
-      label: 'Volume',
-      value: `${settings.volume}%`,
-      action: () => {
-        const newVolume = settings.volume >= 100 ? 0 : settings.volume + 10
-        updateSetting('volume', newVolume)
-      }
-    },
-    {
       icon: <Play className="h-4 w-4" />,
       label: 'Auto Play',
       value: settings.autoPlay ? 'On' : 'Off',
       action: () => updateSetting('autoPlay', !settings.autoPlay)
     },
     {
-      icon: <Wifi className="h-4 w-4" />,
-      label: 'Data Saver',
-      value: settings.dataSaver ? 'On' : 'Off',
-      action: () => updateSetting('dataSaver', !settings.dataSaver)
+      icon: <Monitor className="h-4 w-4" />,
+      label: 'Thumbnails',
+      value: settings.showThumbnails ? 'On' : 'Off',
+      action: () => updateSetting('showThumbnails', !settings.showThumbnails)
     }
   ]
 
@@ -169,15 +156,13 @@ export function SettingsStatus({ className }: SettingsStatusProps) {
   const [settings, setSettings] = useState({
     theme: 'system',
     autoPlay: true,
-    dataSaver: false,
-    notifications: true
+    showThumbnails: true
   })
 
   const statusItems = [
     { key: 'theme', label: 'Theme', value: settings.theme, icon: settings.theme === 'dark' ? Moon : Sun },
     { key: 'autoPlay', label: 'Auto Play', value: settings.autoPlay ? 'On' : 'Off', icon: Play },
-    { key: 'dataSaver', label: 'Data Saver', value: settings.dataSaver ? 'On' : 'Off', icon: Wifi },
-    { key: 'notifications', label: 'Notifications', value: settings.notifications ? 'On' : 'Off', icon: Shield }
+    { key: 'showThumbnails', label: 'Thumbnails', value: settings.showThumbnails ? 'On' : 'Off', icon: Monitor }
   ]
 
   return (

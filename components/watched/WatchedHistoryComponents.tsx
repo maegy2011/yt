@@ -45,7 +45,6 @@ export function WatchedVideoCard({
       onSelect={(videoId, selected) => onSelect(videoId)}
       onPlay={(videoCardData) => onPlay(video)}
       onRemove={onDelete}
-      showProgress={true}
     />
   )
 }

@@ -8,11 +8,9 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Input } from '@/components/ui/input'
+import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Slider } from '@/components/ui/slider'
 import { 
   Settings, 
   Loader2, 
@@ -20,50 +18,24 @@ import {
   Database,
   Shield,
   Sliders,
+  Palette,
+  Play,
   Eye,
   EyeOff,
-  Palette,
-  Volume2,
-  Play,
-  Search,
-  Globe,
-  Download,
-  Smartphone,
-  Monitor,
-  Zap,
-  Lock,
-  Unlock,
-  RefreshCw,
-  Info,
-  CheckCircle,
-  AlertTriangle,
-  Wifi,
-  WifiOff,
   Moon,
   Sun,
   MonitorIcon,
-  Tablet,
-  SmartphoneIcon,
+  Monitor,
   HardDrive,
-  Cloud,
-  CloudOff,
   Clock,
   History,
   FileText,
   Heart,
   Bell,
-  User,
-  Key,
-  Fingerprint,
   ChevronRight,
-  ExternalLink,
-  HelpCircle,
-  Bug,
-  Star,
-  MessageSquare,
-  Github,
-  Mail,
-  BarChart3
+  AlertTriangle,
+  RefreshCw,
+  CheckCircle
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { IncognitoToggleEnhanced } from '@/components/incognito-toggle-enhanced'
@@ -88,38 +60,17 @@ interface SettingsContainerProps {
 
 interface AppSettings {
   theme: 'light' | 'dark' | 'system'
-  language: string
   autoPlay: boolean
-  defaultVolume: number
-  defaultQuality: string
-  subtitlesEnabled: boolean
-  notificationsEnabled: boolean
   compactMode: boolean
   showThumbnails: boolean
-  dataSaver: boolean
-  autoDownload: boolean
-  searchHistory: boolean
-  watchHistory: boolean
-  analyticsEnabled: boolean
-  crashReports: boolean
-  cacheSize: number
-  bufferSize: number
-  preloadVideos: boolean
-  backgroundPlay: boolean
-  miniPlayer: boolean
-  gestureControls: boolean
-  doubleTapToSeek: boolean
-  swipeControls: boolean
-  autoplayRelated: boolean
   showRelatedVideos: boolean
   showComments: boolean
   showVideoStats: boolean
   rememberPosition: boolean
   loopVideos: boolean
   playbackSpeed: number
-  skipIntro: boolean
-  skipOutro: boolean
-  skipAds: boolean
+  searchHistory: boolean
+  watchHistory: boolean
   blacklistWhitelistVisibility: 'always' | 'hover' | 'hidden'
 }
 
@@ -143,38 +94,17 @@ export function SettingsContainerEnhanced({
   const [activeSettingsTab, setActiveSettingsTab] = useState('general')
   const [appSettings, setAppSettings] = useState<AppSettings>({
     theme: 'system',
-    language: 'en',
     autoPlay: true,
-    defaultVolume: 70,
-    defaultQuality: 'auto',
-    subtitlesEnabled: false,
-    notificationsEnabled: true,
     compactMode: false,
     showThumbnails: true,
-    dataSaver: false,
-    autoDownload: false,
-    searchHistory: true,
-    watchHistory: true,
-    analyticsEnabled: false,
-    crashReports: true,
-    cacheSize: 500,
-    bufferSize: 10,
-    preloadVideos: true,
-    backgroundPlay: true,
-    miniPlayer: true,
-    gestureControls: true,
-    doubleTapToSeek: true,
-    swipeControls: true,
-    autoplayRelated: false,
     showRelatedVideos: true,
     showComments: true,
     showVideoStats: true,
     rememberPosition: true,
     loopVideos: false,
     playbackSpeed: 1.0,
-    skipIntro: false,
-    skipOutro: false,
-    skipAds: false,
+    searchHistory: true,
+    watchHistory: true,
     blacklistWhitelistVisibility: 'always'
   })
 
@@ -244,38 +174,17 @@ export function SettingsContainerEnhanced({
     if (window.confirm('Are you sure you want to reset all settings to default values?')) {
       const defaultSettings: AppSettings = {
         theme: 'system',
-        language: 'en',
         autoPlay: true,
-        defaultVolume: 70,
-        defaultQuality: 'auto',
-        subtitlesEnabled: false,
-        notificationsEnabled: true,
         compactMode: false,
         showThumbnails: true,
-        dataSaver: false,
-        autoDownload: false,
-        searchHistory: true,
-        watchHistory: true,
-        analyticsEnabled: false,
-        crashReports: true,
-        cacheSize: 500,
-        bufferSize: 10,
-        preloadVideos: true,
-        backgroundPlay: true,
-        miniPlayer: true,
-        gestureControls: true,
-        doubleTapToSeek: true,
-        swipeControls: true,
-        autoplayRelated: false,
         showRelatedVideos: true,
         showComments: true,
         showVideoStats: true,
         rememberPosition: true,
         loopVideos: false,
         playbackSpeed: 1.0,
-        skipIntro: false,
-        skipOutro: false,
-        skipAds: false,
+        searchHistory: true,
+        watchHistory: true,
         blacklistWhitelistVisibility: 'always'
       }
       setAppSettings(defaultSettings)
@@ -286,15 +195,7 @@ export function SettingsContainerEnhanced({
     }
   }
 
-  const getStorageUsage = () => {
-    const total = favoriteChannels.length + favoriteVideos.length
-    const maxStorage = 1000 // Assumed max items
-    return (total / maxStorage) * 100
-  }
-
-  const getCacheUsage = () => {
-    return (appSettings.cacheSize / 1000) * 100
-  }
+  
 
   return (
     <div className="h-full bg-background">
@@ -338,14 +239,6 @@ export function SettingsContainerEnhanced({
                 <Play className="w-4 h-4" />
                 <span className="hidden sm:inline">Playback</span>
               </TabsTrigger>
-              <TabsTrigger value="data" className="flex items-center gap-2 px-3 py-2">
-                <Database className="w-4 h-4" />
-                <span className="hidden sm:inline">Data</span>
-              </TabsTrigger>
-              <TabsTrigger value="advanced" className="flex items-center gap-2 px-3 py-2">
-                <Zap className="w-4 h-4" />
-                <span className="hidden sm:inline">Advanced</span>
-              </TabsTrigger>
             </TabsList>
           </ScrollArea>
         </div>
@@ -355,76 +248,6 @@ export function SettingsContainerEnhanced({
             {/* General Settings Tab */}
             <TabsContent value="general" className="space-y-6 mt-0">
               <div className="grid gap-6">
-                {/* Language & Region */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Globe className="w-5 h-5" />
-                      Language & Region
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="language">Language</Label>
-                        <Select value={appSettings.language} onValueChange={(value: string) => updateSetting('language', value)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select language" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="en">English</SelectItem>
-                            <SelectItem value="es">Español</SelectItem>
-                            <SelectItem value="fr">Français</SelectItem>
-                            <SelectItem value="de">Deutsch</SelectItem>
-                            <SelectItem value="ja">日本語</SelectItem>
-                            <SelectItem value="ko">한국어</SelectItem>
-                            <SelectItem value="zh">中文</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="region">Content Region</Label>
-                        <Select defaultValue="US">
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select region" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="US">United States</SelectItem>
-                            <SelectItem value="GB">United Kingdom</SelectItem>
-                            <SelectItem value="CA">Canada</SelectItem>
-                            <SelectItem value="AU">Australia</SelectItem>
-                            <SelectItem value="IN">India</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Notifications */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Bell className="w-5 h-5" />
-                      Notifications
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Push Notifications</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Receive notifications for new videos and updates
-                        </p>
-                      </div>
-                      <Switch
-                        checked={appSettings.notificationsEnabled}
-                        onCheckedChange={(checked) => updateSetting('notificationsEnabled', checked)}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-
                 {/* Content Preferences */}
                 <Card>
                   <CardHeader>
@@ -659,42 +482,6 @@ export function SettingsContainerEnhanced({
                   </CardContent>
                 </Card>
 
-                {/* Analytics */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart3 className="w-5 h-5" />
-                      Analytics & Reporting
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Usage Analytics</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Help improve MyTube by sharing usage data
-                        </p>
-                      </div>
-                      <Switch
-                        checked={appSettings.analyticsEnabled}
-                        onCheckedChange={(checked) => updateSetting('analyticsEnabled', checked)}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Crash Reports</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Automatically send crash reports to help fix issues
-                        </p>
-                      </div>
-                      <Switch
-                        checked={appSettings.crashReports}
-                        onCheckedChange={(checked) => updateSetting('crashReports', checked)}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-
                 {/* Incognito Mode */}
                 <Card>
                   <CardHeader>
@@ -738,60 +525,11 @@ export function SettingsContainerEnhanced({
             {/* Playback Tab */}
             <TabsContent value="playback" className="space-y-6 mt-0">
               <div className="grid gap-6">
-                {/* Video Quality */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Play className="w-5 h-5" />
-                      Video Quality
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Default Quality</Label>
-                      <Select value={appSettings.defaultQuality} onValueChange={(value: string) => updateSetting('defaultQuality', value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select quality" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="auto">Auto</SelectItem>
-                          <SelectItem value="1080p">1080p HD</SelectItem>
-                          <SelectItem value="720p">720p HD</SelectItem>
-                          <SelectItem value="480p">480p</SelectItem>
-                          <SelectItem value="360p">360p</SelectItem>
-                          <SelectItem value="240p">240p</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Default Volume: {appSettings.defaultVolume}%</Label>
-                      <Slider
-                        value={[appSettings.defaultVolume]}
-                        onValueChange={([value]) => updateSetting('defaultVolume', value)}
-                        max={100}
-                        step={5}
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Playback Speed: {appSettings.playbackSpeed}x</Label>
-                      <Slider
-                        value={[appSettings.playbackSpeed]}
-                        onValueChange={([value]) => updateSetting('playbackSpeed', value)}
-                        min={0.25}
-                        max={2}
-                        step={0.25}
-                        className="w-full"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-
                 {/* Playback Features */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Zap className="w-5 h-5" />
+                      <Play className="w-5 h-5" />
                       Playback Features
                     </CardTitle>
                   </CardHeader>
@@ -820,327 +558,16 @@ export function SettingsContainerEnhanced({
                         onCheckedChange={(checked) => updateSetting('loopVideos', checked)}
                       />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Background Play</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Continue playing audio when app is in background
-                        </p>
-                      </div>
-                      <Switch
-                        checked={appSettings.backgroundPlay}
-                        onCheckedChange={(checked) => updateSetting('backgroundPlay', checked)}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Mini Player</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Show mini player for background playback
-                        </p>
-                      </div>
-                      <Switch
-                        checked={appSettings.miniPlayer}
-                        onCheckedChange={(checked) => updateSetting('miniPlayer', checked)}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Subtitles */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="w-5 h-5" />
-                      Subtitles & Captions
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Enable Subtitles</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Show subtitles by default when available
-                        </p>
-                      </div>
-                      <Switch
-                        checked={appSettings.subtitlesEnabled}
-                        onCheckedChange={(checked) => updateSetting('subtitlesEnabled', checked)}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* Data Tab */}
-            <TabsContent value="data" className="space-y-6 mt-0">
-              <div className="grid gap-6">
-                {/* Storage Usage */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <HardDrive className="w-5 h-5" />
-                      Storage Usage
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Storage Used</span>
-                        <span className="text-sm text-muted-foreground">
-                          {favoriteChannels.length + favoriteVideos.length} items
-                        </span>
-                      </div>
-                      <Progress value={getStorageUsage()} className="h-2" />
-                      <div className="text-xs text-muted-foreground">
-                        {getStorageUsage().toFixed(1)}% of storage used
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                      <div className="text-center p-3 bg-muted/50 rounded-lg">
-                        <div className="text-xl font-bold text-primary">{favoriteChannels.length}</div>
-                        <div className="text-xs text-muted-foreground">Channels</div>
-                      </div>
-                      <div className="text-center p-3 bg-muted/50 rounded-lg">
-                        <div className="text-xl font-bold text-primary">{favoriteVideos.length}</div>
-                        <div className="text-xs text-muted-foreground">Videos</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Cache Management */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Database className="w-5 h-5" />
-                      Cache Management
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label>Cache Size: {appSettings.cacheSize}MB</Label>
+                      <Label>Playback Speed: {appSettings.playbackSpeed}x</Label>
                       <Slider
-                        value={[appSettings.cacheSize]}
-                        onValueChange={([value]) => updateSetting('cacheSize', value)}
-                        min={100}
-                        max={1000}
-                        step={50}
+                        value={[appSettings.playbackSpeed]}
+                        onValueChange={([value]) => updateSetting('playbackSpeed', value)}
+                        min={0.25}
+                        max={2}
+                        step={0.25}
                         className="w-full"
                       />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Buffer Size: {appSettings.bufferSize}MB</Label>
-                      <Slider
-                        value={[appSettings.bufferSize]}
-                        onValueChange={([value]) => updateSetting('bufferSize', value)}
-                        min={5}
-                        max={50}
-                        step={5}
-                        className="w-full"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Data Saver Mode</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Reduce data usage by lowering quality
-                        </p>
-                      </div>
-                      <Switch
-                        checked={appSettings.dataSaver}
-                        onCheckedChange={(checked) => updateSetting('dataSaver', checked)}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Preload Videos</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Preload next video for smoother playback
-                        </p>
-                      </div>
-                      <Switch
-                        checked={appSettings.preloadVideos}
-                        onCheckedChange={(checked) => updateSetting('preloadVideos', checked)}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Data Statistics */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <BarChart3 className="w-5 h-5" />
-                      Data Statistics
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {dataStatistics && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {Object.entries(dataStatistics).map(([key, value]) => (
-                          <div key={key} className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
-                            <span className="text-sm font-medium capitalize">
-                              {key.replace(/([A-Z])/g, ' $1').trim()}
-                            </span>
-                            <span className="font-mono text-sm">{String(value)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* Advanced Tab */}
-            <TabsContent value="advanced" className="space-y-6 mt-0">
-              <div className="grid gap-6">
-                {/* Experimental Features */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Zap className="w-5 h-5" />
-                      Experimental Features
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Gesture Controls</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Enable touch gestures for video control
-                        </p>
-                      </div>
-                      <Switch
-                        checked={appSettings.gestureControls}
-                        onCheckedChange={(checked) => updateSetting('gestureControls', checked)}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Double Tap to Seek</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Double tap left/right to seek backward/forward
-                        </p>
-                      </div>
-                      <Switch
-                        checked={appSettings.doubleTapToSeek}
-                        onCheckedChange={(checked) => updateSetting('doubleTapToSeek', checked)}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Swipe Controls</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Swipe to adjust volume and brightness
-                        </p>
-                      </div>
-                      <Switch
-                        checked={appSettings.swipeControls}
-                        onCheckedChange={(checked) => updateSetting('swipeControls', checked)}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Video Enhancements */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Star className="w-5 h-5" />
-                      Video Enhancements
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Skip Intros</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Automatically skip video intros when available
-                        </p>
-                      </div>
-                      <Switch
-                        checked={appSettings.skipIntro}
-                        onCheckedChange={(checked) => updateSetting('skipIntro', checked)}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Skip Outros</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Automatically skip video outros when available
-                        </p>
-                      </div>
-                      <Switch
-                        checked={appSettings.skipOutro}
-                        onCheckedChange={(checked) => updateSetting('skipOutro', checked)}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Skip Ads</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Automatically skip sponsored segments
-                        </p>
-                      </div>
-                      <Switch
-                        checked={appSettings.skipAds}
-                        onCheckedChange={(checked) => updateSetting('skipAds', checked)}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Danger Zone */}
-                <Card className="border-destructive/20">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-destructive">
-                      <AlertTriangle className="w-5 h-5" />
-                      Danger Zone
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Alert>
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>
-                        These actions are irreversible and will permanently delete your data.
-                      </AlertDescription>
-                    </Alert>
-
-                    <div className="space-y-3">
-                      <Button
-                        variant="outline"
-                        onClick={handleResetSettings}
-                        className="w-full justify-start"
-                      >
-                        <RefreshCw className="w-4 h-4 mr-2" />
-                        Reset All Settings
-                      </Button>
-                      
-                      <Button
-                        variant="destructive"
-                        onClick={handleClearAllData}
-                        disabled={loading || (
-                          favoriteChannels.length === 0 && 
-                          (favoritesEnabled ? favoriteVideos.length : 0) === 0
-                        )}
-                        className="w-full justify-start"
-                      >
-                        {loading ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Clearing Data...
-                          </>
-                        ) : (
-                          <>
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Clear All Data
-                          </>
-                        )}
-                      </Button>
                     </div>
                   </CardContent>
                 </Card>
