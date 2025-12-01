@@ -94,7 +94,13 @@ export function NoteEditor({ isOpen, onClose, onSave, note, videoData, mode }: N
   const handlePlayClip = () => {
     if (backgroundVideo) {
       seekTo(startTime?.[0] || 0)
-      playBackgroundVideo()
+      if (isBackgroundPlaying) {
+        // If already playing, just seek to the start time
+        seekTo(startTime?.[0] || 0)
+      } else {
+        // If not playing, start playing the current video
+        playBackgroundVideo(backgroundVideo)
+      }
       setIsPlaying(true)
     }
   }

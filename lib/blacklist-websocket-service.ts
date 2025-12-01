@@ -353,34 +353,77 @@ export class BlacklistWebSocketService {
 
   // Get statistics for a specific type
   private async getTypeStats(type: 'blacklist' | 'whitelist') {
-    const model = type === 'blacklist' ? db.blacklistedItem : db.whitelistedItem
-    
-    const [total, recent] = await Promise.all([
-      model.count(),
-      (model.count as any)({
-        where: {
-          addedAt: {
-            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // Last 7 days
+    try {
+      if (type === 'blacklist') {
+        // Get total count
+        const total = await db.blacklistedItem.count()
+        
+        // Get recent count (last 7 days)
+        const recentDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        const recent = await db.blacklistedItem.count({
+          where: {
+            addedAt: {
+              gte: recentDate
+            }
           }
+        })
+        
+        // Get type statistics using a simpler approach
+        const allItems = await db.blacklistedItem.findMany({
+          select: {
+            type: true
+          }
+        })
+        
+        const byType = allItems.reduce((acc, item) => {
+          const itemType = item.type || 'unknown'
+          acc[itemType] = (acc[itemType] || 0) + 1
+          return acc
+        }, {} as Record<string, number>)
+
+        return {
+          total,
+          recent,
+          byType
         }
-      })
-    ])
-    
-    // Simplified type stats
-    const typeStats = await (model.groupBy as any)({
-      by: ['type'],
-      _count: true
-    })
+      } else {
+        // Whitelist logic
+        const total = await db.whitelistedItem.count()
+        
+        const recentDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        const recent = await db.whitelistedItem.count({
+          where: {
+            addedAt: {
+              gte: recentDate
+            }
+          }
+        })
+        
+        const allItems = await db.whitelistedItem.findMany({
+          select: {
+            type: true
+          }
+        })
+        
+        const byType = allItems.reduce((acc, item) => {
+          const itemType = item.type || 'unknown'
+          acc[itemType] = (acc[itemType] || 0) + 1
+          return acc
+        }, {} as Record<string, number>)
 
-    const byType = typeStats.reduce((acc, stat) => {
-      acc[stat.type] = stat._count.all
-      return acc
-    }, {} as Record<string, number>)
-
-    return {
-      total,
-      recent,
-      byType
+        return {
+          total,
+          recent,
+          byType
+        }
+      }
+    } catch (error) {
+      // Error getting type stats
+      return {
+        total: 0,
+        recent: 0,
+        byType: {}
+      }
     }
   }
 

@@ -8,23 +8,20 @@ const DATABASE_CONFIG = {
     }
   },
   log: process.env.NODE_ENV === 'development' 
-    ? ['query', 'info', 'warn', 'error']
-    : ['warn', 'error'],
+    ? ['query' as const, 'info' as const, 'warn' as const, 'error' as const]
+    : ['warn' as const, 'error' as const],
   __internal: {
     engine: {
       connectionLimit: 10, // Maximum number of connections
       poolTimeout: 10000,   // Connection timeout in ms
       connectTimeout: 10000, // Initial connection timeout
     },
-  },
-  transactionOptions: {
-    timeout: 10000, // Transaction timeout in ms
-    isolationLevel: 'ReadCommitted' // Balance between consistency and performance
   }
 }
 
 // Create a singleton Prisma client instance that works in Next.js
 let prismaClient: PrismaClient | null = null
+let eventListenersAdded = false
 
 function getPrismaClient(): PrismaClient {
   if (!prismaClient) {
@@ -32,10 +29,19 @@ function getPrismaClient(): PrismaClient {
     const databaseUrl = process.env.DATABASE_URL || 'file:./db/custom.db'
     // Console statement removed
     
-    prismaClient = new PrismaClient(DATABASE_CONFIG)
+    prismaClient = new PrismaClient({
+      datasources: {
+        db: {
+          url: databaseUrl
+        }
+      },
+      log: process.env.NODE_ENV === 'development' 
+        ? ['query', 'info', 'warn', 'error']
+        : ['warn', 'error']
+    })
     
-    // Graceful shutdown handling
-    if (typeof window === 'undefined') {
+    // Graceful shutdown handling - add listeners only once
+    if (typeof window === 'undefined' && !eventListenersAdded) {
       process.on('beforeExit', async () => {
         await prismaClient?.$disconnect()
       })
@@ -47,6 +53,7 @@ function getPrismaClient(): PrismaClient {
         await prismaClient?.$disconnect()
         process.exit(0)
       })
+      eventListenersAdded = true
     }
   }
   return prismaClient

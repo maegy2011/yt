@@ -8,7 +8,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id: notebookId } = await params
+  try {
+    const { id: notebookId } = await params
     const formData = await request.formData()
     const files = formData.getAll('files') as File[]
 
@@ -98,7 +99,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id: notebookId } = await params
+  try {
+    const { id: notebookId } = await params
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')
 

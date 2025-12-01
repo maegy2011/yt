@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { 
@@ -37,28 +37,36 @@ export function SearchResultsFilterEnhanced({
   const [blacklistedItems, setBlacklistedItems] = useState<BlacklistedItemType[]>([])
   const [whitelistedItems, setWhitelistedItems] = useState<WhitelistedItemType[]>([])
 
+  // Fetch blacklist/whitelist data
+  const fetchData = useCallback(async () => {
+    try {
+      const [blacklistedResponse, whitelistedResponse] = await Promise.all([
+        fetch('/api/blacklist'),
+        fetch('/api/whitelist')
+      ])
+      
+      const [blacklisted, whitelisted] = await Promise.all([
+        blacklistedResponse.json(),
+        whitelistedResponse.json()
+      ])
+      
+      setBlacklistedItems(blacklisted.items || [])
+      setWhitelistedItems(whitelisted.items || [])
+      
+      // Call parent callbacks with server-generated data
+      onBlacklistChange?.(blacklisted.items || [])
+      onWhitelistChange?.(whitelisted.items || [])
+    } catch (err) {
+      // Error fetching blacklist/whitelist data
+      setBlacklistedItems([])
+      setWhitelistedItems([])
+    }
+  }, [onBlacklistChange, onWhitelistChange])
+
   // Fetch blacklist/whitelist data on mount
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [blacklisted, whitelisted] = await Promise.all([
-          BlacklistManager.fetchBlacklistedItems(),
-          BlacklistManager.fetchWhitelistedItems()
-        ])
-        
-        setBlacklistedItems(blacklisted)
-        setWhitelistedItems(whitelisted)
-        
-        // Call parent callbacks with server-generated data
-        onBlacklistChange?.(blacklisted)
-        onWhitelistChange?.(whitelisted)
-      } catch (err) {
-        console.error('Failed to fetch blacklist/whitelist data:', err)
-      }
-    }
-
     fetchData()
-  }, [])
+  }, [fetchData])
 
   // Filter items based on search type
   const filteredItems = items.filter(item => {
@@ -71,14 +79,14 @@ export function SearchResultsFilterEnhanced({
   })
 
   // Add search result items to blacklist/whitelist
-  const addSearchResultToBlacklist = async (item: any) => {
+  const addSearchResultToBlacklist = useCallback(async (item: any) => {
     const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
     if (itemType === 'unknown') return
     
     const itemId = 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId
     
     const blacklistItem: BlacklistedItemType = {
-      id: `temp-${Date.now()}`, // Temporary ID
+      id: `bl-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // More unique ID
       itemId,
       title: item.title || item.channelName || 'Unknown',
       type: itemType,
@@ -88,7 +96,13 @@ export function SearchResultsFilterEnhanced({
       updatedAt: new Date().toISOString()
     }
     
-    const success = await BlacklistManager.addToBlacklist(blacklistItem)
+    const response = await fetch('/api/blacklist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(blacklistItem)
+    })
+    
+    const success = response.ok
     if (success) {
       // Refresh lists from database to get server-generated data
       await fetchData()
@@ -96,16 +110,16 @@ export function SearchResultsFilterEnhanced({
     
     // Also call parent callback to update main app state
     onAddToBlacklist?.(blacklistItem as BlacklistedItemType)
-  }
+  }, [fetchData, onAddToBlacklist])
 
-  const addSearchResultToWhitelist = async (item: any) => {
+  const addSearchResultToWhitelist = useCallback(async (item: any) => {
     const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
     if (itemType === 'unknown') return
     
     const itemId = 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId
     
     const whitelistItem: WhitelistedItemType = {
-      id: `temp-${Date.now()}`, // Temporary ID
+      id: `wl-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // More unique ID
       itemId,
       title: item.title || item.channelName || 'Unknown',
       type: itemType,
@@ -115,7 +129,13 @@ export function SearchResultsFilterEnhanced({
       updatedAt: new Date().toISOString()
     }
     
-    const success = await BlacklistManager.addToWhitelist(whitelistItem)
+    const response = await fetch('/api/whitelist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(whitelistItem)
+    })
+    
+    const success = response.ok
     if (success) {
       // Refresh lists from database to get server-generated data
       await fetchData()
@@ -123,24 +143,28 @@ export function SearchResultsFilterEnhanced({
     
     // Also call parent callback to update main app state
     onAddToWhitelist?.(whitelistItem as WhitelistedItemType)
-  }
+  }, [fetchData, onAddToWhitelist])
 
-  const isItemBlacklisted = (item: any) => {
+  const isItemBlacklisted = useCallback((item: any) => {
+    const itemId = 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId
     return blacklistedItems.some(blacklistedItem => 
-      blacklistedItem.itemId === ('videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId)
+      blacklistedItem.itemId === itemId
     )
-  }
+  }, [blacklistedItems])
 
-  const isItemWhitelisted = (item: any) => {
+  const isItemWhitelisted = useCallback((item: any) => {
+    const itemId = 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId
     return whitelistedItems.some(whitelistedItem => 
-      whitelistedItem.itemId === ('videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId)
+      whitelistedItem.itemId === itemId
     )
-  }
+  }, [whitelistedItems])
 
   // Auto-collapse on mobile after selection
-  if (window.innerWidth < 768) {
-    setIsExpanded(false)
-  }
+  useEffect(() => {
+    if (window.innerWidth < 768) {
+      setIsExpanded(false)
+    }
+  }, [])
   
   return (
     <div className={`w-full space-y-4 ${className}`}>

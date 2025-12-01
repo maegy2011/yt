@@ -419,7 +419,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       setNetworkStatus(isOnline ? 'online' : 'offline')
       return isOnline
     } catch (error) {
-      console.warn('Network connectivity check failed:', error)
+      // Network connectivity check failed, setting offline status
       setNetworkStatus('offline')
       // Don't throw error, just return false
       return false
@@ -465,7 +465,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
           // On subsequent attempts, check connectivity
           const isConnected = await checkNetworkConnectivity()
           if (!isConnected) {
-            console.warn('Network connectivity issue detected, skipping further retries')
+            // Network connectivity issue detected, skipping further retries
             throw new Error('Network connectivity issue detected')
           }
         }
@@ -853,7 +853,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
     }
     
-    // Final fallback - return a placeholder
+    // Final fallback - return a generic video thumbnail
     return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDMyMCAxODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMjAiIGhlaWdodD0iMTgwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNjAgOTBDMTYwIDY5LjMwMDQgMTQzLjY5NiA1MyAxMjMgNTNIMTk3Qzc2LjMwMDQgNTMgNjAgNjkuMzAwNCA2MCA5MEM2MCAxMTAuNjk2IDc2LjMwMDQgMTI3IDk3IDEyN0gxMjNDMTQzLjY5NiAxMjcgMTYwIDExMC42OTYgMTYwIDkwWiIgZmlsbD0iI0Q1REJEQiIvPgo8Y2lyY2xlIGN4PSI5MCIgY3k9IjkwIiByPSIxNSIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K'
   }, [])
 
@@ -2837,7 +2837,12 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                   className="w-12 h-12 rounded-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement
-                    target.src = `https://via.placeholder.com/48x48/374151/ffffff?text=${encodeURIComponent(channel.name[0] || '?')}`
+                    // Generate a simple colored circle with channel initial
+                    const initial = channel.name ? channel.name.charAt(0).toUpperCase() : '?'
+                    target.src = `data:image/svg+xml;base64,${btoa(`
+                      <svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="24" cy="24" r="24" fill="#374151"/>
+                    `)}`
                   }}
                 />
               </div>
@@ -2920,7 +2925,13 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement
-                  target.src = `https://via.placeholder.com/320x180/1f2937/ffffff?text=Playlist`
+                  // Generate a simple playlist placeholder
+                  target.src = `data:image/svg+xml;base64,${btoa(`
+                    <svg width="320" height="180" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="320" height="180" fill="#374151"/>
+                      <text x="160" y="90" text-anchor="middle" dominant-baseline="middle" fill="white" font-family="Arial" font-size="16" font-weight="bold">PLAYLIST</text>
+                    </svg>
+                  `)}`
                 }}
               />
               
@@ -3258,7 +3269,13 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                   className="w-16 h-10 object-cover rounded-md"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement
-                    target.src = `https://via.placeholder.com/64x40/374151/ffffff?text=Video`
+                    // Generate a simple video placeholder
+                    target.src = `data:image/svg+xml;base64,${btoa(`
+                      <svg width="64" height="40" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="64" height="40" fill="#374151"/>
+                        <text x="32" y="20" text-anchor="middle" dominant-baseline="middle" fill="white" font-family="Arial" font-size="10" font-weight="bold">VIDEO</text>
+                      </svg>
+                    `)}`
                   }}
                 />
               </div>
@@ -3393,7 +3410,13 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                     className="w-20 h-12 object-cover rounded-md"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement
-                      target.src = `https://via.placeholder.com/80x48/374151/ffffff?text=Video`
+                      // Generate a simple video placeholder
+                      target.src = `data:image/svg+xml;base64,${btoa(`
+                        <svg width="80" height="48" viewBox="0 0 80 48" xmlns="http://www.w3.org/2000/svg">
+                          <rect width="80" height="48" fill="#374151"/>
+                          <text x="40" y="24" text-anchor="middle" dominant-baseline="middle" fill="white" font-family="Arial" font-size="12" font-weight="bold">VIDEO</text>
+                        </svg>
+                      `)}`
                     }}
                   />
                   {video.duration && (
@@ -3543,10 +3566,10 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                   <Input
                     placeholder={
                       searchQuery.trim().length < 2 
-                        ? "Type at least 2 characters to search..." 
+                        ? "Enter 2 or more characters to start searching..." 
                         : searchCountdown !== null
                         ? `Searching in ${searchCountdown}...`
-                        : "Searching will start automatically when you stop typing..."
+                        : "Ready to search - press Enter or click Search"
                     }
                     value={searchQuery}
                     onChange={handleSearchInputChange}
@@ -3776,8 +3799,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                         No Videos Found
                       </h3>
                       <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                        This playlist appears to be empty or the videos could not be loaded. 
-                        Try refreshing or check back later.
+                        This playlist appears to be empty or videos could not be loaded. Try refreshing or check the playlist URL.
                       </p>
                       <div className="flex gap-2 justify-center">
                         <Button
@@ -4076,7 +4098,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
             ) : (
               <div className="text-center py-12 text-muted-foreground">
                 <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">No Video Selected</p>
+                <p className="text-lg font-medium mb-2">Select a video from the search results to start watching</p>
                 <p>Search for videos from the Search tab, then select any video to start watching and creating notes</p>
               </div>
             )}
@@ -4203,7 +4225,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                     id="note-title"
                     value={updatedNoteTitle}
                     onChange={(e) => setUpdatedNoteTitle(e.target.value)}
-                    placeholder="Enter note title..."
+                    placeholder="Add a title that helps you remember this video's key points..."
                     className="w-full"
                   />
                 </div>
@@ -4227,7 +4249,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                     value={updatedNoteContent}
                     onChange={(e) => setUpdatedNoteContent(e.target.value)}
                     className="w-full min-h-[100px] p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                    placeholder="Enter your note content here..."
+                    placeholder="Write your thoughts, insights, and important timestamps here..."
                   />
                 </div>
                 
@@ -4288,7 +4310,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                 id="note-title"
                 value={newNote.title}
                 onChange={(e) => setNewNote(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Enter note title..."
+                placeholder="Create a memorable title for your note collection..."
                 className="w-full"
               />
             </div>
@@ -4302,7 +4324,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                 value={newNote.content}
                 onChange={(e) => setNewNote(prev => ({ ...prev, content: e.target.value }))}
                 className="w-full min-h-[120px] p-3 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="Enter your note content here..."
+                placeholder="Add detailed timestamps, insights, or key points from the video..."
               />
             </div>
             
@@ -4315,7 +4337,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                   id="video-title"
                   value={newNote.videoTitle}
                   onChange={(e) => setNewNote(prev => ({ ...prev, videoTitle: e.target.value }))}
-                  placeholder="Related video title..."
+                  placeholder="Enter the video title this note is related to..."
                   className="w-full"
                 />
               </div>
@@ -4328,7 +4350,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                   id="channel-name"
                   value={newNote.channelName}
                   onChange={(e) => setNewNote(prev => ({ ...prev, channelName: e.target.value }))}
-                  placeholder="Channel name..."
+                  placeholder="Optional: Add the channel name to better organize your notes..."
                   className="w-full"
                 />
               </div>
