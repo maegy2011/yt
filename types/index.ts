@@ -1,31 +1,60 @@
-// Unified type definitions for YouTube app
-// This file consolidates all type definitions to resolve conflicts
+/**
+ * Unified Type Definitions for MyTube Application
+ * 
+ * This file consolidates all type definitions to resolve conflicts and provide
+ * a consistent type system throughout the MyTube application.
+ * 
+ * Features:
+ * - Base video data structures
+ * - Favorites management types
+ * - Playlist and channel types
+ * - Notes and notebook types
+ * - Watch history types
+ * - Pagination and filtering types
+ * - Blacklist/whitelist types
+ * - Conversion utilities between different type systems
+ * - Video card data types
+ * 
+ * @author MyTube Team
+ * @version 2.0.0
+ */
 
+// Import YouTube API types for compatibility
 import type { Video as YouTubeVideo, Playlist as YouTubePlaylist } from '@/lib/youtube'
 
-// ==================== BASE VIDEO TYPES ====================
+// ============================================================================
+// BASE VIDEO TYPES
+// ============================================================================
 
+/**
+ * Base video data interface with core properties
+ * Provides foundation for all video-related types in the application
+ */
 export interface BaseVideoData {
-  id: string
-  videoId: string
-  title: string
-  channelName: string
-  thumbnail: string
-  duration?: string | number
-  viewCount?: number | string
-  publishedAt?: string | null
-  isLive?: boolean
-  description?: string
-  type?: 'video'
-  channel?: {
-    name: string
-    thumbnail?: string
-    handle?: string
+  id: string                    // Internal database ID
+  videoId: string              // YouTube video ID
+  title: string                 // Video title
+  channelName: string           // Channel name
+  thumbnail: string             // Video thumbnail URL
+  duration?: string | number    // Video duration (seconds or formatted string)
+  viewCount?: number | string   // View count
+  publishedAt?: string | null   // Publication date
+  isLive?: boolean             // Live stream indicator
+  description?: string          // Video description
+  type?: 'video'              // Content type identifier
+  channel?: {                  // Channel information
+    name: string               // Channel name
+    thumbnail?: string         // Channel thumbnail
+    handle?: string           // Channel handle
   }
   // Allow additional properties for flexibility
   [key: string]: any
 }
 
+/**
+ * Simple video interface extending base data
+ * Standard video type used throughout the application
+ */
 export interface SimpleVideo extends BaseVideoData {
   id: string
   videoId: string
@@ -40,109 +69,146 @@ export interface SimpleVideo extends BaseVideoData {
   type?: 'video'
 }
 
-// ==================== FAVORITE TYPES ====================
+// ============================================================================
+// FAVORITES TYPES
+// ============================================================================
 
+/**
+ * Favorite video interface for database storage
+ * Represents a video saved to user's favorites with metadata
+ */
 export interface FavoriteVideo {
-  id: string
-  videoId: string
-  title: string
-  channelName: string
-  thumbnail: string
-  duration?: string | number
-  viewCount?: string | number | undefined
-  addedAt: string
-  updatedAt: string
+  id: string                              // Database record ID
+  videoId: string                         // YouTube video ID
+  title: string                            // Video title
+  channelName: string                      // Channel name
+  thumbnail: string                        // Video thumbnail
+  duration?: string | number               // Video duration
+  viewCount?: string | number | undefined  // View count
+  addedAt: string                          // When added to favorites
+  updatedAt: string                         // Last update timestamp
+  
   // Optional properties that may not be in database
-  isPrivate?: boolean
-  tags?: string[]
-  category?: string
-  rating?: number
-  notes?: string
-  watchProgress?: number
+  isPrivate?: boolean                      // Private favorite flag
+  tags?: string[]                         // Associated tags
+  category?: string                       // Content category
+  rating?: number                         // User rating
+  notes?: string                           // User notes
+  watchProgress?: number                    // Watch progress percentage
+  
   // Allow additional properties for flexibility
   [key: string]: any
 }
 
+/**
+ * Favorite channel interface for database storage
+ * Represents a channel saved to user's favorites
+ */
 export interface FavoriteChannel {
-  id: string
-  channelId: string
-  name: string
-  thumbnail?: string
-  subscriberCount?: number | string
-  videoCount?: number
-  viewCount?: number
-  addedAt: string
-  updatedAt: string
-  isFavorite?: boolean
-  handle?: string
+  id: string                              // Database record ID
+  channelId: string                        // YouTube channel ID
+  name: string                             // Channel name
+  thumbnail?: string                        // Channel thumbnail
+  subscriberCount?: number | string        // Subscriber count
+  videoCount?: number                       // Video count
+  viewCount?: number                       // Channel view count
+  addedAt: string                          // When added to favorites
+  updatedAt: string                         // Last update timestamp
+  isFavorite?: boolean                     // Favorite status
+  handle?: string                          // Channel handle
+  
   // Allow additional properties for flexibility
   [key: string]: any
 }
 
+/**
+ * Request interface for creating new favorite
+ * Defines required and optional data for adding favorites
+ */
 export interface CreateFavoriteRequest {
-  videoId: string
-  title: string
-  channelName: string
-  thumbnail?: string
-  duration?: string
-  viewCount?: number
-  isPrivate?: boolean
-  tags?: string[]
-  category?: string
-  rating?: number
-  notes?: string
+  videoId: string                         // YouTube video ID (required)
+  title: string                            // Video title (required)
+  channelName: string                      // Channel name (required)
+  thumbnail?: string                        // Video thumbnail (optional)
+  duration?: string                        // Video duration (optional)
+  viewCount?: number                       // View count (optional)
+  isPrivate?: boolean                      // Private favorite flag (optional)
+  tags?: string[]                         // Associated tags (optional)
+  category?: string                       // Content category (optional)
+  rating?: number                         // User rating (optional)
+  notes?: string                           // User notes (optional)
 }
 
+/**
+ * Request interface for updating existing favorite
+ * Defines updatable fields for favorite modification
+ */
 export interface UpdateFavoriteRequest {
-  isPrivate?: boolean
-  tags?: string[]
-  category?: string
-  rating?: number
-  notes?: string
-  watchProgress?: number
+  isPrivate?: boolean                      // Private favorite flag
+  tags?: string[]                         // Associated tags
+  category?: string                       // Content category
+  rating?: number                         // User rating
+  notes?: string                           // User notes
+  watchProgress?: number                    // Watch progress percentage
 }
 
+/**
+ * Filter options for favorites search and display
+ * Provides comprehensive filtering capabilities
+ */
 export interface FavoriteFilters {
-  searchQuery?: string
-  channelName?: string
-  isPrivate?: boolean
-  tags?: string[]
-  category?: string
-  rating?: number
-  dateRange?: {
-    start: string
-    end: string
+  searchQuery?: string                     // Text search query
+  channelName?: string                     // Filter by channel name
+  isPrivate?: boolean                      // Filter by private status
+  tags?: string[]                         // Filter by tags
+  category?: string                       // Filter by category
+  rating?: number                         // Filter by rating
+  dateRange?: {                           // Date range filter
+    start: string                         // Start date
+    end: string                           // End date
   }
-  durationRange?: {
-    min: number
-    max: number
+  durationRange?: {                        // Duration range filter
+    min: number                          // Minimum duration
+    max: number                          // Maximum duration
   }
 }
 
+/**
+ * Sorting options for favorites
+ * Defines available sorting fields and directions
+ */
 export interface FavoriteSortOptions {
   field: 'addedAt' | 'updatedAt' | 'title' | 'viewCount' | 'rating' | 'watchProgress' | 'duration'
   direction: 'asc' | 'desc'
 }
 
+/**
+ * Complete favorites state management interface
+ * Encapsulates all favorites-related state and UI settings
+ */
 export interface FavoritesState {
-  favorites: FavoriteVideo[]
-  loading: boolean
-  error: string | null
-  filters: FavoriteFilters
-  sort: FavoriteSortOptions
-  enabled: boolean
-  paused: boolean
-  viewMode: 'grid' | 'list' | 'compact'
-  displaySettings: {
-    showThumbnails: boolean
-    showDuration: boolean
-    showViewCount: boolean
-    showRating: boolean
-    showWatchProgress: boolean
-    compactMode: boolean
+  favorites: FavoriteVideo[]                 // Favorites array
+  loading: boolean                         // Loading state
+  error: string | null                    // Error message
+  filters: FavoriteFilters                  // Current filters
+  sort: FavoriteSortOptions                // Current sort settings
+  enabled: boolean                         // Favorites enabled flag
+  paused: boolean                         // Favorites paused flag
+  viewMode: 'grid' | 'list' | 'compact'  // Display mode
+  displaySettings: {                       // UI display settings
+    showThumbnails: boolean               // Show thumbnails
+    showDuration: boolean                  // Show duration
+    showViewCount: boolean                 // Show view count
+    showRating: boolean                   // Show rating
+    showWatchProgress: boolean              // Show watch progress
+    compactMode: boolean                  // Compact mode
   }
 }
 
+/**
+ * Favorites operations interface
+ * Defines all available favorite management operations
+ */
 export interface FavoriteOperations {
   addFavorite: (data: CreateFavoriteRequest) => Promise<FavoriteVideo>
   removeFavorite: (videoId: string) => Promise<void>

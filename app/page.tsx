@@ -1,6 +1,31 @@
+/**
+ * MyTube - YouTube Client Application
+ * 
+ * A comprehensive YouTube-like client built with Next.js 15, TypeScript, and Tailwind CSS.
+ * Features include video search, favorites, playlists, notes, background playback, and more.
+ * 
+ * Main Features:
+ * - Video search and playback
+ * - Favorites and watch history management
+ * - Note-taking and notebook organization
+ * - Channel management and following
+ * - Background audio playback
+ * - Incognito mode for private browsing
+ * - Blacklist/whitelist functionality
+ * - Responsive design for all devices
+ * - Dark/light theme support
+ * 
+ * @author MyTube Team
+ * @version 1.0.0
+ * @since 2024
+ */
+
 'use client'
 
+// React hooks for state management and side effects
 import { useState, useEffect, useCallback, useMemo } from 'react'
+
+// UI Components from shadcn/ui library
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,6 +35,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+
+// Lucide React icons for UI elements
 import { 
   Home, 
   Search, 
@@ -47,16 +74,23 @@ import {
   MoreVertical,
   BookOpen
 } from 'lucide-react'
+
+// YouTube API and utility functions
 import { searchVideos, formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
 import { validateSearchQuery } from '@/lib/validation'
 import { getLoadingMessage, getConfirmationMessage, confirmationMessages } from '@/lib/loading-messages'
 import type { Video as YouTubeVideo } from '@/lib/youtube'
+
+// Type compatibility and conversion utilities
 import { convertYouTubeVideo, convertYouTubePlaylist, convertYouTubeChannel, convertToYouTubeVideo, convertDbVideoToSimple, convertSimpleVideoToCardData, type SimpleVideo, type SimplePlaylist, type SimpleChannel, type FavoriteVideo, type FavoriteChannel, type VideoNote, type ChannelSearchResult, type PaginationInfo, type FollowedChannelsContent, type VideoCardData } from '@/lib/type-compatibility'
+
+// Application types
 import type { WatchedVideo } from '@/types/watched'
-// Blacklist and Whitelist types
+
+// Blacklist and Whitelist interfaces for content filtering
 interface BlacklistedItem {
   id: string
-  itemId: string
+  itemId: string           // YouTube video, playlist, or channel ID
   title: string
   type: 'video' | 'playlist' | 'channel'
   thumbnail?: string
@@ -67,7 +101,7 @@ interface BlacklistedItem {
 
 interface WhitelistedItem {
   id: string
-  itemId: string
+  itemId: string           // YouTube video, playlist, or channel ID
   title: string
   type: 'video' | 'playlist' | 'channel'
   thumbnail?: string
@@ -75,7 +109,7 @@ interface WhitelistedItem {
   addedAt: string
   updatedAt?: string
 }
-// Unified VideoCard component with enhanced design
+// Application Components
 import { VideoCard as UnifiedVideoCard, toVideoCardData, PlaylistCard, ChannelCard } from '@/components/video'
 import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleton'
 import { SplashScreen } from '@/components/splash-screen'
@@ -88,17 +122,16 @@ import { FavoritesContainer } from '@/components/favorites/FavoritesContainer'
 import { WatchedHistoryContainer } from '@/components/watched/WatchedHistoryContainer'
 import { EnhancedClearData } from '@/components/enhanced-clear-data'
 import { SettingsContainerEnhanced } from '@/components/settings/SettingsContainerEnhanced'
-import { useWatchedHistory } from '@/hooks/useWatchedHistory'
 import { BottomNavigation } from '@/components/navigation/BottomNavigation'
 import { NavigationSpacer } from '@/components/navigation/NavigationSpacer'
-import { useBackgroundPlayer } from '@/contexts/background-player-context'
-import { useIncognito } from '@/contexts/incognito-context'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { IncognitoBannerEnhanced } from '@/components/incognito-banner-enhanced'
 import { IncognitoToggleEnhanced } from '@/components/incognito-toggle-enhanced'
 import { QuickSettings } from '@/components/settings/QuickSettings'
 import { SearchResultsFilterEnhanced } from '@/components/search/SearchResultsFilterEnhanced'
 import { ChannelsContainer } from '@/components/channels/ChannelsContainer'
+
+// Additional UI Components
 import { 
   AlertDialog,
   AlertDialogContent,
@@ -109,75 +142,114 @@ import {
   AlertDialogCancel,
   AlertDialogAction 
 } from '@/components/ui/alert-dialog'
+
+// Custom Hooks and Contexts
+import { useWatchedHistory } from '@/hooks/useWatchedHistory'
+import { useBackgroundPlayer } from '@/contexts/background-player-context'
+import { useIncognito } from '@/contexts/incognito-context'
 import { useToast } from '@/hooks/use-toast'
 import { useChannelAvatar } from '@/hooks/useChannelAvatar'
 
-
-// Enhanced types with better safety
+// Enhanced types with better safety and type checking
 type Tab = 'home' | 'search' | 'player' | 'channels' | 'favorites' | 'notes' | 'notebooks' | 'watched' | 'settings'
 
-// Use SimpleVideo for internal state
+// Use SimpleVideo for internal state management
 type Video = SimpleVideo
 type Playlist = SimplePlaylist
 type Channel = SimpleChannel
 type SearchResultItem = Video | Playlist | Channel
 
+// Search results interface for API responses
 interface SearchResults {
   items: SearchResultItem[]
   error?: string
 }
 
+/**
+ * Main MyTube Application Component
+ * 
+ * This is the root component of the MyTube application that manages all state,
+ * user interactions, and renders the appropriate UI based on the active tab.
+ * 
+ * The component handles:
+ * - Video search and playback
+ * - User authentication and preferences
+ * - Data persistence and caching
+ * - Navigation between different app sections
+ * - Background audio playback
+ * - Incognito mode functionality
+ * - Content filtering (blacklist/whitelist)
+ * - Network connectivity monitoring
+ */
 export default function MyTubeApp() {
-  // Background player context
+  // ============================================================================
+  // CONTEXTS AND HOOKS
+  // ============================================================================
+  
+  // Background player context for audio playback management
   const {
-    backgroundVideo,
-    isPlaying: isBackgroundPlaying,
-    currentTime: backgroundCurrentTime,
-    duration: backgroundDuration,
-    showMiniPlayer,
-    pauseBackgroundVideo,
-    stopBackgroundVideo,
-    settingsTitle
+    backgroundVideo,           // Currently playing background video
+    isPlaying: isBackgroundPlaying,  // Background playback state
+    currentTime: backgroundCurrentTime,  // Current playback time
+    duration: backgroundDuration,        // Total video duration
+    showMiniPlayer,            // Mini player visibility state
+    pauseBackgroundVideo,      // Function to pause background video
+    stopBackgroundVideo,       // Function to stop background video
+    settingsTitle              // Current settings title for mini player
   } = useBackgroundPlayer()
 
-  // Incognito mode context
+  // Incognito mode context for private browsing
   const { isIncognito } = useIncognito()
 
-  // Watch history hook
+  // Watch history management hook
   const { addToWatchedHistory, isVideoWatched } = useWatchedHistory()
 
-  // Channel avatar hook
+  // Channel avatar management hook
   const { getChannelAvatarUrl } = useChannelAvatar()
 
-  // Toast hook
+  // Toast notification system
   const { toast } = useToast()
 
-  // Core state
-  const [activeTab, setActiveTab] = useState<Tab>('home')
-  const [previousTab, setPreviousTab] = useState<Tab>('home')
-  const [navigationHistory, setNavigationHistory] = useState<Tab[]>(['home'])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchType, setSearchType] = useState<'video' | 'playlist' | 'channel' | 'all'>('all')
-  const [channelSearchQuery, setChannelSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<SearchResults | null>(null)
-  const [selectedVideo, setSelectedVideo] = useState<VideoCardData | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
-  const [multiSelectMode, setMultiSelectMode] = useState(false)
-  const [showSplashScreen, setShowSplashScreen] = useState(false) // Start with app directly - disable splash screen
-  const [dynamicLoadingMessage, setDynamicLoadingMessage] = useState('')
-  const [searchInputTimeout, setSearchInputTimeout] = useState<NodeJS.Timeout | null>(null)
-  const [isIntersectionLoading, setIsIntersectionLoading] = useState(false)
-  const [hasTriggeredLoad, setHasTriggeredLoad] = useState(false)
-  const [autoLoadMore, setAutoLoadMore] = useState(true) // Default to enabled
-  const [searchCountdown, setSearchCountdown] = useState<number | null>(null)
-  const [isUpdatingFollow, setIsUpdatingFollow] = useState(false) // Track follow operations
+  // ============================================================================
+  // CORE APPLICATION STATE
+  // ============================================================================
   
-  // Blacklist and Whitelist states
-  const [blacklisted, setBlacklisted] = useState<BlacklistedItem[]>([])
-  const [whitelisted, setWhitelisted] = useState<WhitelistedItem[]>([])
+  // Navigation state
+  const [activeTab, setActiveTab] = useState<Tab>('home')           // Currently active tab
+  const [previousTab, setPreviousTab] = useState<Tab>('home')       // Previous tab for navigation history
+  const [navigationHistory, setNavigationHistory] = useState<Tab[]>(['home'])  // Navigation history stack
   
-  // Confirmation dialog states
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('')                 // Current search query
+  const [searchType, setSearchType] = useState<'video' | 'playlist' | 'channel' | 'all'>('all')  // Search filter type
+  const [channelSearchQuery, setChannelSearchQuery] = useState('')   // Channel-specific search query
+  const [searchResults, setSearchResults] = useState<SearchResults | null>(null)  // Search results
+  const [selectedVideo, setSelectedVideo] = useState<VideoCardData | null>(null)  // Selected video for playback
+  
+  // UI state
+  const [loading, setLoading] = useState(false)                     // Global loading state
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())  // Multi-select items
+  const [multiSelectMode, setMultiSelectMode] = useState(false)     // Multi-select mode toggle
+  const [showSplashScreen, setShowSplashScreen] = useState(false)    // Splash screen visibility
+  const [dynamicLoadingMessage, setDynamicLoadingMessage] = useState('')  // Dynamic loading messages
+  
+  // Search optimization state
+  const [searchInputTimeout, setSearchInputTimeout] = useState<NodeJS.Timeout | null>(null)  // Debounce timer
+  const [isIntersectionLoading, setIsIntersectionLoading] = useState(false)  // Intersection observer loading
+  const [hasTriggeredLoad, setHasTriggeredLoad] = useState(false)  // Load trigger flag
+  const [autoLoadMore, setAutoLoadMore] = useState(true)           // Auto-load more content
+  const [searchCountdown, setSearchCountdown] = useState<number | null>(null)  // Search countdown timer
+  const [isUpdatingFollow, setIsUpdatingFollow] = useState(false)    // Follow operation state
+  
+  // ============================================================================
+  // CONTENT FILTERING STATE
+  // ============================================================================
+  
+  // Blacklist and Whitelist for content filtering
+  const [blacklisted, setBlacklisted] = useState<BlacklistedItem[]>([])      // Blacklisted content
+  const [whitelisted, setWhitelisted] = useState<WhitelistedItem[]>([])      // Whitelisted content
+  
+  // Confirmation dialog for blacklist/whitelist actions
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean
     type: 'blacklist' | 'whitelist'

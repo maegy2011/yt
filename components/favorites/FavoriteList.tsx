@@ -11,10 +11,10 @@ import {
   Heart, 
   Play,
   RefreshCw,
-  Trash2
-  Grid
-  List
-  Clock
+  Trash2,
+  Grid,
+  List,
+  Clock,
   Users
 } from 'lucide-react'
 import { VideoCard } from '@/components/video'

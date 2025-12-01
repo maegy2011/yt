@@ -1,10 +1,41 @@
+/**
+ * Video Card Component
+ * 
+ * A comprehensive and responsive video card component that displays video information
+ * with various interaction modes and visual states. Supports multiple variants for different
+ * use cases throughout the application.
+ * 
+ * Features:
+ * - Multiple display variants (default, favorite, watched, compact, grid)
+ * - Responsive design with mobile optimization
+ * - Interactive elements (play, favorite, blacklist, whitelist)
+ * - Progress indicators for watched videos
+ * - Live streaming badges
+ * - Quality indicators
+ * - Selection mode for bulk operations
+ * - Accessibility support
+ * - Touch-friendly interactions
+ * - Image lazy loading with fallbacks
+ * - Channel information display
+ * - View count and duration formatting
+ * 
+ * @component VideoCard
+ * @author MyTube Team
+ * @version 2.0.0
+ */
+
 'use client'
 
+// React hooks for state management and optimization
 import { useState, useCallback } from 'react'
+
+// UI Components from shadcn/ui
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+
+// Lucide React icons for various UI elements
 import { 
   Play, 
   Pause, 
@@ -22,51 +53,77 @@ import {
   Shield,
   ShieldOff
 } from 'lucide-react'
+
+// Custom hooks and contexts
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
 import { useBlacklistWhitelistVisibility } from '@/hooks/useBlacklistWhitelistVisibility'
+
+// Utility functions for formatting
 import { formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
 
-// Enhanced types for unified video card
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+/**
+ * Enhanced video data interface for unified video card display
+ * Supports all video types across the application with comprehensive metadata
+ */
 export interface VideoCardData {
-  videoId: string // Required
-  id?: string
-  title: string
-  channelName: string
-  channelHandle?: string
-  channelThumbnail?: string
-  thumbnail: string // Required
-  duration?: string
-  viewCount?: number
-  publishedAt?: string
-  description?: string
-  quality?: string
-  isLive?: boolean
-  isUpcoming?: boolean
-  subscriberCount?: string
-  // Favorites specific
-  addedAt?: string
-  isFavorite?: boolean
-  // Watched specific
-  watchedAt?: string
-  progress?: number
-  // Note specific
-  hasNotes?: boolean
-  noteCount?: number
-  // Database specific
-  createdAt?: string
-  updatedAt?: string
+  // Core video information
+  videoId: string        // YouTube video ID (required)
+  id?: string           // Alternative ID field for compatibility
+  title: string         // Video title
+  channelName: string   // Channel name
+  channelHandle?: string // Channel handle (@username)
+  channelThumbnail?: string // Channel avatar URL
+  thumbnail: string     // Video thumbnail URL (required)
+  
+  // Video metadata
+  duration?: string     // Formatted duration (e.g., "5:23")
+  viewCount?: number    // View count as number
+  publishedAt?: string  // Publication date
+  description?: string  // Video description
+  quality?: string     // Video quality (e.g., "1080p", "4K")
+  isLive?: boolean     // Live stream indicator
+  isUpcoming?: boolean // Upcoming video indicator
+  subscriberCount?: string // Channel subscriber count
+  
+  // Context-specific data
+  addedAt?: string     // When added to favorites
+  isFavorite?: boolean // Favorite status
+  watchedAt?: string   // When watched
+  progress?: number    // Watch progress percentage (0-100)
+  hasNotes?: boolean  // Has associated notes
+  noteCount?: number   // Number of notes
+  
+  // Database timestamps
+  createdAt?: string   // Creation timestamp
+  updatedAt?: string   // Last update timestamp
 }
 
+/**
+ * Video card component props interface
+ * Defines all configuration options and event handlers
+ */
 export interface VideoCardProps {
+  // Core data
   video: VideoCardData
+  
+  // Display configuration
   variant?: 'default' | 'favorite' | 'watched' | 'compact' | 'grid'
-  showActions?: boolean
-  showChannelInfo?: boolean
-  showStats?: boolean
-  showDescription?: boolean
-  showProgress?: boolean
-  isSelectable?: boolean
-  isSelected?: boolean
+  showActions?: boolean      // Show action buttons
+  showChannelInfo?: boolean // Show channel information
+  showStats?: boolean       // Show view count and date
+  showDescription?: boolean // Show video description
+  showProgress?: boolean    // Show watch progress bar
+  isSelectable?: boolean    // Enable selection mode
+  isSelected?: boolean      // Current selection state
+  className?: string        // Additional CSS classes
+  size?: 'sm' | 'md' | 'lg' // Card size variant
+  blacklistWhitelistVisibility?: 'always' | 'hover' | 'hidden'
+  
+  // Event handlers
   onPlay?: (video: VideoCardData) => void
   onFavorite?: (video: VideoCardData) => void
   onRemove?: (videoId: string) => void
@@ -74,11 +131,10 @@ export interface VideoCardProps {
   onExternalLink?: (video: VideoCardData) => void
   onAddToBlacklist?: (video: VideoCardData) => void
   onAddToWhitelist?: (video: VideoCardData) => void
+  
+  // State indicators
   isBlacklisted?: boolean
   isWhitelisted?: boolean
-  className?: string
-  size?: 'sm' | 'md' | 'lg'
-  blacklistWhitelistVisibility?: 'always' | 'hover' | 'hidden'
 }
 
 export function VideoCard({
