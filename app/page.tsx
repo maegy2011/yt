@@ -146,7 +146,7 @@ import {
 // Custom Hooks and Contexts
 import { useWatchedHistory } from '@/hooks/useWatchedHistory'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
-import { useIncognito } from '@/contexts/incognito-context'
+import { useIncognito, useIncognitoStats } from '@/contexts/incognito-context'
 import { useToast } from '@/hooks/use-toast'
 import { useChannelAvatar } from '@/hooks/useChannelAvatar'
 
@@ -200,6 +200,7 @@ export default function MyTubeApp() {
 
   // Incognito mode context for private browsing
   const { isIncognito } = useIncognito()
+  const { trackIncognitoActivity } = useIncognitoStats()
 
   // Watch history management hook
   const { addToWatchedHistory, isVideoWatched } = useWatchedHistory()
@@ -230,7 +231,7 @@ export default function MyTubeApp() {
   const [loading, setLoading] = useState(false)                     // Global loading state
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())  // Multi-select items
   const [multiSelectMode, setMultiSelectMode] = useState(false)     // Multi-select mode toggle
-  const [showSplashScreen, setShowSplashScreen] = useState(false)    // Splash screen visibility
+  const [showSplashScreen, setShowSplashScreen] = useState(true)     // Splash screen visibility - start with enabled
   const [dynamicLoadingMessage, setDynamicLoadingMessage] = useState('')  // Dynamic loading messages
   
   // Search optimization state
@@ -714,8 +715,17 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     return baseTabs
   }, [favoritesEnabled])
 
-  // Enhanced tab navigation with haptic feedback
+  // Enhanced tab navigation with haptic feedback and incognito tracking
   const handleTabNavigation = useCallback((tabId: Tab) => {
+    // Track incognito activity for channel and playlist navigation
+    if (isIncognito) {
+      if (tabId === 'channels') {
+        trackIncognitoActivity('channel', { navigation: 'tab-switch' })
+      } else if (tabId === 'favorites' || tabId === 'notebooks') {
+        trackIncognitoActivity('playlist', { navigation: 'tab-switch' })
+      }
+    }
+    
     setPreviousTab(activeTab)
     setActiveTab(tabId)
     triggerHapticFeedback()
@@ -741,7 +751,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     if (tab) {
       
     }
-  }, [activeTab, tabs, triggerHapticFeedback, showPlaylistVideos])
+  }, [isIncognito, trackIncognitoActivity, activeTab, tabs, triggerHapticFeedback, showPlaylistVideos])
 
   // Back button functionality
   const handleGoBack = useCallback(() => {
@@ -1494,6 +1504,11 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
 
   const handleSearch = async (append: boolean = false) => {
     const trimmedQuery = searchQuery.trim()
+    
+    // Track incognito search activity
+    if (isIncognito && !append && trimmedQuery.length >= 2) {
+      trackIncognitoActivity('search', { query: trimmedQuery })
+    }
     
     if (append && !currentSearchQuery.trim()) {
       setHasMoreVideos(false)
@@ -2371,6 +2386,16 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
 
   const handleVideoSelect = (video: VideoCardData) => {
     console.log('handleVideoSelect called:', video.title) // Debug log
+    
+    // Track incognito video activity
+    if (isIncognito) {
+      trackIncognitoActivity('video', { 
+        videoId: video.videoId || video.id,
+        title: video.title,
+        duration: video.duration
+      })
+    }
+    
     handleVideoPlay(video)
   }
 
@@ -4595,28 +4620,41 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
+  {/* Mobile Menu Overlay - Full screen between header and bottom nav */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={toggleMobileMenu}>
+        <div className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-md">
           <div 
-            className="absolute top-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-b border-border shadow-lg"
+            className="absolute left-0 right-0 bg-background/98 backdrop-blur-xl shadow-2xl border-b border-border/50"
+            style={{
+              top: '48px', /* h-12 = 48px (mobile) */
+              bottom: '56px', /* py-2 + button height ≈ 56px */
+              height: 'calc(100vh - 104px)', /* 48px + 56px = 104px */
+              maxHeight: 'calc(100vh - 104px)',
+              overflow: 'hidden'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-full px-3 sm:px-4 py-4">
-              <nav className="grid grid-cols-3 sm:grid-cols-4 gap-2" role="navigation" aria-label="Main navigation">
+            <div className="w-full h-full flex flex-col p-4 sm:p-6 overflow-y-auto">
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold text-foreground mb-2">Navigation</h2>
+                <p className="text-sm text-muted-foreground">Choose where you want to go</p>
+              </div>
+              
+              <nav className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 flex-1 content-start" role="navigation" aria-label="Main navigation">
                 {tabs.map((tab, index) => {
                   const isActive = activeTab === tab.id
                   return (
                     <button
                       key={tab.id}
                       onClick={() => handleTabNavigationWithMobileMenu(tab.id)}
-                      className={`group relative flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-300 ease-out min-h-[60px] touch-manipulation mobile-touch-feedback ${
+                      className={`group relative flex flex-col items-center gap-3 p-4 sm:p-5 rounded-2xl transition-all duration-300 ease-out touch-manipulation mobile-touch-feedback border ${
                         isActive 
-                          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105' 
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105'
+                          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105 border-primary/20' 
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:scale-105 hover:border-border/50'
                       }`}
                       style={{
-                        transitionDelay: `${index * 50}ms`
+                        transitionDelay: `${index * 30}ms`,
+                        minHeight: '100px'
                       }}
                       aria-label={`Navigate to ${tab.label}`}
                       aria-current={isActive ? 'page' : undefined}
@@ -4624,16 +4662,16 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                       <div className={`relative transition-all duration-300 ${
                         isActive ? 'scale-110' : 'scale-100 group-hover:scale-110'
                       }`}>
-                        <tab.icon className={`w-5 h-5 transition-all duration-300 ${
+                        <tab.icon className={`w-6 h-6 sm:w-7 sm:h-7 transition-all duration-300 ${
                           isActive ? 'drop-shadow-md' : ''
                         }`} />
                         
                         {isActive && (
-                          <div className="absolute -top-1 -right-1 w-2 h-2 bg-background rounded-full animate-pulse" />
+                          <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-background rounded-full animate-pulse border-2 border-primary" />
                         )}
                       </div>
                       
-                      <span className={`text-xs font-medium transition-all duration-300 leading-tight ${
+                      <span className={`text-xs sm:text-sm font-medium transition-all duration-300 leading-tight text-center ${
                         isActive 
                           ? 'text-primary-foreground font-semibold' 
                           : 'text-muted-foreground group-hover:text-foreground'
@@ -4644,6 +4682,19 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                   )
                 })}
               </nav>
+              
+              <div className="mt-6 pt-4 border-t border-border/50">
+                <div className="flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleMobileMenu}
+                    className="touch-manipulation mobile-touch-feedback"
+                  >
+                    Close Menu
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
