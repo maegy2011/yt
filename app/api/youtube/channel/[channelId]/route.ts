@@ -73,10 +73,10 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { channelId: string } }
+  { params }: { params: Promise<{ channelId: string }> }
 ) {
   try {
-    const channelId = params.channelId
+    const { channelId } = await params
     const searchParams = request.nextUrl.searchParams
     const includeVideos = searchParams.get('includeVideos') === 'true'
     const maxVideos = parseInt(searchParams.get('maxVideos') || '10')

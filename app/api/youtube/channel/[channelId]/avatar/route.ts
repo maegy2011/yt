@@ -55,10 +55,10 @@ function extractAvatar(thumbnails: any): string {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { channelId: string } }
+  { params }: { params: Promise<{ channelId: string }> }
 ) {
   try {
-    const channelId = params.channelId
+    const { channelId } = await params
     // Console statement removed
 
     // Get channel data from YouTube

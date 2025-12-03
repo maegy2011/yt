@@ -127,7 +127,7 @@ import { NavigationSpacer } from '@/components/navigation/NavigationSpacer'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { IncognitoBannerEnhanced } from '@/components/incognito-banner-enhanced'
 import { IncognitoToggleEnhanced } from '@/components/incognito-toggle-enhanced'
-import { QuickSettings } from '@/components/settings/QuickSettings'
+
 import { SearchResultsFilterEnhanced } from '@/components/search/SearchResultsFilterEnhanced'
 import { ChannelsContainer } from '@/components/channels/ChannelsContainer'
 
@@ -4613,8 +4613,16 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
               </Button>
               
               <ThemeSwitch />
-              <QuickSettings />
               <IncognitoToggleEnhanced />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveTab('settings')}
+                className="h-11 w-11 min-h-[44px] min-w-[44px] p-0 transition-all duration-200 hover:scale-105 hover:bg-muted/50 text-muted-foreground hover:text-foreground touch-manipulation mobile-touch-feedback"
+                title="Settings"
+              >
+                <Settings className="w-5 h-5" />
+              </Button>
             </div>
           </div>
         </div>

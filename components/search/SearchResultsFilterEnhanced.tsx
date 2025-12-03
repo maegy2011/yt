@@ -311,64 +311,7 @@ export function SearchResultsFilterEnhanced({
         )}
       </div>
 
-      {/* Stats Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="p-4 border rounded-lg bg-card">
-          <h4 className="font-semibold mb-2">Blacklisted Items</h4>
-          <div className="space-y-1">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Total:</span>
-              <Badge variant="destructive">{blacklistedItems.length}</Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Videos:</span>
-              <Badge variant="outline">
-                {blacklistedItems.filter(item => item.type === 'video').length}
-              </Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Playlists:</span>
-              <Badge variant="outline">
-                {blacklistedItems.filter(item => item.type === 'playlist').length}
-              </Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Channels:</span>
-              <Badge variant="outline">
-                {blacklistedItems.filter(item => item.type === 'channel').length}
-              </Badge>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 border rounded-lg bg-card">
-          <h4 className="font-semibold mb-2">Whitelisted Items</h4>
-          <div className="space-y-1">
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Total:</span>
-              <Badge variant="default">{whitelistedItems.length}</Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Videos:</span>
-              <Badge variant="outline">
-                {whitelistedItems.filter(item => item.type === 'video').length}
-              </Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Playlists:</span>
-              <Badge variant="outline">
-                {whitelistedItems.filter(item => item.type === 'playlist').length}
-              </Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Channels:</span>
-              <Badge variant="outline">
-                {whitelistedItems.filter(item => item.type === 'channel').length}
-              </Badge>
-            </div>
-          </div>
-        </div>
-      </div>
+  
     </div>
   )
 }

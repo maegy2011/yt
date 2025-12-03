@@ -5,10 +5,10 @@ import { sanitizeVideoId, isValidYouTubeVideoId } from '@/lib/youtube-utils'
 // Get single watched video
 export async function GET(
   request: NextRequest,
-  { params }: { params: { videoId: string } }
+  { params }: { params: Promise<{ videoId: string }> }
 ) {
   try {
-    const { videoId } = params
+    const { videoId } = await params
     const sanitizedVideoId = sanitizeVideoId(videoId)
 
     if (!sanitizedVideoId) {
@@ -32,10 +32,10 @@ export async function GET(
 // Update watched video
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { videoId: string } }
+  { params }: { params: Promise<{ videoId: string }> }
 ) {
   try {
-    const { videoId } = params
+    const { videoId } = await params
     const sanitizedVideoId = sanitizeVideoId(videoId)
 
     if (!sanitizedVideoId) {
@@ -74,10 +74,10 @@ export async function PUT(
 // Delete watched video
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { videoId: string } }
+  { params }: { params: Promise<{ videoId: string }> }
 ) {
   try {
-    const { videoId } = params
+    const { videoId } = await params
     const sanitizedVideoId = sanitizeVideoId(videoId)
 
     if (!sanitizedVideoId) {

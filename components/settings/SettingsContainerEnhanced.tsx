@@ -39,6 +39,8 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { IncognitoToggleEnhanced } from '@/components/incognito-toggle-enhanced'
+import { BlacklistWhitelistStats } from './BlacklistWhitelistStats'
+import { ProfessionalContentFilter } from '@/components/content-filter/ProfessionalContentFilter'
 import { cn } from '@/lib/utils'
 
 interface SettingsContainerProps {
@@ -238,6 +240,10 @@ export function SettingsContainerEnhanced({
               <TabsTrigger value="playback" className="flex items-center gap-2 px-3 py-2">
                 <Play className="w-4 h-4" />
                 <span className="hidden sm:inline">Playback</span>
+              </TabsTrigger>
+              <TabsTrigger value="content-filter" className="flex items-center gap-2 px-3 py-2">
+                <Shield className="w-4 h-4" />
+                <span className="hidden sm:inline">Content Filter</span>
               </TabsTrigger>
             </TabsList>
           </ScrollArea>
@@ -519,6 +525,19 @@ export function SettingsContainerEnhanced({
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Blacklist/Whitelist Statistics */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="w-5 h-5" />
+                      Blacklist/Whitelist Statistics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <BlacklistWhitelistStats />
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
 
@@ -572,6 +591,11 @@ export function SettingsContainerEnhanced({
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            {/* Professional Content Filter Tab */}
+            <TabsContent value="content-filter" className="space-y-6 mt-0">
+              <ProfessionalContentFilter />
             </TabsContent>
           </div>
         </ScrollArea>

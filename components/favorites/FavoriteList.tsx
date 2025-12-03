@@ -27,6 +27,8 @@ interface FavoriteListProps {
   onRemove: (videoId: string) => void
   onPlay?: (video: FavoriteVideo) => void
   onRefresh?: () => void
+  onToggleEnabled?: (enabled: boolean) => void
+  onTogglePaused?: (paused: boolean) => void
   enabled: boolean
   paused: boolean
   className?: string
@@ -71,7 +73,7 @@ export function FavoriteList({
 
   const stats = useMemo(() => {
     const total = favorites.length
-    const totalViews = favorites.reduce((sum, f) => sum + (f.viewCount || 0), 0)
+    const totalViews = favorites.reduce((sum, f) => sum + Number(f.viewCount || 0), 0)
     return { total, totalViews }
   }, [favorites])
 
