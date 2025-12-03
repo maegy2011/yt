@@ -72,8 +72,8 @@ class ContentFilterEngine {
   constructor() {
     // Start periodic cleanup
     setInterval(() => this.cleanupCache(), this.CLEANUP_INTERVAL)
-    // Start metrics collection
-    setInterval(() => this.collectMetrics(), 60 * 1000) // Every minute
+    // Start metrics collection - disabled temporarily for debugging
+    // setInterval(() => this.collectMetrics(), 60 * 1000) // Every minute
   }
 
   /**
@@ -122,75 +122,82 @@ class ContentFilterEngine {
    * Core filtering logic with priority-based conflict resolution
    */
   private async performFiltering(item: ContentItem): Promise<FilterResult> {
-    // 1. Check whitelist first (highest priority)
-    const whitelistResult = await this.checkWhitelist(item)
-    if (whitelistResult.matched) {
-      await this.updateMatchCount(whitelistResult.ruleId!, 'whitelist')
+    try {
+      console.log('Starting filtering for item:', item.itemId)
+      
+      // 1. Check whitelist first (highest priority)
+      const whitelistResult = await this.checkWhitelist(item)
+      if (whitelistResult.matched) {
+        await this.updateMatchCount(whitelistResult.ruleId!, 'whitelist')
+        return {
+          allowed: true,
+          blocked: false,
+          whitelisted: true,
+          reason: whitelistResult.reason,
+          matchedBy: 'whitelist',
+          matchedRule: whitelistResult.ruleId,
+          confidence: whitelistResult.confidence,
+          category: whitelistResult.category,
+          severity: whitelistResult.severity,
+          cached: false,
+          responseTime: 0
+        }
+      }
+
+      // 2. Check blacklist patterns
+      const patternResult = await this.checkPatterns(item)
+      if (patternResult.matched) {
+        await this.updateMatchCount(patternResult.ruleId!, 'pattern')
+        await this.updatePatternMatchCount(patternResult.ruleId!)
+        
+        return {
+          allowed: false,
+          blocked: true,
+          whitelisted: false,
+          reason: `Pattern match: ${patternResult.reason}`,
+          matchedBy: 'pattern',
+          matchedRule: patternResult.ruleId,
+          confidence: patternResult.confidence,
+          category: patternResult.category,
+          severity: patternResult.severity,
+          cached: false,
+          responseTime: 0
+        }
+      }
+
+      // 3. Check blacklist items
+      const blacklistResult = await this.checkBlacklist(item)
+      if (blacklistResult.matched) {
+        await this.updateMatchCount(blacklistResult.ruleId!, 'blacklist')
+        
+        return {
+          allowed: false,
+          blocked: true,
+          whitelisted: false,
+          reason: blacklistResult.reason,
+          matchedBy: 'blacklist',
+          matchedRule: blacklistResult.ruleId,
+          confidence: blacklistResult.confidence,
+          category: blacklistResult.category,
+          severity: blacklistResult.severity,
+          cached: false,
+          responseTime: 0
+        }
+      }
+
+      // 4. Content is allowed
       return {
         allowed: true,
         blocked: false,
-        whitelisted: true,
-        reason: whitelistResult.reason,
-        matchedBy: 'whitelist',
-        matchedRule: whitelistResult.ruleId,
-        confidence: whitelistResult.confidence,
-        category: whitelistResult.category,
-        severity: whitelistResult.severity,
-        cached: false,
-        responseTime: 0
-      }
-    }
-
-    // 2. Check blacklist patterns
-    const patternResult = await this.checkPatterns(item)
-    if (patternResult.matched) {
-      await this.updateMatchCount(patternResult.ruleId!, 'pattern')
-      await this.updatePatternMatchCount(patternResult.ruleId!)
-      
-      return {
-        allowed: false,
-        blocked: true,
         whitelisted: false,
-        reason: `Pattern match: ${patternResult.reason}`,
-        matchedBy: 'pattern',
-        matchedRule: patternResult.ruleId,
-        confidence: patternResult.confidence,
-        category: patternResult.category,
-        severity: patternResult.severity,
+        reason: 'No matching rules found',
+        confidence: 100,
         cached: false,
         responseTime: 0
       }
-    }
-
-    // 3. Check blacklist items
-    const blacklistResult = await this.checkBlacklist(item)
-    if (blacklistResult.matched) {
-      await this.updateMatchCount(blacklistResult.ruleId!, 'blacklist')
-      
-      return {
-        allowed: false,
-        blocked: true,
-        whitelisted: false,
-        reason: blacklistResult.reason,
-        matchedBy: 'blacklist',
-        matchedRule: blacklistResult.ruleId,
-        confidence: blacklistResult.confidence,
-        category: blacklistResult.category,
-        severity: blacklistResult.severity,
-        cached: false,
-        responseTime: 0
-      }
-    }
-
-    // 4. Content is allowed
-    return {
-      allowed: true,
-      blocked: false,
-      whitelisted: false,
-      reason: 'No matching rules found',
-      confidence: 100,
-      cached: false,
-      responseTime: 0
+    } catch (error) {
+      console.error('Error in performFiltering:', error)
+      throw error
     }
   }
 
@@ -347,37 +354,48 @@ class ContentFilterEngine {
     category?: string
     severity?: string
   }> {
-    const patterns = await db.blacklistPattern.findMany({
-      where: {
-        isActive: true,
-        OR: [
-          { type: item.type },
-          { type: 'all' }
-        ]
-      },
-      orderBy: { priority: 'desc' },
-      include: {
-        category: {
-          select: { name: true }
+    try {
+      console.log('Checking patterns for item:', item.itemId)
+      
+      const patterns = await db.blacklistPattern.findMany({
+        where: {
+          isActive: true,
+          OR: [
+            { type: item.type },
+            { type: 'all' }
+          ]
+        },
+        orderBy: { priority: 'desc' },
+        include: {
+          category: {
+            select: { name: true }
+          }
         }
-      }
-    })
+      })
 
-    for (const pattern of patterns) {
-      const match = this.testPattern(pattern, item)
-      if (match.matched && match.confidence >= pattern.matchThreshold) {
-        return {
-          matched: true,
-          ruleId: pattern.id,
-          reason: match.reason,
-          confidence: match.confidence,
-          category: pattern.category?.name,
-          severity: pattern.severity
+      console.log('Found patterns:', patterns.length)
+
+      for (const pattern of patterns) {
+        const match = this.testPattern(pattern, item)
+        if (match.matched && match.confidence >= pattern.matchThreshold) {
+          console.log('Pattern matched:', pattern.pattern)
+          return {
+            matched: true,
+            ruleId: pattern.id,
+            reason: match.reason,
+            confidence: match.confidence,
+            category: pattern.category?.name,
+            severity: pattern.severity
+          }
         }
       }
+
+      console.log('No patterns matched')
+      return { matched: false, confidence: 0 }
+    } catch (error) {
+      console.error('Error in checkPatterns:', error)
+      return { matched: false, confidence: 0 }
     }
-
-    return { matched: false, confidence: 0 }
   }
 
   /**

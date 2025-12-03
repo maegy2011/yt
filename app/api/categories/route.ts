@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { randomUUID } from 'crypto'
 
 /**
  * Professional Category Management API
@@ -31,7 +32,10 @@ export async function GET(request: NextRequest) {
     const categories = await db.blacklistCategory.findMany({
       where: whereClause,
       include: {
-        items: {
+        BlacklistedItem: {
+          select: { id: true }
+        },
+        BlacklistPattern: {
           select: { id: true }
         }
       },
@@ -43,8 +47,8 @@ export async function GET(request: NextRequest) {
     // Add computed statistics if requested
     const categoriesWithStats = categories.map(cat => ({
       ...cat,
-      itemCount: includeStats ? cat.items?.length || 0 : undefined,
-      patternCount: includeStats ? 0 : undefined,
+      itemCount: includeStats ? cat.BlacklistedItem?.length || 0 : undefined,
+      patternCount: includeStats ? cat.BlacklistPattern?.length || 0 : undefined,
       hasChildren: false,
       level: 0
     }))
@@ -105,9 +109,11 @@ export async function POST(request: NextRequest) {
 
     const category = await db.blacklistCategory.create({
       data: {
+        id: randomUUID(),
         name: name.trim(),
         color: color || '#ff0000',
-        description: description?.trim() || null
+        description: description?.trim() || null,
+        updatedAt: new Date()
       }
     })
 
@@ -224,10 +230,10 @@ export async function DELETE(request: NextRequest) {
     const existingCategory = await db.blacklistCategory.findUnique({
       where: { id },
       include: {
-        items: {
+        BlacklistedItem: {
           select: { id: true }
         },
-        patterns: {
+        BlacklistPattern: {
           select: { id: true }
         }
       }
@@ -247,8 +253,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check if category has dependencies
-    const hasItems = existingCategory.items && existingCategory.items.length > 0
-    const hasPatterns = existingCategory.patterns && existingCategory.patterns.length > 0
+    const hasItems = existingCategory.BlacklistedItem && existingCategory.BlacklistedItem.length > 0
+    const hasPatterns = existingCategory.BlacklistPattern && existingCategory.BlacklistPattern.length > 0
 
     if ((hasItems || hasPatterns) && !force) {
       return NextResponse.json({
@@ -256,8 +262,8 @@ export async function DELETE(request: NextRequest) {
         details: {
           hasItems,
           hasPatterns,
-          itemCount: hasItems ? existingCategory.items.length : 0,
-          patternCount: hasPatterns ? existingCategory.patterns.length : 0
+          itemCount: hasItems ? existingCategory.BlacklistedItem.length : 0,
+          patternCount: hasPatterns ? existingCategory.BlacklistPattern.length : 0
         },
         message: 'Use force=true to override'
       }, { status: 409 })

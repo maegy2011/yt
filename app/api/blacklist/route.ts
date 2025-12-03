@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { AuditLogger } from '@/lib/audit-logger'
 import { UndoRedoManager } from '@/lib/undo-redo-manager'
+import { randomUUID } from 'crypto'
 
 // WebSocket notification function
 async function notifyBlacklistUpdate(event: any) {
@@ -158,12 +159,14 @@ export async function POST(request: NextRequest) {
 
     const blacklistedItem = await db.blacklistedItem.create({
       data: {
+        id: randomUUID(),
         itemId,
         title: title.trim(),
         type,
         thumbnail: thumbnail?.trim() || null,
         channelName: channelName?.trim() || null,
-        isChannelBlock: type === 'channel'
+        isChannelBlock: type === 'channel',
+        updatedAt: new Date()
       }
     })
 
@@ -299,6 +302,7 @@ export async function PATCH(request: NextRequest) {
               isChannelBlock: type === 'channel'
             },
             create: {
+              id: randomUUID(),
               itemId,
               title: title.trim(),
               type,

@@ -332,10 +332,10 @@ async function getDetailedStatistics() {
     const categories = await db.blacklistCategory.findMany({
       where: { isActive: true },
       include: {
-        items: {
+        BlacklistedItem: {
           select: { id: true }
         },
-        patterns: {
+        BlacklistPattern: {
           select: { id: true }
         }
       }
@@ -345,8 +345,8 @@ async function getDetailedStatistics() {
       id: cat.id,
       name: cat.name,
       color: cat.color,
-      itemCount: cat.items.length,
-      patternCount: cat.patterns.length
+      itemCount: cat.BlacklistedItem.length,
+      patternCount: cat.BlacklistPattern.length
     }))
 
     // Get recent activity

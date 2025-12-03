@@ -106,7 +106,7 @@ export function ProfessionalContentFilter() {
   const [patterns, setPatterns] = useState<Pattern[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('')
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [showCreateCategory, setShowCreateCategory] = useState(false)
   const [showCreatePattern, setShowCreatePattern] = useState(false)
   const [testResults, setTestResults] = useState<FilterResult[]>([])
@@ -544,7 +544,7 @@ export function ProfessionalContentFilter() {
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   {categories.map(cat => (
                     <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                   ))}

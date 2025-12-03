@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { randomUUID } from 'crypto'
 
 // Enhanced pattern validation
 function validatePattern(pattern: string, patternType: string): { isValid: boolean; error?: string } {
@@ -153,7 +154,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { pattern, type, patternType = 'keyword', priority = 0, isActive = true } = body
+    const { pattern, type, patternType = 'keyword', priority = 0, isActive = true, name, description, severity = 'medium' } = body
 
     if (!pattern || !type) {
       return NextResponse.json({ 
@@ -185,17 +186,26 @@ export async function POST(request: NextRequest) {
 
     const newPattern = await db.blacklistPattern.create({
       data: {
+        id: randomUUID(),
         pattern: pattern.trim(),
         type,
         patternType,
         priority,
         isActive,
-        matchCount: 0
+        name: name?.trim() || null,
+        description: description?.trim() || null,
+        severity,
+        matchCount: 0,
+        updatedAt: new Date()
       }
     })
 
     return NextResponse.json(newPattern)
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create pattern' }, { status: 500 })
+    console.error('Pattern creation error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to create pattern',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
