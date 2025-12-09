@@ -221,12 +221,14 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     // Create new favorite with sanitized data
     const favorite = await db.favoriteVideo.create({
       data: {
+        id: `fav_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         videoId: sanitizedVideoId,
         title: title && title.trim() ? title.trim() : 'Unknown Video',
         channelName: channelName && channelName.trim() ? channelName.trim() : 'Unknown Channel',
         thumbnail: thumbnail && thumbnail.trim() ? thumbnail.trim() : '',
         duration: durationStr,
-        viewCount: viewCountStr
+        viewCount: viewCountStr,
+        updatedAt: new Date()
       }
     })
 

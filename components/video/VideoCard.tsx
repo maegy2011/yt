@@ -135,6 +135,7 @@ export interface VideoCardProps {
   // State indicators
   isBlacklisted?: boolean
   isWhitelisted?: boolean
+  isFavorite?: boolean
 }
 
 export function VideoCard({
@@ -156,6 +157,7 @@ export function VideoCard({
   onAddToWhitelist,
   isBlacklisted = false,
   isWhitelisted = false,
+  isFavorite: isFavoriteProp = false,
   className = '',
   size = 'md',
   blacklistWhitelistVisibility = 'always'
@@ -175,7 +177,7 @@ export function VideoCard({
   // Get video ID (support both videoId and id fields)
   const videoId = video.videoId || video.id
   const isCurrentVideo = backgroundVideo?.videoId === videoId
-  const isFavorite = video.isFavorite || false
+  const isFavorite = isFavoriteProp || video.isFavorite || false
 
   // Handle card click
   const handleCardClick = useCallback((e: React.MouseEvent) => {

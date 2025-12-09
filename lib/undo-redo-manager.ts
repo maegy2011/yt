@@ -16,6 +16,7 @@ export class UndoRedoManager {
     try {
       await db.blacklistOperation.create({
         data: {
+          id: `op_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           operationId,
           action: data.action,
           itemType: data.itemType,

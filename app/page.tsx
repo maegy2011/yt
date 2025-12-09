@@ -4164,14 +4164,16 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                             </div>
                           )
                         } else {
+                          const videoId = (item as Video).videoId || (item as Video).id
                           const isBlacklisted = blacklisted.some(listItem => 
-                            listItem.id === (item as Video).videoId && listItem.type === 'video'
+                            listItem.id === videoId && listItem.type === 'video'
                           )
                           const isWhitelisted = whitelisted.some(listItem => 
-                            listItem.id === (item as Video).videoId && listItem.type === 'video'
+                            listItem.id === videoId && listItem.type === 'video'
                           )
+                          const isFavorite = favoriteVideoIds.has(videoId)
                           return (
-                            <div key={(item as Video).videoId || item.id} className="relative group">
+                            <div key={videoId} className="relative group">
                               <UnifiedVideoCard 
                                 video={convertSimpleVideoToCardData(item as Video)} 
                                 onPlay={handleVideoSelect}
@@ -4180,6 +4182,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                                 onAddToWhitelist={handleAddToWhitelist}
                                 isBlacklisted={isBlacklisted}
                                 isWhitelisted={isWhitelisted}
+                                isFavorite={isFavorite}
                               />
                               {/* Blacklist/Whitelist overlay buttons */}
                               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
