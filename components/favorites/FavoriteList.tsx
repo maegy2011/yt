@@ -17,6 +17,7 @@ import {
   Clock,
   Users
 } from 'lucide-react'
+import { formatDuration } from '@/lib/youtube'
 import { VideoCard } from '@/components/video'
 import { favoriteVideoToCardData } from '@/components/video/videoCardConverters'
 import { FavoriteVideo } from '@/types/favorites'
@@ -29,6 +30,7 @@ interface FavoriteListProps {
   onRefresh?: () => void
   onToggleEnabled?: (enabled: boolean) => void
   onTogglePaused?: (paused: boolean) => void
+  onFavorite?: (video: any) => void
   enabled: boolean
   paused: boolean
   className?: string
@@ -40,6 +42,7 @@ export function FavoriteList({
   onRemove, 
   onPlay, 
   onRefresh,
+  onFavorite,
   enabled,
   paused,
   className = '' 
@@ -183,6 +186,7 @@ export function FavoriteList({
                 variant="favorite"
                 onRemove={() => onRemove(favorite.id)}
                 onPlay={onPlay ? () => onPlay(favorite) : undefined}
+                onFavorite={onFavorite}
               />
             ))}
           </div>

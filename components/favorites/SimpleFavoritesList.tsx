@@ -64,6 +64,7 @@ interface SimpleFavoritesListProps {
   loading: boolean
   onRemove: (videoId: string) => void
   onPlay: (video: FavoriteVideo) => void
+  onFavorite?: (video: any) => void
   className?: string
 }
 
@@ -72,6 +73,7 @@ export function SimpleFavoritesList({
   loading, 
   onRemove, 
   onPlay,
+  onFavorite,
   className = '' 
 }: SimpleFavoritesListProps) {
   const [searchQuery, setSearchQuery] = useState('')
@@ -179,6 +181,7 @@ export function SimpleFavoritesList({
                 variant="favorite"
                 onRemove={onRemove}
                 onPlay={(videoCardData) => onPlay(favorite)}
+                onFavorite={onFavorite}
               />
             ))}
           </div>

@@ -27,6 +27,7 @@ interface WatchedVideoCardProps {
   onSelect: (videoId: string) => void
   onPlay: (video: WatchedVideo) => void
   onDelete: (videoId: string) => void
+  onFavorite?: (video: any) => void
 }
 
 export function WatchedVideoCard({ 
@@ -34,7 +35,8 @@ export function WatchedVideoCard({
   isSelected, 
   onSelect, 
   onPlay, 
-  onDelete 
+  onDelete,
+  onFavorite 
 }: WatchedVideoCardProps) {
   return (
     <VideoCard
@@ -45,6 +47,7 @@ export function WatchedVideoCard({
       onSelect={(videoId, selected) => onSelect(videoId)}
       onPlay={(videoCardData) => onPlay(video)}
       onRemove={onDelete}
+      onFavorite={onFavorite}
     />
   )
 }
@@ -134,6 +137,7 @@ interface WatchedHistoryListProps {
   onDeleteVideo: (videoId: string) => void
   onDeleteSelected: () => void
   onClearAll: () => void
+  onFavorite?: (video: any) => void
   viewMode?: 'grid' | 'list'
 }
 
@@ -148,6 +152,7 @@ export function WatchedHistoryList({
   onDeleteVideo,
   onDeleteSelected,
   onClearAll,
+  onFavorite,
   viewMode = 'grid'
 }: WatchedHistoryListProps) {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
@@ -262,6 +267,7 @@ export function WatchedHistoryList({
                 onSelect={onSelectVideo}
                 onPlay={onPlayVideo}
                 onDelete={onDeleteVideo}
+                onFavorite={onFavorite}
               />
             </div>
           ))}

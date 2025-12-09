@@ -365,14 +365,36 @@ export function VideoCard({
           {video.duration && (
             <div className="absolute bottom-2 right-2">
               <div className="bg-black/90 backdrop-blur-md text-white text-xs font-medium px-2 py-1 rounded-md shadow-lg border border-black/20">
-                {video.duration}
+                {formatDuration(video.duration)}
               </div>
             </div>
           )}
           
-          {/* Enhanced Live Badge */}
-          {video.isLive && (
-            <div className="absolute top-2 left-2">
+          {/* Enhanced Favorite Button on Thumbnail */}
+          {onFavorite && (
+            <div className="absolute top-2 left-2 z-30">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-8 w-8 min-h-[32px] min-w-[32px] p-0 touch-manipulation mobile-touch-feedback transition-all duration-300 hover:scale-110 shadow-lg ${
+                  isFavorite 
+                    ? 'bg-red-500 hover:bg-red-600 text-white border-red-400' 
+                    : 'bg-black/70 hover:bg-black/90 text-white border-white/30'
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleFavorite(e)
+                }}
+                title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+              >
+                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+              </Button>
+            </div>
+          )}
+          
+          {/* Enhanced Live Badge - Only show if no favorite button */}
+          {video.isLive && !onFavorite && (
+            <div className="absolute top-2 left-2 z-20">
               <div className="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1 animate-pulse">
                 <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                 LIVE
@@ -645,48 +667,6 @@ export function VideoCard({
           )}
         </div>
 
-        {/* Enhanced Action Buttons */}
-        {showActions && variant === 'default' && (
-          <div className="flex gap-2 p-4 border-t border-border/50 bg-muted/20">
-            <Button
-              size="sm"
-              className="flex-1 text-sm h-9 bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 hover:scale-105"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleCardClick(e)
-              }}
-            >
-              <Play className="w-4 h-4 mr-2" />
-              Play
-            </Button>
-            
-            {onFavorite && (
-              <Button
-                size="sm"
-                variant="outline"
-                className={`text-sm h-9 px-3 transition-all duration-300 hover:scale-105 ${
-                  isFavorite 
-                    ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100' 
-                    : 'hover:bg-muted/50'
-                }`}
-                onClick={handleFavorite}
-              >
-                <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-              </Button>
-            )}
-            
-            {onExternalLink && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-sm h-9 px-3 transition-all duration-300 hover:scale-105 hover:bg-muted/50"
-                onClick={handleExternalLink}
-              >
-                <ExternalLink className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
-        )}
       </CardContent>
     </Card>
   )

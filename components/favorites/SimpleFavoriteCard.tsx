@@ -11,6 +11,7 @@ import {
   Clock,
   Eye
 } from 'lucide-react'
+import { formatDuration } from '@/lib/youtube'
 import { FavoriteVideo } from '@/types/favorites-simple'
 
 interface SimpleFavoriteCardProps {
@@ -80,7 +81,7 @@ export function SimpleFavoriteCard({
             variant="secondary" 
             className="absolute bottom-2 right-2 bg-black/80 text-white text-xs"
           >
-            {favorite.duration}
+            {formatDuration(favorite.duration)}
           </Badge>
         )}
         

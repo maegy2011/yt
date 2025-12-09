@@ -378,6 +378,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
 
   const [favoriteChannels, setFavoriteChannels] = useState<FavoriteChannel[]>([])
   const [favoriteVideos, setFavoriteVideos] = useState<FavoriteVideo[]>([])
+  const [favoritePlaylists, setFavoritePlaylists] = useState<any[]>([])
   const [allNotes, setAllNotes] = useState<VideoNote[]>([])
   const [notesLoading, setNotesLoading] = useState(false)
   const [notesSearchQuery, setNotesSearchQuery] = useState('')
@@ -2297,6 +2298,71 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     })
   }, [])
 
+  const handlePlaylistFavorite = useCallback(async (playlist: any) => {
+    // Check if favorites are enabled
+    if (!favoritesEnabled) {
+      return
+    }
+    
+    // Check if favorites are paused
+    if (favoritesPaused) {
+      return
+    }
+    
+    try {
+      const playlistId = playlist.playlistId || playlist.id
+      const isFavorite = favoritePlaylists.some(p => p.playlistId === playlistId)
+      
+      if (isFavorite) {
+        // Remove from favorites
+        const response = await fetch(`/api/favorites/playlists/${playlistId}`, {
+          method: 'DELETE'
+        })
+        
+        if (response.ok) {
+          setFavoritePlaylists(prev => prev.filter(p => p.playlistId !== playlistId))
+          toast({
+            title: 'Removed from favorites',
+            description: `"${playlist.title}" has been removed from your favorite playlists.`,
+            variant: 'default',
+          })
+        }
+      } else {
+        // Add to favorites
+        const response = await fetch('/api/favorites/playlists', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            playlistId: playlistId,
+            title: playlist.title,
+            channelName: playlist.channelName,
+            thumbnail: playlist.thumbnail,
+            videoCount: playlist.videoCount
+          })
+        })
+        
+        if (response.ok) {
+          const newFavorite = await response.json()
+          setFavoritePlaylists(prev => [...prev, newFavorite])
+          toast({
+            title: 'Added to favorites',
+            description: `"${playlist.title}" has been added to your favorite playlists.`,
+            variant: 'default',
+          })
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling playlist favorite:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to update playlist favorites. Please try again.',
+        variant: 'destructive',
+      })
+    }
+  }, [favoritesEnabled, favoritesPaused, favoritePlaylists, toast])
+
   // Confirm action handler
   const handleConfirmAction = useCallback(async () => {
     const { type, item, itemType, itemTitle } = confirmDialog
@@ -3998,15 +4064,27 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                       })
                       .map((item) => {
                         if (item.type === 'playlist') {
+                          const playlistId = (item as Playlist).playlistId
                           const isBlacklisted = blacklisted.some(listItem => 
-                            listItem.id === (item as Playlist).playlistId && listItem.type === 'playlist'
+                            listItem.id === playlistId && listItem.type === 'playlist'
                           )
                           const isWhitelisted = whitelisted.some(listItem => 
-                            listItem.id === (item as Playlist).playlistId && listItem.type === 'playlist'
+                            listItem.id === playlistId && listItem.type === 'playlist'
                           )
+                          const isFavorite = favoritePlaylists.some(p => p.playlistId === playlistId)
+                          
+                          // Add isFavorite to the playlist object
+                          const playlistWithFavorite = {
+                            ...(item as Playlist),
+                            isFavorite
+                          }
+                          
                           return (
-                            <div key={item.playlistId || item.id} className="relative group">
-                              <PlaylistCard playlist={item as Playlist} />
+                            <div key={playlistId || item.id} className="relative group">
+                              <PlaylistCard 
+                                playlist={playlistWithFavorite} 
+                                onFavorite={handlePlaylistFavorite}
+                              />
                               {/* Status indicator */}
                               {isBlacklisted && (
                                 <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded-full">
@@ -4097,6 +4175,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                               <UnifiedVideoCard 
                                 video={convertSimpleVideoToCardData(item as Video)} 
                                 onPlay={handleVideoSelect}
+                                onFavorite={toggleFavorite}
                                 onAddToBlacklist={handleAddToBlacklist}
                                 onAddToWhitelist={handleAddToWhitelist}
                                 isBlacklisted={isBlacklisted}

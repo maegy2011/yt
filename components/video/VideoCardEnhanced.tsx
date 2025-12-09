@@ -398,7 +398,7 @@ export function VideoCard({
           {video.duration && (
             <div className="absolute bottom-2 right-2">
               <div className="bg-black/90 backdrop-blur-md text-white text-xs font-medium px-2 py-1 rounded-md shadow-lg border border-black/20">
-                {video.duration}
+                {formatDuration(video.duration)}
               </div>
             </div>
           )}

@@ -13,7 +13,8 @@ import {
   Shield,
   ShieldOff,
   Eye,
-  Trash2
+  Trash2,
+  Heart
 } from 'lucide-react'
 import { formatViewCount, formatPublishedAt } from '@/lib/youtube'
 
@@ -226,16 +227,38 @@ export function PlaylistCard({
           />
           
           {/* Playlist Badge */}
-          <div className="absolute top-2 left-2">
+          <div className="absolute top-2 left-2 z-20">
             <div className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
               <List className="w-3 h-3" />
               Playlist
             </div>
           </div>
 
+          {/* Enhanced Favorite Button on Thumbnail */}
+          {onFavorite && (
+            <div className="absolute top-2 right-2 z-30">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-8 w-8 min-h-[32px] min-w-[32px] p-0 touch-manipulation mobile-touch-feedback transition-all duration-300 hover:scale-110 shadow-lg ${
+                  playlist.isFavorite 
+                    ? 'bg-red-500 hover:bg-red-600 text-white border-red-400' 
+                    : 'bg-black/70 hover:bg-black/90 text-white border-white/30'
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleFavorite(e)
+                }}
+                title={playlist.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+              >
+                <Heart className={`w-4 h-4 ${playlist.isFavorite ? 'fill-current' : ''}`} />
+              </Button>
+            </div>
+          )}
+
           {/* Always Visible Blacklist/Whitelist Buttons */}
           {blacklistWhitelistVisibility !== 'hidden' && (
-            <div className={`absolute top-2 right-2 flex gap-1 z-10 transition-opacity duration-300 ${
+            <div className={`absolute top-12 right-2 flex gap-1 z-10 transition-opacity duration-300 ${
               blacklistWhitelistVisibility === 'hover' ? (isHovered ? 'opacity-100' : 'opacity-0') : 'opacity-100'
             }`}>
               {onAddToWhitelist && !isWhitelisted && (

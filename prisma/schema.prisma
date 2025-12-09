@@ -209,6 +209,20 @@ model FavoriteChannel {
   @@index([addedAt])
 }
 
+model FavoritePlaylist {
+  id              String   @id
+  playlistId      String   @unique
+  title           String
+  channelName     String
+  thumbnail       String
+  videoCount      String
+  addedAt         DateTime @default(now())
+  updatedAt       DateTime
+
+  @@index([playlistId])
+  @@index([addedAt])
+}
+
 model FavoriteVideo {
   id          String   @id
   videoId     String   @unique
