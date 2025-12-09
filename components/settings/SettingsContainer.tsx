@@ -17,7 +17,6 @@ import {
   EyeOff
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { IncognitoToggle } from '@/components/incognito-toggle'
 
 interface SettingsContainerProps {
   autoLoadMore: boolean
@@ -251,42 +250,6 @@ export function SettingsContainer({
               <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               <h2 className="text-base sm:text-lg font-semibold">Privacy & Data Management</h2>
             </div>
-
-            {/* Incognito Mode */}
-            <Card>
-              <CardContent className="pt-3 sm:pt-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <EyeOff className="w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground" />
-                      <label className="text-sm font-medium">Incognito Mode</label>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Browse privately without saving your activity
-                    </p>
-                    <div className="text-xs text-muted-foreground mt-2 space-y-1">
-                      <div className="flex items-center gap-1">
-                        <div className="w-1 h-1 bg-muted-foreground rounded-full" />
-                        <span>Watch history not saved</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-1 h-1 bg-muted-foreground rounded-full" />
-                        <span>Favorites disabled</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-1 h-1 bg-muted-foreground rounded-full" />
-                        <span>Search history not saved</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-1 h-1 bg-muted-foreground rounded-full" />
-                        <span>Notes disabled</span>
-                      </div>
-                    </div>
-                  </div>
-                  <IncognitoToggle />
-                </div>
-              </CardContent>
-            </Card>
 
             <Card className="border-destructive/20">
               <CardHeader>

@@ -10,7 +10,6 @@
  * - Note-taking and notebook organization
  * - Channel management and following
  * - Background audio playback
- * - Incognito mode for private browsing
  * - Blacklist/whitelist functionality
  * - Responsive design for all devices
  * - Dark/light theme support
@@ -125,8 +124,6 @@ import { SettingsContainerEnhanced } from '@/components/settings/SettingsContain
 import { BottomNavigation } from '@/components/navigation/BottomNavigation'
 import { NavigationSpacer } from '@/components/navigation/NavigationSpacer'
 import { ThemeSwitch } from '@/components/theme-switch'
-import { IncognitoBannerEnhanced } from '@/components/incognito-banner-enhanced'
-import { IncognitoToggleEnhanced } from '@/components/incognito-toggle-enhanced'
 
 import { SearchResultsFilterEnhanced } from '@/components/search/SearchResultsFilterEnhanced'
 import { ChannelsContainer } from '@/components/channels/ChannelsContainer'
@@ -146,7 +143,6 @@ import {
 // Custom Hooks and Contexts
 import { useWatchedHistory } from '@/hooks/useWatchedHistory'
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
-import { useIncognito, useIncognitoStats } from '@/contexts/incognito-context'
 import { useToast } from '@/hooks/use-toast'
 import { useChannelAvatar } from '@/hooks/useChannelAvatar'
 
@@ -177,7 +173,6 @@ interface SearchResults {
  * - Data persistence and caching
  * - Navigation between different app sections
  * - Background audio playback
- * - Incognito mode functionality
  * - Content filtering (blacklist/whitelist)
  * - Network connectivity monitoring
  */
@@ -197,10 +192,6 @@ export default function MyTubeApp() {
     stopBackgroundVideo,       // Function to stop background video
     settingsTitle              // Current settings title for mini player
   } = useBackgroundPlayer()
-
-  // Incognito mode context for private browsing
-  const { isIncognito } = useIncognito()
-  const { trackIncognitoActivity } = useIncognitoStats()
 
   // Watch history management hook
   const { addToWatchedHistory, isVideoWatched } = useWatchedHistory()
@@ -716,17 +707,8 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     return baseTabs
   }, [favoritesEnabled])
 
-  // Enhanced tab navigation with haptic feedback and incognito tracking
+  // Enhanced tab navigation with haptic feedback
   const handleTabNavigation = useCallback((tabId: Tab) => {
-    // Track incognito activity for channel and playlist navigation
-    if (isIncognito) {
-      if (tabId === 'channels') {
-        trackIncognitoActivity('channel', { navigation: 'tab-switch' })
-      } else if (tabId === 'favorites' || tabId === 'notebooks') {
-        trackIncognitoActivity('playlist', { navigation: 'tab-switch' })
-      }
-    }
-    
     setPreviousTab(activeTab)
     setActiveTab(tabId)
     triggerHapticFeedback()
@@ -752,7 +734,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     if (tab) {
       
     }
-  }, [isIncognito, trackIncognitoActivity, activeTab, tabs, triggerHapticFeedback, showPlaylistVideos])
+  }, [activeTab, tabs, triggerHapticFeedback, showPlaylistVideos])
 
   // Back button functionality
   const handleGoBack = useCallback(() => {
@@ -1505,11 +1487,6 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
 
   const handleSearch = async (append: boolean = false) => {
     const trimmedQuery = searchQuery.trim()
-    
-    // Track incognito search activity
-    if (isIncognito && !append && trimmedQuery.length >= 2) {
-      trackIncognitoActivity('search', { query: trimmedQuery })
-    }
     
     if (append && !currentSearchQuery.trim()) {
       setHasMoreVideos(false)
@@ -2452,15 +2429,6 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
 
   const handleVideoSelect = (video: VideoCardData) => {
     console.log('handleVideoSelect called:', video.title) // Debug log
-    
-    // Track incognito video activity
-    if (isIncognito) {
-      trackIncognitoActivity('video', { 
-        videoId: video.videoId || video.id,
-        title: video.title,
-        duration: video.duration
-      })
-    }
     
     handleVideoPlay(video)
   }
@@ -4602,12 +4570,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   }
 
   return (
-    <div className={`h-screen bg-background flex flex-col overflow-hidden touch-manipulation ${
-      isIncognito ? 'incognito-mode' : ''
-    }`}>
-      {/* Incognito Banner */}
-      <IncognitoBannerEnhanced />
-      
+    <div className="h-screen bg-background flex flex-col overflow-hidden touch-manipulation">
       {/* Header - Always Visible */}
       <header className="bg-card/95 backdrop-blur-lg border-b border-border sticky top-0 z-50 shadow-sm flex-shrink-0 sticky-support">
         <div className="w-full px-3 sm:px-4 lg:px-6">
@@ -4695,7 +4658,6 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
               </Button>
               
               <ThemeSwitch />
-              <IncognitoToggleEnhanced />
               <Button
                 variant="ghost"
                 size="sm"

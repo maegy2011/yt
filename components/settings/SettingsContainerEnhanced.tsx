@@ -38,7 +38,6 @@ import {
   CheckCircle
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { IncognitoToggleEnhanced } from '@/components/incognito-toggle-enhanced'
 import { BlacklistWhitelistStats } from './BlacklistWhitelistStats'
 import { ProfessionalContentFilter } from '@/components/content-filter/ProfessionalContentFilter'
 import { cn } from '@/lib/utils'
@@ -484,44 +483,6 @@ export function SettingsContainerEnhanced({
                           <SelectItem value="hidden">Always Hidden</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Incognito Mode */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <EyeOff className="w-5 h-5" />
-                      Incognito Mode
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <EyeOff className="w-4 h-4 text-muted-foreground" />
-                          <Label>Private Browsing</Label>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Browse privately without saving your activity
-                        </p>
-                        <div className="text-xs text-muted-foreground mt-2 space-y-1">
-                          <div className="flex items-center gap-1">
-                            <div className="w-1 h-1 bg-muted-foreground rounded-full" />
-                            <span>Watch history not saved</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <div className="w-1 h-1 bg-muted-foreground rounded-full" />
-                            <span>Favorites disabled</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <div className="w-1 h-1 bg-muted-foreground rounded-full" />
-                            <span>Search history not saved</span>
-                          </div>
-                        </div>
-                      </div>
-                      <IncognitoToggleEnhanced />
                     </div>
                   </CardContent>
                 </Card>

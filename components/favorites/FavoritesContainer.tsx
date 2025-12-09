@@ -4,7 +4,6 @@ import { useCallback } from 'react'
 import { FavoriteList } from './FavoriteList'
 import { FavoriteVideo } from '@/types/favorites'
 import { useFavorites } from '@/hooks/useFavorites'
-import { IncognitoWrapper } from '@/components/incognito-wrapper-enhanced'
 
 interface FavoritesContainerProps {
   className?: string
@@ -68,7 +67,7 @@ export function FavoritesContainer({ className = '', onVideoPlay }: FavoritesCon
   }
 
   return (
-    <IncognitoWrapper feature="favorites" className={getContainerClasses()}>
+    <div className={getContainerClasses()}>
       {/* Error Display */}
       {error && (
         <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
@@ -88,6 +87,6 @@ export function FavoritesContainer({ className = '', onVideoPlay }: FavoritesCon
         enabled={enabled}
         paused={paused}
       />
-    </IncognitoWrapper>
+    </div>
   )
 }

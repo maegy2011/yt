@@ -7,7 +7,6 @@
  * Features:
  * - Pagination support for large favorite lists
  * - Input validation and sanitization
- * - Incognito mode support
  * - Error handling with proper HTTP status codes
  * - Database cleanup for invalid entries
  * - Optimized database queries
@@ -26,7 +25,6 @@ import { NextRequest, NextResponse } from 'next/server'
 // Database and utilities
 import { db } from '@/lib/db'
 import { sanitizeVideoId, isValidYouTubeVideoId } from '@/lib/youtube-utils'
-import { isIncognitoRequest, shouldSkipInIncognito, createIncognitoResponse } from '@/lib/incognito-utils'
 
 // Error handling and middleware
 import { 
@@ -157,12 +155,6 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
  */
 export const POST = withErrorHandler(async (request: NextRequest) => {
   const context = createApiContext(request)
-  const isIncognito = isIncognitoRequest(request)
-  
-  // Skip saving favorites in incognito mode for privacy
-  if (shouldSkipInIncognito(isIncognito)) {
-    throw new AuthorizationError('Favorites are disabled in incognito mode')
-  }
   
   // Parse and validate request body
   let body: any
@@ -283,12 +275,6 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
  */
 export const DELETE = withErrorHandler(async (request: NextRequest) => {
   const context = createApiContext(request)
-  const isIncognito = isIncognitoRequest(request)
-  
-  // Skip deleting favorites in incognito mode
-  if (shouldSkipInIncognito(isIncognito)) {
-    throw new AuthorizationError('Favorites are disabled in incognito mode')
-  }
   
   // Extract video ID from query parameters
   const { searchParams } = new URL(request.url)

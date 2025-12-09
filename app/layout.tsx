@@ -8,7 +8,6 @@
  * - Font configuration with Geist Sans and Geist Mono
  * - Theme provider for dark/light mode support
  * - Background player context for audio playback
- * - Incognito mode context for private browsing
  * - Error boundary for error handling
  * - Responsive viewport configuration
  * - SEO metadata configuration
@@ -28,7 +27,6 @@ import { ErrorBoundary } from "@/components/error-boundary";
 
 // Context Providers
 import { BackgroundPlayerProvider } from "@/contexts/background-player-context";
-import { IncognitoProvider } from "@/contexts/incognito-context";
 
 // Theme Provider
 import { ThemeProvider } from "next-themes";
@@ -143,17 +141,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {/* 
-            Incognito Provider:
-            Provides global state for private browsing mode
-            Allows users to browse without saving history or preferences
+            Background Player Provider:
+            Manages audio playback state across the application
+            Enables background audio playback when navigating between pages
           */}
-          <IncognitoProvider>
-            {/* 
-              Background Player Provider:
-              Manages audio playback state across the application
-              Enables background audio playback when navigating between pages
-            */}
-            <BackgroundPlayerProvider>
+          <BackgroundPlayerProvider>
               {/* 
                 Error Boundary:
                 Catches and handles JavaScript errors throughout the application
@@ -176,7 +168,6 @@ export default function RootLayout({
                 </div>
               </ErrorBoundary>
             </BackgroundPlayerProvider>
-          </IncognitoProvider>
         </ThemeProvider>
       </body>
     </html>

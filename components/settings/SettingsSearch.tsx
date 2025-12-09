@@ -120,14 +120,6 @@ export function SettingsSearch({ onSettingSelect, className }: SettingsSearchPro
       icon: Clock,
       keywords: ['watch', 'history', 'track', 'video']
     },
-    {
-      id: 'incognito',
-      title: 'Incognito Mode',
-      description: 'Browse privately without saving your activity',
-      category: 'privacy',
-      icon: EyeOff,
-      keywords: ['incognito', 'private', 'privacy', 'browse']
-    },
 
     // Playback Settings
     {

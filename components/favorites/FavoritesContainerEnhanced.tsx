@@ -4,7 +4,6 @@ import { useCallback } from 'react'
 import { FavoriteList } from './FavoriteList'
 import { FavoriteVideo } from '@/types/favorites'
 import { useFavorites } from '@/hooks/useFavorites'
-import { IncognitoWrapper } from '@/components/incognito-wrapper-enhanced'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useAsyncOperation } from '@/hooks/useAsyncOperation'
 import { FavoritesListSkeleton } from '@/components/ui/skeleton-components'
@@ -134,7 +133,7 @@ export function FavoritesContainerEnhanced({ className = '', onVideoPlay }: Favo
         // Error handled by ErrorBoundary component
       }}
     >
-      <IncognitoWrapper feature="favorites" className={getContainerClasses()}>
+      <div className={getContainerClasses()}>
         {/* Error Display */}
         {error && (
           <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
@@ -161,7 +160,7 @@ export function FavoritesContainerEnhanced({ className = '', onVideoPlay }: Favo
           enabled={enabled}
           paused={paused}
         />
-      </IncognitoWrapper>
+      </div>
     </ErrorBoundary>
   )
 }

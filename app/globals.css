@@ -560,47 +560,6 @@
     }
   }
   
-  /* Incognito mode styles */
-  .incognito-mode {
-    /* Darker, more private appearance */
-    filter: brightness(0.95) contrast(1.05);
-  }
-  
-  .incognito-mode::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, 
-      rgba(0, 0, 0, 0.02) 0%, 
-      rgba(75, 0, 130, 0.01) 50%, 
-      rgba(0, 0, 0, 0.02) 100%
-    );
-    pointer-events: none;
-    z-index: 1;
-  }
-  
-  /* Subtle incognito indicators */
-  .incognito-mode .bg-card {
-    background-color: oklch(0.98 0.005 270); /* Very slightly purple tinted */
-  }
-  
-  .incognito-mode.dark .bg-card {
-    background-color: oklch(0.259 0.005 270); /* Very slightly purple tinted dark */
-  }
-  
-  /* Incognito mode animations */
-  @keyframes incognito-pulse {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 0.8; }
-  }
-  
-  .incognito-indicator {
-    animation: incognito-pulse 2s ease-in-out infinite;
-  }
-  
   /* Aspect ratio utilities */
   .aspect-video {
     aspect-ratio: 16 / 9;
