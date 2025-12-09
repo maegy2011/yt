@@ -18,7 +18,6 @@ const openApiSpec = {
 • **Notebook System**: Create and manage notebooks with PDF attachments
 • **Watched History**: Track viewing progress and statistics
 • **Channel Management**: Follow channels and get recommendations
-• **Blacklist System**: Filter unwanted content with advanced patterns
 • **Real-time Features**: WebSocket support for live updates
 • **AI Integration**: Smart channel recommendations and content analysis
 
@@ -500,49 +499,6 @@ All errors follow a consistent format:
           }
         }
       }
-    },
-    '/api/blacklist': {
-      get: {
-        tags: ['Blacklist'],
-        summary: 'Get blacklist entries',
-        description: 'Retrieve all blacklist entries for content filtering',
-        responses: {
-          '200': {
-            description: 'Blacklist retrieved successfully',
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'array',
-                  items: { $ref: '#/components/schemas/BlacklistEntry' }
-                }
-              }
-            }
-          }
-        },
-        post: {
-          tags: ['Blacklist'],
-          summary: 'Add blacklist entry',
-          description: 'Add a new entry to the blacklist',
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/AddBlacklistRequest' }
-              }
-            }
-          },
-          responses: {
-            '201': {
-              description: 'Entry added to blacklist',
-              content: {
-                'application/json': {
-                  schema: { $ref: '#/components/schemas/BlacklistEntry' }
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   components: {
@@ -779,32 +735,6 @@ All errors follow a consistent format:
           thumbnailUrl: { type: 'string' }
         }
       },
-      BlacklistEntry: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-          type: { 
-            type: 'string', 
-            enum: ['channel', 'keyword', 'pattern'] 
-          },
-          value: { type: 'string' },
-          reason: { type: 'string' },
-          createdAt: { type: 'string', format: 'date-time' },
-          isActive: { type: 'boolean' }
-        }
-      },
-      AddBlacklistRequest: {
-        type: 'object',
-        required: ['type', 'value'],
-        properties: {
-          type: { 
-            type: 'string', 
-            enum: ['channel', 'keyword', 'pattern'] 
-          },
-          value: { type: 'string' },
-          reason: { type: 'string' }
-        }
-      },
       SuccessResponse: {
         type: 'object',
         properties: {
@@ -921,10 +851,6 @@ All errors follow a consistent format:
     {
       name: 'Channels',
       description: 'Channel management and recommendations'
-    },
-    {
-      name: 'Blacklist',
-      description: 'Content filtering and blacklist management'
     }
   ]
 };

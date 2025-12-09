@@ -85,49 +85,6 @@ function extractThumbnail(thumbnails: any): { url: string; width: number; height
   }
 }
 
-// Helper function to check if content should be filtered
-function shouldFilterContent(content: any, blacklistedItems: any[], whitelistedItems: any[]) {
-  const contentType = content.videoId ? 'video' : content.id ? 'playlist' : 'channel'
-  const contentId = content.videoId || content.id || content.channelId
-  
-  // Check whitelist first (whitelist takes precedence)
-  if (whitelistedItems.length > 0) {
-    const isWhitelisted = whitelistedItems.some(item => {
-      if (item.type === contentType && item.itemId === contentId) {
-        return true
-      }
-      // For videos, also check if from whitelisted channel
-      if (contentType === 'video' && item.type === 'channel' && item.itemId === content.channelId) {
-        return true
-      }
-      return false
-    })
-    
-    // If whitelist exists but content is not whitelisted, filter it out
-    return !isWhitelisted
-  }
-  
-  // Check blacklist
-  if (blacklistedItems.length > 0) {
-    const isBlacklisted = blacklistedItems.some(item => {
-      if (item.type === contentType && item.itemId === contentId) {
-        return true
-      }
-      // For videos, also check if from blocked channel
-      if (contentType === 'video' && item.type === 'channel' && item.itemId === content.channelId) {
-        return true
-      }
-      return false
-    })
-    
-    // Filter out blacklisted content
-    return isBlacklisted
-  }
-  
-  // No filtering needed
-  return false
-}
-
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -145,14 +102,6 @@ export async function GET(request: NextRequest) {
     const favoriteChannels = await db.favoriteChannel.findMany({
       orderBy: { addedAt: 'desc' }
     })
-
-    // Get blacklist and whitelist items for filtering
-    const [blacklistedItems, whitelistedItems] = await Promise.all([
-      db.blacklistedItem.findMany(),
-      db.whitelistedItem.findMany()
-    ])
-
-    // Console removed - Loaded blacklist/whitelist items parsed
 
     if (favoriteChannels.length === 0) {
       return NextResponse.json({
@@ -192,10 +141,10 @@ export async function GET(request: NextRequest) {
       })
     }
 
-  if (!Client) {
-    return NextResponse.json({ error: 'YouTube client not initialized' }, { status: 500 })
-  }
-  const youtube = new Client()
+    if (!Client) {
+      return NextResponse.json({ error: 'YouTube client not initialized' }, { status: 500 })
+    }
+    const youtube = new Client()
 
     const allVideos: any[] = []
     const allPlaylists: any[] = []
@@ -219,7 +168,7 @@ export async function GET(request: NextRequest) {
             subscriberCount: channelData.subscriberCount || 0,
             videoCount: channelData.videoCount || 0,
             url: `https://youtube.com/channel/${channelData.id}`,
-            handle: channelData.handle || `@${channelData.name.toLowerCase().replace(/\s+/g, '')}`,
+            handle: channelData.handle || `@${channel.name.toLowerCase().replace(/\s+/g, '')}`,
             addedAt: channel.addedAt
           })
 
@@ -240,7 +189,7 @@ export async function GET(request: NextRequest) {
                   // Console statement removed
                   break
                 } else if (retries === maxRetries - 1) {
-                // Console statement removed
+                  // Console statement removed
                   break
                 }
               } catch (searchError) {
@@ -305,11 +254,8 @@ export async function GET(request: NextRequest) {
                 }
               }).filter(video => video !== null) // Remove null entries
               
-              // Apply blacklist/whitelist filtering to videos
-              const filteredVideos = videos.filter(video => !shouldFilterContent(video, blacklistedItems, whitelistedItems))
-              
-              allVideos.push(...filteredVideos)
-              // `Found ${videos.length} videos (${filteredVideos.length} after filtering) from ${channel.name}`)
+              allVideos.push(...videos)
+              // `Found ${videos.length} videos from ${channel.name}`)
             }
           } catch (videoError) {
             // `Error searching for videos from ${channel.name}:`, videoError)
@@ -385,11 +331,8 @@ export async function GET(request: NextRequest) {
                   }
                 }).filter(playlist => playlist !== null) // Remove null entries
                 
-                // Apply blacklist/whitelist filtering to playlists
-                const filteredPlaylists = playlists.filter(playlist => !shouldFilterContent(playlist, blacklistedItems, whitelistedItems))
-                
-                allPlaylists.push(...filteredPlaylists)
-                // `Found ${playlists.length} playlists (${filteredPlaylists.length} after filtering) from ${channel.name}`)
+                allPlaylists.push(...playlists)
+                // `Found ${playlists.length} playlists from ${channel.name}`)
               }
             } catch (playlistError) {
               // `Error searching for playlists from ${channel.name}:`, playlistError)
@@ -400,90 +343,66 @@ export async function GET(request: NextRequest) {
         // `Error processing channel ${channel.name}:`, error)
         // Continue with other channels even if one fails
       }
-    }
-
-    // Sort videos by published date (newest first)
-    // Only sort if dates are in ISO format, otherwise keep YouTubei's natural ordering
-    allVideos.sort((a, b) => {
-      const aDate = a.publishedAt
-      const bDate = b.publishedAt
-      
-      // If both are ISO dates, sort by timestamp
-      if (aDate.includes('T') && bDate.includes('T')) {
-        return new Date(bDate).getTime() - new Date(aDate).getTime()
-      }
-      
-      // If one is ISO and one is relative, prioritize ISO (more recent)
-      if (aDate.includes('T') && !bDate.includes('T')) return -1
-      if (!aDate.includes('T') && bDate.includes('T')) return 1
-      
-      // If both are relative or both are unknown, keep original order
-      return 0
-    })
-
-    // Sort playlists by last updated date (newest first)
-    allPlaylists.sort((a, b) => new Date(b.lastUpdatedAt || 0).getTime() - new Date(a.lastUpdatedAt || 0).getTime())
-
-    // Pagination for videos
-    const totalVideos = allVideos.length
+    }    // Calculate pagination for videos
     const videoStartIndex = (videoPage - 1) * videosPerPage
     const videoEndIndex = videoStartIndex + videosPerPage
     const paginatedVideos = allVideos.slice(videoStartIndex, videoEndIndex)
-    const hasMoreVideos = videoEndIndex < totalVideos
-
-    // Pagination for playlists
-    const totalPlaylists = allPlaylists.length
+    
+    // Calculate pagination for playlists
     const playlistStartIndex = (playlistPage - 1) * playlistsPerPage
     const playlistEndIndex = playlistStartIndex + playlistsPerPage
     const paginatedPlaylists = allPlaylists.slice(playlistStartIndex, playlistEndIndex)
-    const hasMorePlaylists = playlistEndIndex < totalPlaylists
+    
+    // Calculate statistics
+    let totalViews = 0
+    let totalSubscribers = 0
+    
+    channelsInfo.forEach(channel => {
+      totalViews += channel.viewCount || 0
+      totalSubscribers += channel.subscriberCount || 0
+    })
 
-    const response = {
+    return NextResponse.json({
       channels: channelsInfo,
       videos: paginatedVideos,
       playlists: paginatedPlaylists,
       pagination: {
         videos: {
           currentPage: videoPage,
-          totalPages: Math.ceil(totalVideos / videosPerPage),
-          totalItems: totalVideos,
+          totalPages: Math.ceil(allVideos.length / videosPerPage),
+          totalItems: allVideos.length,
           itemsPerPage: videosPerPage,
-          hasNextPage: hasMoreVideos,
+          hasNextPage: videoEndIndex < allVideos.length,
           hasPreviousPage: videoPage > 1
         },
         playlists: {
           currentPage: playlistPage,
-          totalPages: Math.ceil(totalPlaylists / playlistsPerPage),
-          totalItems: totalPlaylists,
+          totalPages: Math.ceil(allPlaylists.length / playlistsPerPage),
+          totalItems: allPlaylists.length,
           itemsPerPage: playlistsPerPage,
-          hasNextPage: hasMorePlaylists,
+          hasNextPage: playlistEndIndex < allPlaylists.length,
           hasPreviousPage: playlistPage > 1
         }
       },
       stats: {
         totalChannels: channelsInfo.length,
-        totalVideos: totalVideos,
-        totalPlaylists: totalPlaylists,
-        totalViews: allVideos.reduce((sum, video) => sum + (video.viewCount || 0), 0),
-        totalSubscribers: channelsInfo.reduce((sum, channel) => sum + (channel.subscriberCount || 0), 0)
+        totalVideos: allVideos.length,
+        totalPlaylists: allPlaylists.length,
+        totalViews: totalViews,
+        totalSubscribers: totalSubscribers
       },
       metadata: {
         fetchedAt: new Date().toISOString(),
-        source: 'Followed Channels Content',
-        maxVideosPerChannel: maxVideos,
-        maxPlaylistsPerChannel: maxPlaylists
+        source: "Followed Channels Content",
+        message: `Successfully fetched content from ${channelsInfo.length} channels`
       }
-    }
-
-    // Console removed - Followed channels content fetched successfully
-
-    return NextResponse.json(response)
+    })
 
   } catch (error) {
-    // 'Failed to fetch followed channels content:', error)
-    return NextResponse.json({ 
-      error: 'Failed to fetch followed channels content',
-      details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : undefined
-    }, { status: 500 })
+    console.error("Error in followed-channels API:", error)
+    return NextResponse.json(
+      { error: "Failed to fetch followed channels content", details: error.message },
+      { status: 500 }
+    )
   }
 }

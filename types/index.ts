@@ -11,7 +11,6 @@
  * - Notes and notebook types
  * - Watch history types
  * - Pagination and filtering types
- * - Blacklist/whitelist types
  * - Conversion utilities between different type systems
  * - Video card data types
  * 
@@ -473,86 +472,6 @@ export interface FollowedChannelsContent {
 }
 
 // ==================== BLACKLIST/WHITELIST TYPES ====================
-
-export interface BlacklistedItem {
-  id: string
-  itemId: string
-  title: string
-  type: 'video' | 'playlist' | 'channel'
-  thumbnail?: string
-  channelName?: string
-  addedAt: string
-  updatedAt?: string
-  expiresAt?: string
-  isChannelBlock?: boolean
-  priority?: number
-  batchId?: string
-  categoryId?: string
-  category?: BlacklistCategory
-  // Allow additional properties for flexibility
-  [key: string]: any
-}
-
-export interface WhitelistedItem {
-  id: string
-  itemId: string
-  title: string
-  type: 'video' | 'playlist' | 'channel'
-  thumbnail?: string
-  channelName?: string
-  addedAt: string
-  updatedAt?: string
-  expiresAt?: string
-  isChannelWhitelist?: boolean
-  priority?: number
-  batchId?: string
-  // Allow additional properties for flexibility
-  [key: string]: any
-}
-
-export interface BlacklistCategory {
-  id: string
-  name: string
-  color: string
-  description?: string
-  isActive: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-// ==================== VIDEO CARD TYPES ====================
-
-export interface VideoCardData {
-  videoId: string // Required
-  id?: string
-  title: string
-  channelName: string
-  channelHandle?: string
-  channelThumbnail?: string
-  thumbnail: string // Required
-  duration?: string
-  viewCount?: number
-  publishedAt?: string
-  description?: string
-  quality?: string
-  isLive?: boolean
-  isUpcoming?: boolean
-  subscriberCount?: string
-  // Favorites specific
-  addedAt?: string
-  isFavorite?: boolean
-  // Watched specific
-  watchedAt?: string
-  progress?: number
-  // Note specific
-  hasNotes?: boolean
-  noteCount?: number
-  // Database specific
-  createdAt?: string
-  updatedAt?: string
-  // Allow additional properties for flexibility
-  [key: string]: any
-}
 
 // ==================== CONVERSION FUNCTIONS ====================
 

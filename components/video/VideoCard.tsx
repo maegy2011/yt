@@ -8,7 +8,7 @@
  * Features:
  * - Multiple display variants (default, favorite, watched, compact, grid)
  * - Responsive design with mobile optimization
- * - Interactive elements (play, favorite, blacklist, whitelist)
+ * - Interactive elements (play, favorite)
  * - Progress indicators for watched videos
  * - Live streaming badges
  * - Quality indicators
@@ -56,7 +56,6 @@ import {
 
 // Custom hooks and contexts
 import { useBackgroundPlayer } from '@/contexts/background-player-context'
-import { useBlacklistWhitelistVisibility } from '@/hooks/useBlacklistWhitelistVisibility'
 
 // Utility functions for formatting
 import { formatViewCount, formatPublishedAt, formatDuration } from '@/lib/youtube'
@@ -121,7 +120,6 @@ export interface VideoCardProps {
   isSelected?: boolean      // Current selection state
   className?: string        // Additional CSS classes
   size?: 'sm' | 'md' | 'lg' // Card size variant
-  blacklistWhitelistVisibility?: 'always' | 'hover' | 'hidden'
   
   // Event handlers
   onPlay?: (video: VideoCardData) => void
@@ -129,12 +127,8 @@ export interface VideoCardProps {
   onRemove?: (videoId: string) => void
   onSelect?: (videoId: string, selected: boolean) => void
   onExternalLink?: (video: VideoCardData) => void
-  onAddToBlacklist?: (video: VideoCardData) => void
-  onAddToWhitelist?: (video: VideoCardData) => void
   
   // State indicators
-  isBlacklisted?: boolean
-  isWhitelisted?: boolean
   isFavorite?: boolean
 }
 
@@ -153,21 +147,14 @@ export function VideoCard({
   onRemove,
   onSelect,
   onExternalLink,
-  onAddToBlacklist,
-  onAddToWhitelist,
-  isBlacklisted = false,
-  isWhitelisted = false,
   isFavorite: isFavoriteProp = false,
   className = '',
-  size = 'md',
-  blacklistWhitelistVisibility = 'always'
+  size = 'md'
 }: VideoCardProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
-  
-  const { shouldShowButtons } = useBlacklistWhitelistVisibility()
   
   const {
     backgroundVideo,
@@ -230,23 +217,7 @@ export function VideoCard({
     }
   }, [onExternalLink, video, videoId])
 
-  // Handle add to blacklist
-  const handleAddToBlacklist = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (onAddToBlacklist) {
-      onAddToBlacklist(video)
-    }
-    setIsMenuOpen(false)
-  }, [onAddToBlacklist, video])
-
-  // Handle add to whitelist
-  const handleAddToWhitelist = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (onAddToWhitelist) {
-      onAddToWhitelist(video)
-    }
-    setIsMenuOpen(false)
-  }, [onAddToWhitelist, video])
+  
 
   // Get thumbnail URL with fallbacks
   const getThumbnailUrl = useCallback(() => {
@@ -424,59 +395,9 @@ export function VideoCard({
             </div>
           )}
           
-          {/* Blacklist Badge */}
-          {isBlacklisted && (
-            <div className="absolute top-2 left-2">
-              <div className="bg-gradient-to-r from-red-600 to-red-700 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
-                <ShieldOff className="w-3 h-3" />
-                Blacklisted
-              </div>
-            </div>
-          )}
           
-          {/* Whitelist Badge */}
-          {isWhitelisted && (
-            <div className="absolute top-2 left-2">
-              <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg flex items-center gap-1">
-                <Shield className="w-3 h-3" />
-                Whitelisted
-              </div>
-            </div>
-          )}
           
-          {/* Always Visible Blacklist/Whitelist Buttons */}
-          {shouldShowButtons(isHovered) && (
-            <div className="absolute top-2 right-2 flex gap-1 z-10">
-              {onAddToWhitelist && !isWhitelisted && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 min-h-[24px] min-w-[24px] p-0 touch-manipulation mobile-touch-feedback bg-green-500/90 hover:bg-green-600 text-white shadow-lg border border-green-400/30 transition-all duration-300 hover:scale-110"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleAddToWhitelist(e)
-                  }}
-                  title="Add to Whitelist"
-                >
-                  <Shield className="w-3 h-3" />
-                </Button>
-              )}
-              {onAddToBlacklist && !isBlacklisted && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 min-h-[24px] min-w-[24px] p-0 touch-manipulation mobile-touch-feedback bg-red-500/90 hover:bg-red-600 text-white shadow-lg border border-red-400/30 transition-all duration-300 hover:scale-110"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleAddToBlacklist(e)
-                  }}
-                  title="Add to Blacklist"
-                >
-                  <ShieldOff className="w-3 h-3" />
-                </Button>
-              )}
-            </div>
-          )}
+          
           
           {/* Enhanced Play Overlay - Mobile Optimized */}
           <div 
@@ -588,28 +509,7 @@ export function VideoCard({
                           Open on YouTube
                         </Button>
                       )}
-                      {onAddToWhitelist && !isWhitelisted && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full justify-start text-sm h-11 min-h-[44px] px-3 hover:bg-green-50 hover:text-green-700 transition-colors touch-manipulation mobile-touch-feedback"
-                          onClick={handleAddToWhitelist}
-                        >
-                          <Shield className="w-4 h-4 mr-3" />
-                          Add to Whitelist
-                        </Button>
-                      )}
-                      {onAddToBlacklist && !isBlacklisted && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full justify-start text-sm h-11 min-h-[44px] px-3 hover:bg-red-50 hover:text-red-700 transition-colors touch-manipulation mobile-touch-feedback"
-                          onClick={handleAddToBlacklist}
-                        >
-                          <ShieldOff className="w-4 h-4 mr-3" />
-                          Add to Blacklist
-                        </Button>
-                      )}
+                      
                       {onRemove && (
                         <Button
                           variant="ghost"

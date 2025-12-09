@@ -10,7 +10,7 @@
  * - Note-taking and notebook organization
  * - Channel management and following
  * - Background audio playback
- * - Blacklist/whitelist functionality
+ 
  * - Responsive design for all devices
  * - Dark/light theme support
  * 
@@ -86,28 +86,7 @@ import { convertYouTubeVideo, convertYouTubePlaylist, convertYouTubeChannel, con
 // Application types
 import type { WatchedVideo } from '@/types/watched'
 
-// Blacklist and Whitelist interfaces for content filtering
-interface BlacklistedItem {
-  id: string
-  itemId: string           // YouTube video, playlist, or channel ID
-  title: string
-  type: 'video' | 'playlist' | 'channel'
-  thumbnail?: string
-  channelName?: string
-  addedAt: string
-  updatedAt?: string
-}
 
-interface WhitelistedItem {
-  id: string
-  itemId: string           // YouTube video, playlist, or channel ID
-  title: string
-  type: 'video' | 'playlist' | 'channel'
-  thumbnail?: string
-  channelName?: string
-  addedAt: string
-  updatedAt?: string
-}
 // Application Components
 import { VideoCard as UnifiedVideoCard, toVideoCardData, PlaylistCard, ChannelCard } from '@/components/video'
 import { VideoCardSkeleton, VideoGridSkeleton } from '@/components/video-skeleton'
@@ -125,7 +104,7 @@ import { BottomNavigation } from '@/components/navigation/BottomNavigation'
 import { NavigationSpacer } from '@/components/navigation/NavigationSpacer'
 import { ThemeSwitch } from '@/components/theme-switch'
 
-import { SearchResultsFilterEnhanced } from '@/components/search/SearchResultsFilterEnhanced'
+
 import { ChannelsContainer } from '@/components/channels/ChannelsContainer'
 
 // Additional UI Components
@@ -173,7 +152,7 @@ interface SearchResults {
  * - Data persistence and caching
  * - Navigation between different app sections
  * - Background audio playback
- * - Content filtering (blacklist/whitelist)
+ 
  * - Network connectivity monitoring
  */
 export default function MyTubeApp() {
@@ -233,125 +212,7 @@ export default function MyTubeApp() {
   const [searchCountdown, setSearchCountdown] = useState<number | null>(null)  // Search countdown timer
   const [isUpdatingFollow, setIsUpdatingFollow] = useState(false)    // Follow operation state
   
-  // ============================================================================
-  // CONTENT FILTERING STATE
-  // ============================================================================
   
-  // Blacklist and Whitelist for content filtering
-  const [blacklisted, setBlacklisted] = useState<BlacklistedItem[]>([])      // Blacklisted content
-  const [whitelisted, setWhitelisted] = useState<WhitelistedItem[]>([])      // Whitelisted content
-  
-  // Confirmation dialog for blacklist/whitelist actions
-  const [confirmDialog, setConfirmDialog] = useState<{
-    isOpen: boolean
-    type: 'blacklist' | 'whitelist'
-    item: any
-    itemType: string
-    itemTitle: string
-  }>({
-    isOpen: false,
-    type: 'blacklist',
-    item: null,
-    itemType: '',
-    itemTitle: ''
-  })
-  
-  // Database API functions
-const fetchBlacklistedItems = async (): Promise<BlacklistedItem[]> => {
-  try {
-    const response = await fetch('/api/blacklist')
-    if (!response.ok) throw new Error('Failed to fetch blacklist')
-    const data = await response.json()
-    return data.items || []
-  } catch (error) {
-    // Error fetching blacklist
-    return []
-  }
-}
-
-const fetchWhitelistedItems = async (): Promise<WhitelistedItem[]> => {
-  try {
-    const response = await fetch('/api/whitelist')
-    if (!response.ok) throw new Error('Failed to fetch whitelist')
-    const data = await response.json()
-    return data.items || []
-  } catch (error) {
-    // Error fetching whitelist
-    return []
-  }
-}
-
-const addToBlacklist = async (item: any): Promise<boolean> => {
-  try {
-    const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
-    if (itemType === 'unknown') return false
-    
-    const itemId = 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId
-    const title = item.title || item.channelName || 'Unknown'
-    
-    const response = await fetch('/api/blacklist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        itemId,
-        title,
-        type: itemType,
-        thumbnail: item.thumbnail,
-        channelName: item.channelName
-      })
-    })
-    return response.ok
-  } catch (error) {
-    // Error adding to blacklist
-    return false
-  }
-}
-
-const addToWhitelist = async (item: any): Promise<boolean> => {
-  try {
-    const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
-    if (itemType === 'unknown') return false
-    
-    const itemId = 'videoId' in item ? item.videoId : 'playlistId' in item ? item.playlistId : item.channelId
-    const title = item.title || item.channelName || 'Unknown'
-    
-    const response = await fetch('/api/whitelist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        itemId,
-        title,
-        type: itemType,
-        thumbnail: item.thumbnail,
-        channelName: item.channelName
-      })
-    })
-    return response.ok
-  } catch (error) {
-    // Error adding to whitelist
-    return false
-  }
-}
-
-// Load blacklist and whitelist from database on mount
-  useEffect(() => {
-    const loadItems = async () => {
-      try {
-        const [blacklistedData, whitelistedData] = await Promise.all([
-          fetchBlacklistedItems(),
-          fetchWhitelistedItems()
-        ])
-        setBlacklisted(blacklistedData)
-        setWhitelisted(whitelistedData)
-        handleBlacklistChange(blacklistedData)
-        handleWhitelistChange(whitelistedData)
-      } catch (error) {
-        // Error loading blacklist/whitelist from database
-      }
-    }
-    
-    loadItems()
-  }, [])
   
   // Data states
 
@@ -444,25 +305,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   const [dataStatistics, setDataStatistics] = useState<any>(null)
   const [favoritesEnabled, setFavoritesEnabled] = useState(true)
   const [favoritesPaused, setFavoritesPaused] = useState(false)
-  const [blacklistWhitelistVisibility, setBlacklistWhitelistVisibility] = useState<'always' | 'hover' | 'hidden'>('always')
   
-  // Load blacklist/whitelist visibility setting from localStorage
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('mytube-app-settings')
-    if (savedSettings) {
-      try {
-        const settings = JSON.parse(savedSettings)
-        if (settings.blacklistWhitelistVisibility) {
-          setBlacklistWhitelistVisibility(settings.blacklistWhitelistVisibility)
-        }
-      } catch (error) {
-        // Failed to load settings
-      }
-    } else {
-      // No saved settings, use default 'always'
-      setBlacklistWhitelistVisibility('always')
-    }
-  }, [])
   
   
 
@@ -1666,50 +1509,8 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         }
       }).filter((video): video is Video => video !== null)
       
-      // Apply blacklist/whitelist filtering to playlist videos
-      const filteredPlaylistVideos = convertedVideos.filter(video => {
-        // Check if video is explicitly blacklisted
-        const isExplicitlyBlacklisted = blacklisted.some(listItem => 
-          listItem.type === 'video' && listItem.itemId === video.videoId
-        )
-        
-        // Check if video is from a blocked channel
-        const isFromBlockedChannel = blacklisted.some(listItem => 
-          listItem.type === 'channel' && listItem.itemId === video.channelId
-        )
-        
-        // Check if video is explicitly whitelisted
-        const isExplicitlyWhitelisted = whitelisted.some(listItem => 
-          listItem.type === 'video' && listItem.itemId === video.videoId
-        )
-        
-        // Check if video is from a whitelisted channel
-        const isFromWhitelistedChannel = whitelisted.some(listItem => 
-          listItem.type === 'channel' && listItem.itemId === video.channelId
-        )
-        
-        // Apply whitelist rules first (whitelist takes precedence)
-        if (whitelisted.length > 0) {
-          // Show if explicitly whitelisted or from whitelisted channel
-          return isExplicitlyWhitelisted || isFromWhitelistedChannel
-        }
-        
-        // Apply blacklist rules
-        if (blacklisted.length > 0) {
-          // Hide if explicitly blacklisted or from blocked channel
-          return !isExplicitlyBlacklisted && !isFromBlockedChannel
-        }
-        
-        // No filtering rules, show all videos
-        return true
-      })
-      
-      if (filteredPlaylistVideos.length === 0) {
-        // All playlist videos were filtered out by blacklist/whitelist rules
-      } else {
-        setPlaylistVideos(filteredPlaylistVideos)
-        showDynamicConfirmation('playlistLoaded', [playlist.title, filteredPlaylistVideos.length])
-      }
+      setPlaylistVideos(convertedVideos)
+      showDynamicConfirmation('playlistLoaded', [playlist.title, convertedVideos.length])
       
       // Switch to search tab to show playlist videos
       setActiveTab('search')
@@ -1777,49 +1578,11 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
           })
           .filter((video): video is Video => video !== null)
         
-        // Apply blacklist/whitelist filtering to playlist videos
-        const filteredPlaylistVideos = convertedVideos.filter(video => {
-          // Check if video is explicitly blacklisted
-          const isExplicitlyBlacklisted = blacklisted.some(listItem => 
-            listItem.type === 'video' && listItem.itemId === video.videoId
-          )
-          
-          // Check if video is from a blocked channel
-          const isFromBlockedChannel = blacklisted.some(listItem => 
-            listItem.type === 'channel' && listItem.itemId === video.channelId
-          )
-          
-          // Check if video is explicitly whitelisted
-          const isExplicitlyWhitelisted = whitelisted.some(listItem => 
-            listItem.type === 'video' && listItem.itemId === video.videoId
-          )
-          
-          // Check if video is from a whitelisted channel
-          const isFromWhitelistedChannel = whitelisted.some(listItem => 
-            listItem.type === 'channel' && listItem.itemId === video.channelId
-          )
-          
-          // Apply whitelist rules first (whitelist takes precedence)
-          if (whitelisted.length > 0) {
-            // Show if explicitly whitelisted or from whitelisted channel
-            return isExplicitlyWhitelisted || isFromWhitelistedChannel
-          }
-          
-          // Apply blacklist rules
-          if (blacklisted.length > 0) {
-            // Hide if explicitly blacklisted or from blocked channel
-            return !isExplicitlyBlacklisted && !isFromBlockedChannel
-          }
-          
-          // No filtering rules, show all videos
-          return true
-        })
-        
-        setExpandedPlaylistVideos(prev => new Map(prev).set(playlistId, filteredPlaylistVideos))
+        setExpandedPlaylistVideos(prev => new Map(prev).set(playlistId, convertedVideos))
         setExpandedPlaylists(prev => new Set(prev).add(playlistId))
         
         if (convertedVideos.length > 0) {
-          
+          showDynamicConfirmation('playlistExpanded', [playlist.title, convertedVideos.length])
         }
         
       } catch (error) {
@@ -2119,161 +1882,12 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     }
   }
 
-  // Get filtered search results based on blacklist/whitelist
+  // Get filtered search results (now just returns search results without filtering)
   const getFilteredSearchResults = useCallback(() => {
-    if (!searchResults?.items) return { items: [] }
-    
-    // Helper function to check if an item matches a blacklist/whitelist entry
-    const itemMatches = (item: any, listItem: BlacklistedItem | WhitelistedItem) => {
-      // Check by type match
-      const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
-      if (listItem.type !== itemType) return false
-      
-      // PRIMARY: Check by YouTube ID matching (most accurate)
-      if (listItem.type === 'video' && 'videoId' in item && listItem.itemId === item.videoId) {
-        return true
-      }
-      if (listItem.type === 'playlist' && 'playlistId' in item && listItem.itemId === item.playlistId) {
-        return true
-      }
-      if (listItem.type === 'channel' && 'channelId' in item && listItem.itemId === item.channelId) {
-        return true
-      }
-      
-      // FALLBACK: Check by exact title match (less accurate)
-      if (listItem.title.toLowerCase() === item.title?.toLowerCase()) {
-        return true
-      }
-      
-      // FALLBACK: Check by channel name match (for channels)
-      if (listItem.channelName && listItem.channelName.toLowerCase() === item.channelName?.toLowerCase()) {
-        return true
-      }
-      
-      return false
-    }
+    return searchResults || { items: [] }
+  }, [searchResults])
 
-    // Helper function to check if a video is from a blocked channel
-    const isFromBlockedChannel = (item: any) => {
-      if (!('channelId' in item)) return false
-      
-      return blacklisted.some(listItem => 
-        listItem.type === 'channel' && listItem.itemId === item.channelId
-      )
-    }
-
-    // Helper function to check if a video is from a whitelisted channel
-    const isFromWhitelistedChannel = (item: any) => {
-      if (!('channelId' in item)) return false
-      
-      return whitelisted.some(listItem => 
-        listItem.type === 'channel' && listItem.itemId === item.channelId
-      )
-    }
-
-    // Helper function to check if item is explicitly blacklisted/whitelisted
-    const isExplicitlyBlacklisted = (item: any) => {
-      return blacklisted.some(listItem => itemMatches(item, listItem))
-    }
-
-    const isExplicitlyWhitelisted = (item: any) => {
-      return whitelisted.some(listItem => itemMatches(item, listItem))
-    }
-
-    // Filter items based on blacklist/whitelist rules
-    const filteredItems = searchResults.items.filter(item => {
-      const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
-      
-      // RULE 1: If whitelist has items, only show whitelisted content
-      if (whitelisted.length > 0) {
-        // Allow if explicitly whitelisted
-        if (isExplicitlyWhitelisted(item)) {
-          return true
-        }
-        
-        // For videos, also allow if from whitelisted channel
-        if (itemType === 'video' && isFromWhitelistedChannel(item)) {
-          return true
-        }
-        
-        // For playlists, check if playlist is whitelisted
-        if (itemType === 'playlist' && isExplicitlyWhitelisted(item)) {
-          return true
-        }
-        
-        // For channels, check if channel is whitelisted
-        if (itemType === 'channel' && isExplicitlyWhitelisted(item)) {
-          return true
-        }
-        
-        // Not whitelisted, hide it
-        return false
-      }
-      
-      // RULE 2: If blacklist has items, exclude blacklisted content
-      if (blacklisted.length > 0) {
-        // Hide if explicitly blacklisted
-        if (isExplicitlyBlacklisted(item)) {
-          return false
-        }
-        
-        // For videos, also hide if from blocked channel
-        if (itemType === 'video' && isFromBlockedChannel(item)) {
-          return false
-        }
-        
-        // For playlists, hide if playlist is blacklisted
-        if (itemType === 'playlist' && isExplicitlyBlacklisted(item)) {
-          return false
-        }
-        
-        // For channels, hide if channel is blacklisted
-        if (itemType === 'channel' && isExplicitlyBlacklisted(item)) {
-          return false
-        }
-        
-        // Not blacklisted, show it
-        return true
-      }
-      
-      // No filtering rules, show everything
-      return true
-    })
-    
-    return {
-      ...searchResults,
-      items: filteredItems
-    }
-  }, [searchResults, blacklisted, whitelisted])
-
-  // Handlers for adding items to blacklist/whitelist
-  const handleAddToBlacklist = useCallback(async (item: VideoCardData) => {
-    const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
-    const itemTitle = item.title || item.channelName || 'Unknown'
-    
-    // Show confirmation dialog
-    setConfirmDialog({
-      isOpen: true,
-      type: 'blacklist',
-      item,
-      itemType,
-      itemTitle
-    })
-  }, [])
-
-  const handleAddToWhitelist = useCallback(async (item: VideoCardData) => {
-    const itemType = 'videoId' in item ? 'video' : 'playlistId' in item ? 'playlist' : 'channelId' in item ? 'channel' : 'unknown'
-    const itemTitle = item.title || item.channelName || 'Unknown'
-    
-    // Show confirmation dialog
-    setConfirmDialog({
-      isOpen: true,
-      type: 'whitelist',
-      item,
-      itemType,
-      itemTitle
-    })
-  }, [])
+  
 
   const handlePlaylistFavorite = useCallback(async (playlist: any) => {
     // Check if favorites are enabled
@@ -2341,91 +1955,11 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
   }, [favoritesEnabled, favoritesPaused, favoritePlaylists, toast])
 
   // Confirm action handler
-  const handleConfirmAction = useCallback(async () => {
-    const { type, item, itemType, itemTitle } = confirmDialog
-    
-    try {
-      let success = false
-      let actionText = ''
-      
-      if (type === 'blacklist') {
-        success = await addToBlacklist(item)
-        actionText = 'blocked'
-        if (success) {
-          // Refresh blacklist from database
-          const updatedBlacklist = await fetchBlacklistedItems()
-          setBlacklisted(updatedBlacklist)
-          handleBlacklistChange(updatedBlacklist)
-        }
-      } else if (type === 'whitelist') {
-        success = await addToWhitelist(item)
-        actionText = 'allowed'
-        if (success) {
-          // Refresh whitelist from database
-          const updatedWhitelist = await fetchWhitelistedItems()
-          setWhitelisted(updatedWhitelist)
-          handleWhitelistChange(updatedWhitelist)
-        }
-      }
-      
-      // Show toast notification
-      if (success) {
-        toast({
-          title: `Success!`,
-          description: `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} "${itemTitle}" has been ${actionText}.`,
-          variant: 'default',
-        })
-      } else {
-        toast({
-          title: `Error!`,
-          description: `Failed to ${actionText} ${itemType} "${itemTitle}". Please try again.`,
-          variant: 'destructive',
-        })
-      }
-    } catch (error) {
-      console.error(`Error in handleConfirmAction:`, error)
-      toast({
-        title: `Error!`,
-        description: `An unexpected error occurred. Please try again.`,
-        variant: 'destructive',
-      })
-    } finally {
-      // Close confirmation dialog
-      setConfirmDialog({
-        isOpen: false,
-        type: 'blacklist',
-        item: null,
-        itemType: '',
-        itemTitle: ''
-      })
-    }
-  }, [confirmDialog, toast])
+  
 
-  // Cancel action handler
-  const handleCancelAction = useCallback(() => {
-    setConfirmDialog({
-      isOpen: false,
-      type: 'blacklist',
-      item: null,
-      itemType: '',
-      itemTitle: ''
-    })
-    
-    toast({
-      title: `Cancelled`,
-      description: `Action has been cancelled.`,
-      variant: 'default',
-    })
-  }, [toast])
+  
 
-  // Memoized callbacks for SearchResultsFilter to prevent infinite loops
-  const handleBlacklistChange = useCallback((blacklisted: BlacklistedItem[]) => {
-    // Blacklist updated
-  }, [])
-
-  const handleWhitelistChange = useCallback((whitelisted: WhitelistedItem[]) => {
-    // Whitelist updated
-  }, [])
+  
 
   const handleVideoSelect = (video: VideoCardData) => {
     console.log('handleVideoSelect called:', video.title) // Debug log
@@ -2926,14 +2460,6 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
     const isFavorite = favoriteVideoIds.has(videoId)
     const isSelected = selectedItems.has(videoId)
     
-    // Check blacklist/whitelist status for videos
-    const isBlacklisted = blacklisted.some(listItem => 
-      listItem.id === videoId && listItem.type === 'video'
-    )
-    const isWhitelisted = whitelisted.some(listItem => 
-      listItem.id === videoId && listItem.type === 'video'
-    )
-    
     return (
       <UnifiedVideoCard
         video={toVideoCardData(video)}
@@ -2944,15 +2470,10 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         onPlay={handleVideoSelect}
         onFavorite={toggleFavorite}
         onSelect={(videoId, selected) => toggleItemSelection(videoId)}
-        onAddToBlacklist={handleAddToBlacklist}
-        onAddToWhitelist={handleAddToWhitelist}
-        isBlacklisted={isBlacklisted}
-        isWhitelisted={isWhitelisted}
-        blacklistWhitelistVisibility={blacklistWhitelistVisibility}
         size="md"
       />
     )
-  }, [favoriteVideoIds, selectedItems, multiSelectMode, toggleItemSelection, handleVideoSelect, toggleFavorite, handleAddToBlacklist, handleAddToWhitelist, blacklisted, whitelisted, blacklistWhitelistVisibility])
+  }, [favoriteVideoIds, selectedItems, multiSelectMode, toggleItemSelection, handleVideoSelect, toggleFavorite])
 
   const ChannelCard = useCallback(({ channel }: { channel: Channel }) => {
     return (
@@ -3962,15 +3483,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
               </div>
             ) : searchResults ? (
               <div className="space-y-4">
-                {/* Search Results Filter */}
-                <SearchResultsFilterEnhanced
-                  items={getFilteredSearchResults().items}
-                  onBlacklistChange={handleBlacklistChange}
-                  onWhitelistChange={handleWhitelistChange}
-                  onAddToBlacklist={handleAddToBlacklist}
-                  onAddToWhitelist={handleAddToWhitelist}
-                  className="mb-4"
-                />
+                
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -4033,12 +3546,6 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                       .map((item) => {
                         if (item.type === 'playlist') {
                           const playlistId = (item as Playlist).playlistId
-                          const isBlacklisted = blacklisted.some(listItem => 
-                            listItem.id === playlistId && listItem.type === 'playlist'
-                          )
-                          const isWhitelisted = whitelisted.some(listItem => 
-                            listItem.id === playlistId && listItem.type === 'playlist'
-                          )
                           const isFavorite = favoritePlaylists.some(p => p.playlistId === playlistId)
                           
                           // Add isFavorite to the playlist object
@@ -4048,133 +3555,21 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
                           }
                           
                           return (
-                            <div key={playlistId || item.id} className="relative group">
+                            <div key={playlistId || item.id}>
                               <PlaylistCard 
                                 playlist={playlistWithFavorite} 
                                 onFavorite={handlePlaylistFavorite}
                               />
-                              {/* Status indicator */}
-                              {isBlacklisted && (
-                                <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded-full">
-                                  Blacklisted
-                                </div>
-                              )}
-                              {isWhitelisted && (
-                                <div className="absolute top-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full">
-                                  Whitelisted
-                                </div>
-                              )}
-                              {/* Blacklist/Whitelist overlay buttons */}
-                              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="h-8 w-8 p-0 bg-black/70 hover:bg-black/80 text-white"
-                                  onClick={() => handleAddToBlacklist(convertSimpleVideoToCardData(item as any))}
-                                  title="Add to Blacklist"
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  className="h-8 w-8 p-0 bg-green-600/70 hover:bg-green-600/80 text-white"
-                                  onClick={() => handleAddToWhitelist(convertSimpleVideoToCardData(item as any))}
-                                  title="Add to Whitelist"
-                                >
-                                  <Check className="h-3 w-3" />
-                                </Button>
-                              </div>
                             </div>
                           )
                         } else if (item.type === 'channel') {
-                          const isBlacklisted = blacklisted.some(listItem => 
-                            listItem.id === (item as Channel).channelId && listItem.type === 'channel'
-                          )
-                          const isWhitelisted = whitelisted.some(listItem => 
-                            listItem.id === (item as Channel).channelId && listItem.type === 'channel'
-                          )
                           return (
-                            <div key={item.channelId || item.id} className="relative group">
+                            <div key={item.channelId || item.id}>
                               <ChannelCard channel={item as Channel} />
-                              {/* Status indicator */}
-                              {isBlacklisted && (
-                                <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded-full">
-                                  Blacklisted
-                                </div>
-                              )}
-                              {isWhitelisted && (
-                                <div className="absolute top-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded-full">
-                                  Whitelisted
-                                </div>
-                              )}
-                              {/* Blacklist/Whitelist overlay buttons */}
-                              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="h-8 w-8 p-0 bg-black/70 hover:bg-black/80 text-white"
-                                  onClick={() => handleAddToBlacklist(convertSimpleVideoToCardData(item as any))}
-                                  title="Add to Blacklist"
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  className="h-8 w-8 p-0 bg-green-600/70 hover:bg-green-600/80 text-white"
-                                  onClick={() => handleAddToWhitelist(convertSimpleVideoToCardData(item as any))}
-                                  title="Add to Whitelist"
-                                >
-                                  <Check className="h-3 w-3" />
-                                </Button>
-                              </div>
                             </div>
                           )
                         } else {
-                          const videoId = (item as Video).videoId || (item as Video).id
-                          const isBlacklisted = blacklisted.some(listItem => 
-                            listItem.id === videoId && listItem.type === 'video'
-                          )
-                          const isWhitelisted = whitelisted.some(listItem => 
-                            listItem.id === videoId && listItem.type === 'video'
-                          )
-                          const isFavorite = favoriteVideoIds.has(videoId)
-                          return (
-                            <div key={videoId} className="relative group">
-                              <UnifiedVideoCard 
-                                video={convertSimpleVideoToCardData(item as Video)} 
-                                onPlay={handleVideoSelect}
-                                onFavorite={toggleFavorite}
-                                onAddToBlacklist={handleAddToBlacklist}
-                                onAddToWhitelist={handleAddToWhitelist}
-                                isBlacklisted={isBlacklisted}
-                                isWhitelisted={isWhitelisted}
-                                isFavorite={isFavorite}
-                              />
-                              {/* Blacklist/Whitelist overlay buttons */}
-                              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  className="h-8 w-8 p-0 bg-black/70 hover:bg-black/80 text-white"
-                                  onClick={() => handleAddToBlacklist(convertSimpleVideoToCardData(item as any))}
-                                  title="Add to Blacklist"
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  className="h-8 w-8 p-0 bg-green-600/70 hover:bg-green-600/80 text-white"
-                                  onClick={() => handleAddToWhitelist(convertSimpleVideoToCardData(item as any))}
-                                  title="Add to Whitelist"
-                                >
-                                  <Check className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          )
+                          return <VideoCard key={(item as Video).videoId || (item as Video).id} video={item} />
                         }
                       })}
                   </div>
@@ -4255,22 +3650,6 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
       case 'channels':
         return <ChannelsContainer 
           onChannelSelect={handleChannelSelect}
-          onAddToBlacklist={(channel: FavoriteChannel) => handleAddToBlacklist({
-            videoId: channel.channelId,
-            title: channel.name,
-            type: 'channel',
-            thumbnail: channel.thumbnail || '',
-            channelName: channel.name || ''
-          })}
-          onAddToWhitelist={(channel: FavoriteChannel) => handleAddToWhitelist({
-            videoId: channel.channelId,
-            title: channel.name,
-            type: 'channel',
-            thumbnail: channel.thumbnail || '',
-            channelName: channel.name || ''
-          })}
-          isBlacklisted={(channelId) => blacklisted.some(item => item.itemId === channelId && item.type === 'channel')}
-          isWhitelisted={(channelId) => whitelisted.some(item => item.itemId === channelId && item.type === 'channel')}
         />
 
       case 'favorites':
@@ -5068,50 +4447,7 @@ const addToWhitelist = async (item: any): Promise<boolean> => {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation Dialog for Blacklist/Whitelist Actions */}
-      <AlertDialog open={confirmDialog.isOpen} onOpenChange={(open) => !open && handleCancelAction()}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              {confirmDialog.type === 'blacklist' ? (
-                <>
-                  <X className="w-5 h-5 text-destructive" />
-                  Block {confirmDialog.itemType.charAt(0).toUpperCase() + confirmDialog.itemType.slice(1)}
-                </>
-              ) : (
-                <>
-                  <Check className="w-5 h-5 text-green-600" />
-                  Allow {confirmDialog.itemType.charAt(0).toUpperCase() + confirmDialog.itemType.slice(1)}
-                </>
-              )}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to {confirmDialog.type === 'blacklist' ? 'block' : 'allow'} the {confirmDialog.itemType} "{confirmDialog.itemTitle}"?
-              {confirmDialog.type === 'blacklist' && (
-                <span className="block mt-2 text-sm text-amber-600 dark:text-amber-400">
-                  ⚠️ Blocked items will be hidden from search results and recommendations.
-                </span>
-              )}
-              {confirmDialog.type === 'whitelist' && (
-                <span className="block mt-2 text-sm text-green-600 dark:text-green-400">
-                  ✓ Whitelisted items will always appear in search results.
-                </span>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelAction}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleConfirmAction}
-              className={confirmDialog.type === 'blacklist' ? 'bg-destructive hover:bg-destructive/90' : 'bg-green-600 hover:bg-green-700'}
-            >
-              {confirmDialog.type === 'blacklist' ? 'Block' : 'Allow'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      
     </div>
   )
 }

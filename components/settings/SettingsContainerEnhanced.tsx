@@ -38,8 +38,6 @@ import {
   CheckCircle
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { BlacklistWhitelistStats } from './BlacklistWhitelistStats'
-import { ProfessionalContentFilter } from '@/components/content-filter/ProfessionalContentFilter'
 import { cn } from '@/lib/utils'
 
 interface SettingsContainerProps {
@@ -72,7 +70,6 @@ interface AppSettings {
   playbackSpeed: number
   searchHistory: boolean
   watchHistory: boolean
-  blacklistWhitelistVisibility: 'always' | 'hover' | 'hidden'
 }
 
 export function SettingsContainerEnhanced({
@@ -105,8 +102,7 @@ export function SettingsContainerEnhanced({
     loopVideos: false,
     playbackSpeed: 1.0,
     searchHistory: true,
-    watchHistory: true,
-    blacklistWhitelistVisibility: 'always'
+    watchHistory: true
   })
 
   // Load settings from localStorage on mount
@@ -185,8 +181,7 @@ export function SettingsContainerEnhanced({
         loopVideos: false,
         playbackSpeed: 1.0,
         searchHistory: true,
-        watchHistory: true,
-        blacklistWhitelistVisibility: 'always'
+        watchHistory: true
       }
       setAppSettings(defaultSettings)
       toast({
@@ -240,10 +235,7 @@ export function SettingsContainerEnhanced({
                 <Play className="w-4 h-4" />
                 <span className="hidden sm:inline">Playback</span>
               </TabsTrigger>
-              <TabsTrigger value="content-filter" className="flex items-center gap-2 px-3 py-2">
-                <Shield className="w-4 h-4" />
-                <span className="hidden sm:inline">Content Filter</span>
-              </TabsTrigger>
+              
             </TabsList>
           </ScrollArea>
         </div>
@@ -466,39 +458,11 @@ export function SettingsContainerEnhanced({
                         onCheckedChange={(checked) => updateSetting('watchHistory', checked)}
                       />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label>Blacklist/Whitelist Buttons</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Control when blacklist and whitelist buttons are visible
-                        </p>
-                      </div>
-                      <Select value={appSettings.blacklistWhitelistVisibility} onValueChange={(value: 'always' | 'hover' | 'hidden') => updateSetting('blacklistWhitelistVisibility', value)}>
-                        <SelectTrigger className="w-[140px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="always">Always Visible</SelectItem>
-                          <SelectItem value="hover">On Hover</SelectItem>
-                          <SelectItem value="hidden">Always Hidden</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+  
                   </CardContent>
                 </Card>
 
-                {/* Blacklist/Whitelist Statistics */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Shield className="w-5 h-5" />
-                      Blacklist/Whitelist Statistics
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <BlacklistWhitelistStats />
-                  </CardContent>
-                </Card>
+                
               </div>
             </TabsContent>
 
@@ -554,10 +518,7 @@ export function SettingsContainerEnhanced({
               </div>
             </TabsContent>
 
-            {/* Professional Content Filter Tab */}
-            <TabsContent value="content-filter" className="space-y-6 mt-0">
-              <ProfessionalContentFilter />
-            </TabsContent>
+            
           </div>
         </ScrollArea>
       </Tabs>
