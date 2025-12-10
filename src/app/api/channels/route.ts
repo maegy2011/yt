@@ -1,0 +1,109 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+
+export async function GET() {
+  try {
+    // Fetching favorite channels...
+    
+    const channels = await db.favoriteChannel.findMany({
+      orderBy: { addedAt: 'desc' }
+    })
+    
+    // Convert Date objects to strings for JSON serialization
+    const formattedChannels = channels.map(channel => ({
+      ...channel,
+      addedAt: channel.addedAt.toISOString(),
+      updatedAt: channel.updatedAt.toISOString()
+    }))
+    
+    // Found ${formattedChannels.length} favorite channels
+    
+    return NextResponse.json(formattedChannels)
+  } catch (error) {
+    return NextResponse.json({ 
+      error: 'Failed to fetch channels',
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
+    }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { channelId, name, thumbnail, subscriberCount, viewCount, videoCount } = body
+
+    // Console statement removed
+
+    // Validate required fields
+    if (!channelId || !name) {
+      // Console statement removed
+      return NextResponse.json({ 
+        error: 'Missing required fields: channelId and name are required' 
+      }, { status: 400 })
+    }
+
+    // Check if channel already exists
+    const existing = await db.favoriteChannel.findUnique({
+      where: { channelId }
+    })
+
+    if (existing) {
+      // Console statement removed
+      // Convert Date objects to strings for JSON serialization
+      const formattedExisting = {
+        ...existing,
+        addedAt: existing.addedAt.toISOString(),
+        updatedAt: existing.updatedAt.toISOString()
+      }
+      return NextResponse.json({ 
+        error: 'Channel already followed',
+        channel: formattedExisting
+      }, { status: 409 })
+    }
+
+    // Create new favorite channel
+    const channel = await db.favoriteChannel.create({
+      data: {
+        channelId,
+        name,
+        thumbnail: thumbnail || null,
+        subscriberCount: subscriberCount ? subscriberCount.toString() : undefined,
+        viewCount: viewCount ? viewCount.toString() : undefined
+      }
+    })
+
+    // Convert Date objects to strings for JSON serialization
+    const formattedChannel = {
+      ...channel,
+      addedAt: channel.addedAt.toISOString(),
+      updatedAt: channel.updatedAt.toISOString()
+    }
+
+    // Console removed
+    return NextResponse.json({
+      viewCount: formattedChannel.viewCount
+    })
+
+    return NextResponse.json(formattedChannel)
+  } catch (error) {
+    // Console removed - Failed to add channel full error logged
+    
+    // Handle specific database errors
+    if (error instanceof Error && 'code' in error && error.code === 'P2002') {
+      return NextResponse.json({ 
+        error: 'Channel already followed' 
+      }, { status: 409 })
+    }
+    
+    if (error instanceof Error && 'code' in error && error.code === 'P2025') {
+      return NextResponse.json({ 
+        error: 'Database record not found' 
+      }, { status: 404 })
+    }
+
+    return NextResponse.json({ 
+      error: 'Failed to add channel',
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
+    }, { status: 500 })
+  }
+}

@@ -84,8 +84,7 @@ model Notebook {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime
   NoteLink    NoteLink[]
-  PdfFile     PdfFile[]
-  VideoNote   VideoNote[]
+  notes       VideoNote[]
 
   @@index([createdAt, category])
   @@index([isPublic])
@@ -93,20 +92,34 @@ model Notebook {
   @@index([createdAt])
 }
 
-model PdfFile {
-  id           String   @id
-  notebookId   String
-  filename     String
-  originalName String
-  size         Int
-  mimeType     String
-  path         String
-  uploadedAt   DateTime @default(now())
-  updatedAt    DateTime
-  Notebook     Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+model BlacklistItem {
+  id          String   @id
+  type        String   // 'video', 'channel', 'playlist'
+  itemId      String   // videoId, channelId, or playlistId
+  title       String
+  reason      String?
+  addedAt     DateTime @default(now())
+  updatedAt   DateTime
 
-  @@index([notebookId])
+  @@index([type, itemId])
+  @@index([type])
+  @@index([addedAt])
 }
+
+model WhitelistItem {
+  id          String   @id
+  type        String   // 'video', 'channel', 'playlist'
+  itemId      String   // videoId, channelId, or playlistId
+  title       String
+  description String?
+  addedAt     DateTime @default(now())
+  updatedAt   DateTime
+
+  @@index([type, itemId])
+  @@index([type])
+  @@index([addedAt])
+}
+
 
 model Post {
   id        String   @id
@@ -183,5 +196,3 @@ model WatchedVideo {
   @@index([channelName])
   @@index([watchedAt])
 }
-
-
