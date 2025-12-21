@@ -2232,6 +2232,13 @@ export default function MyTubeApp() {
       const isFollowing = favoriteChannels.some(c => c.channelId === channel.channelId)
       
       if (isFollowing) {
+        // Show loading toast
+        toast({
+          title: "Unfollowing channel...",
+          description: `Removing ${channel.name} from your followed channels`,
+          duration: 2000,
+        })
+        
         const response = await fetch(`/api/channels/${channel.channelId}`, {
           method: 'DELETE'
         })
@@ -2244,10 +2251,30 @@ export default function MyTubeApp() {
           
           // Then reload favorite channels to sync with backend
           await loadFavoriteChannels()
-        } else {
           
+          // Show success toast
+          toast({
+            title: "Channel unfollowed",
+            description: `${channel.name} has been removed from your followed channels`,
+            duration: 3000,
+          })
+        } else {
+          const errorData = await response.json()
+          toast({
+            title: "Failed to unfollow channel",
+            description: errorData.error || "Please try again",
+            variant: "destructive",
+            duration: 5000,
+          })
         }
       } else {
+        // Show loading toast
+        toast({
+          title: "Following channel...",
+          description: `Adding ${channel.name} to your followed channels`,
+          duration: 2000,
+        })
+        
         const response = await fetch('/api/channels', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2268,13 +2295,31 @@ export default function MyTubeApp() {
           
           // Then reload favorite channels to sync with backend
           await loadFavoriteChannels()
-        } else {
           
+          // Show success toast
+          toast({
+            title: "Channel followed",
+            description: `${channel.name} has been added to your followed channels`,
+            duration: 3000,
+          })
+        } else {
+          const errorData = await response.json()
+          toast({
+            title: "Failed to follow channel",
+            description: errorData.error || "Please try again",
+            variant: "destructive",
+            duration: 5000,
+          })
         }
       }
     } catch (error) {
       console.error('Error following channel:', error)
-      
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+        duration: 5000,
+      })
     } finally {
       setIsUpdatingFollow(false) // Re-enable useEffect updates
     }
@@ -2476,8 +2521,12 @@ export default function MyTubeApp() {
   }, [favoriteVideoIds, selectedItems, multiSelectMode, toggleItemSelection, handleVideoSelect, toggleFavorite])
 
   const ChannelCard = useCallback(({ channel }: { channel: Channel }) => {
+    const isCurrentlyUpdating = isUpdatingFollow && favoriteChannels.some(c => c.channelId === channel.channelId)
+    
     return (
-      <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-border/50 hover:border-primary/30">
+      <Card className={`group relative overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-border/50 hover:border-primary/30 ${
+        isCurrentlyUpdating ? 'opacity-75 pointer-events-none' : ''
+      }`}>
         <CardContent className="p-3 sm:p-4">
           <div className="space-y-3">
             {/* Channel Header */}
@@ -2497,6 +2546,11 @@ export default function MyTubeApp() {
                     `)}`
                   }}
                 />
+                {isCurrentlyUpdating && (
+                  <div className="absolute inset-0 bg-white/50 rounded-full flex items-center justify-center">
+                    <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-sm sm:text-base truncate">{channel.name}</h3>
@@ -2534,9 +2588,15 @@ export default function MyTubeApp() {
                 size="sm"
                 variant={channel.isFavorite ? "secondary" : "default"}
                 onClick={() => handleFollowChannel(channel)}
-                className="text-xs"
+                className="text-xs min-w-[80px] transition-all duration-200"
+                disabled={isCurrentlyUpdating}
               >
-                {channel.isFavorite ? (
+                {isCurrentlyUpdating ? (
+                  <>
+                    <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin mr-1" />
+                    {channel.isFavorite ? 'Unfollowing...' : 'Following...'}
+                  </>
+                ) : channel.isFavorite ? (
                   <>
                     <Users className="w-3 h-3 mr-1" />
                     Following
@@ -2553,7 +2613,7 @@ export default function MyTubeApp() {
         </CardContent>
       </Card>
     )
-  }, [handleFollowChannel])
+  }, [handleFollowChannel, isUpdatingFollow, favoriteChannels])
 
   const PlaylistCard = useCallback(({ playlist }: { playlist: Playlist }) => {
     const isSelected = selectedItems.has(playlist.id)

@@ -14,7 +14,7 @@ This skill guides the implementation of speech-to-text (ASR) functionality using
 
 this skill is located at above path in your project.
 
-**Reference Scripts**: Example test scripts are available in the `{Skill Location}/scripts/` directory for quick testing and reference. See ``{Skill Location}/scripts/asr.ts` for a working example.
+**Reference Scripts**: Example test scripts are available in the `{Skill Location}/scripts/` directory for quick testing and reference. See `{Skill Location}/scripts/asr.ts` for a working example.
 
 ## Overview
 

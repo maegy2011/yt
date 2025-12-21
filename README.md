@@ -24,10 +24,10 @@ This scaffold provides a robust foundation built with:
 ### 🔄 State Management & Data Fetching
 - **🐻 Zustand** - Simple, scalable state management
 - **🔄 TanStack Query** - Powerful data synchronization for React
-- **🌐 Axios** - Promise-based HTTP client
+- **🌐 Fetch** - Promise-based HTTP request
 
 ### 🗄️ Database & Backend
-- **🗄️ Prisma** - Next-generation Node.js and TypeScript ORM
+- **🗄️ Prisma** - Next-generation TypeScript ORM
 - **🔐 NextAuth.js** - Complete open-source authentication solution
 
 ### 🎨 Advanced UI Features
@@ -58,16 +58,16 @@ This scaffold provides a robust foundation built with:
 
 ```bash
 # Install dependencies
-npm install
+bun install
 
 # Start development server
-npm run dev
+bun run dev
 
 # Build for production
-npm run build
+bun run build
 
 # Start production server
-npm start
+bun start
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to see your application running.
@@ -120,7 +120,7 @@ This scaffold includes a comprehensive set of modern web development tools:
 ### 🔐 Backend Integration
 - **Authentication**: Ready-to-use auth flows with NextAuth.js
 - **Database**: Type-safe database operations with Prisma
-- **API Client**: HTTP requests with Axios + TanStack Query
+- **API Client**: HTTP requests with Fetch + TanStack Query
 - **State Management**: Simple and scalable with Zustand
 
 ### 🌍 Production Features

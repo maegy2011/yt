@@ -12,7 +12,8 @@ import {
   ExternalLink, 
   Play,
   RefreshCw,
-  Trash2
+  Trash2,
+  Check
 } from 'lucide-react'
 import type { FavoriteChannel } from '@/types/favorites'
 
@@ -178,7 +179,7 @@ export function ChannelsContainer({
               {filteredChannels.map((channel) => (
                 <div
                   key={channel.id}
-                  className="flex flex-col items-center gap-3 p-4 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer group"
+                  className="flex flex-col items-center gap-3 p-4 rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer group relative"
                   onClick={() => handleChannelClick(channel)}
                 >
                   <div className="relative">
@@ -191,7 +192,10 @@ export function ChannelsContainer({
                       }}
                     />
                     
-                    
+                    {/* Followed indicator */}
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-background flex items-center justify-center">
+                      <Check className="w-2 h-2 text-white" />
+                    </div>
                   </div>
                   
                   <div className="text-center min-w-0">
@@ -199,6 +203,21 @@ export function ChannelsContainer({
                     {channel.subscriberCount && (
                       <p className="text-xs text-muted-foreground">{channel.subscriberCount}</p>
                     )}
+                  </div>
+                  
+                  {/* Quick actions */}
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 w-6 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        removeChannel(channel.channelId)
+                      }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
                   </div>
                 </div>
               ))}

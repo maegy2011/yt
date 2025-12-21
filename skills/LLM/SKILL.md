@@ -14,7 +14,7 @@ This skill guides the implementation of chat completions functionality using the
 
 this skill is located at above path in your project.
 
-**Reference Scripts**: Example test scripts are available in the `{Skill Location}/scripts/` directory for quick testing and reference. See ``{Skill Location}/scripts/chat.ts` for a working example.
+**Reference Scripts**: Example test scripts are available in the `{Skill Location}/scripts/` directory for quick testing and reference. See `{Skill Location}/scripts/chat.ts` for a working example.
 
 ## Overview
 

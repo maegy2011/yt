@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import YouTube from 'react-youtube'
+import dynamic from 'next/dynamic'
+
+// Dynamically import YouTube to avoid SSR issues
+const YouTube = dynamic(() => import('react-youtube'), { ssr: false })
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
