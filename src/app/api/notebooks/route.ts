@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@/lib/db'
+import { v4 as uuidv4 } from 'uuid'
 
 const createNotebookSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title is too long'),
@@ -93,12 +94,14 @@ export async function POST(request: NextRequest) {
 
     const notebook = await db.notebook.create({
       data: {
+        id: uuidv4(),
         title: validatedData.title,
         description: validatedData.description,
         color: validatedData.color || '#3b82f6',
         isPublic: validatedData.isPublic || false,
         tags: validatedData.tags || '',
         category: validatedData.category || 'general',
+        updatedAt: new Date()
       }
     })
 

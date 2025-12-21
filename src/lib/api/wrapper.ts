@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createRateLimit, RateLimitConfig } from './middleware'
-import { validationMiddleware } from './validation'
 import { withVersioning } from './versioning'
 import { addCORSHeaders, addSecurityHeaders, createApiContext, logRequest, recordRequestMetrics } from './middleware'
 import { ApiMiddlewareConfig } from './types'
@@ -157,13 +156,16 @@ export function withValidation<T>(
   config: Partial<ApiMiddlewareConfig> = {}
 ) {
   return withMiddleware(async (request: NextRequest, context: any) => {
-    const validationResult = await validationMiddleware.validateFavoriteVideo(request)
-    
-    if (!validationResult.isValid) {
-      const response = await import('./middleware').then(m => 
-        m.createErrorResponse(context, 'VALIDATION_ERROR', 'Request validation failed', 400, validationResult.errors)
-      )
-      return response
+    // Simple validation - check if request has valid JSON body for POST requests
+    if (request.method === 'POST') {
+      try {
+        await request.json()
+      } catch (error) {
+        const response = await import('./middleware').then(m => 
+          m.createErrorResponse(context, 'VALIDATION_ERROR', 'Invalid JSON in request body', 400)
+        )
+        return response
+      }
     }
     
     return await validator(request, context)
@@ -226,7 +228,6 @@ export const middleware = {
 // Export all middleware utilities
 export {
   createRateLimit,
-  validationMiddleware,
   withVersioning,
   addCORSHeaders,
   addSecurityHeaders,

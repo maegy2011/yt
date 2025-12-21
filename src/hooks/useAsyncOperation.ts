@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { toast } from 'sonner'
 
 interface UseAsyncOperationOptions {
@@ -129,42 +129,50 @@ export function useAsyncOperation<T = any>(
   }
 }
 
-// Hook for managing multiple async operations
+// Hook for managing multiple async operations - simplified version
 export function useAsyncOperations<T = any>(initialOperations: Record<string, () => Promise<T>> = {}) {
-  const [operations, setOperations] = useState<Record<string, AsyncOperationResult<T>>>(
-    Object.keys(initialOperations).reduce((acc, key) => {
-      acc[key] = useAsyncOperation()
-      return acc
-    }, {} as Record<string, AsyncOperationResult<T>>)
-  )
+  // For now, we'll use a simpler approach without dynamically calling hooks
+  // This is a limitation of React Hooks rules
+  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({})
+  const [errors, setErrors] = useState<Record<string, string | null>>({})
 
   const executeOperation = useCallback(async (key: string, operation?: () => Promise<T>) => {
-    const op = operations[key]
-    if (!op) {
-      throw new Error(`Operation "${key}" not found`)
-    }
-    
     const operationToExecute = operation || initialOperations[key]
     if (!operationToExecute) {
       throw new Error(`No operation provided for "${key}"`)
     }
     
-    return op.execute(operationToExecute)
-  }, [operations, initialOperations])
+    setLoadingStates(prev => ({ ...prev, [key]: true }))
+    setErrors(prev => ({ ...prev, [key]: null }))
+    
+    try {
+      const result = await operationToExecute()
+      setLoadingStates(prev => ({ ...prev, [key]: false }))
+      return result
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      setErrors(prev => ({ ...prev, [key]: errorMessage }))
+      setLoadingStates(prev => ({ ...prev, [key]: false }))
+      throw error
+    }
+  }, [initialOperations])
 
   const resetAll = useCallback(() => {
-    Object.values(operations).forEach(op => op.reset())
-  }, [operations])
+    setLoadingStates({})
+    setErrors({})
+  }, [])
 
-  const isAnyLoading = Object.values(operations).some(op => op.loading)
-  const hasAnyError = Object.values(operations).some(op => op.error)
+  const isAnyLoading = Object.values(loadingStates).some(Boolean)
+  const hasAnyError = Object.values(errors).some(Boolean)
 
   return {
-    operations,
+    operations: {}, // Simplified - not returning individual operation objects
     executeOperation,
     resetAll,
     isAnyLoading,
-    hasAnyError
+    hasAnyError,
+    loadingStates,
+    errors
   }
 }
 

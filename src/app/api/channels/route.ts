@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { v4 as uuidv4 } from 'uuid'
 
 export async function GET() {
   try {
@@ -64,11 +65,13 @@ export async function POST(request: NextRequest) {
     // Create new favorite channel
     const channel = await db.favoriteChannel.create({
       data: {
+        id: uuidv4(),
         channelId,
         name,
         thumbnail: thumbnail || null,
         subscriberCount: subscriberCount ? subscriberCount.toString() : undefined,
-        viewCount: viewCount ? viewCount.toString() : undefined
+        viewCount: viewCount ? viewCount.toString() : undefined,
+        updatedAt: new Date()
       }
     })
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { v4 as uuidv4 } from 'uuid'
 
 export async function GET() {
   try {
@@ -36,6 +37,7 @@ export async function POST(request: NextRequest) {
 
     const videoNote = await db.videoNote.create({
       data: {
+        id: uuidv4(),
         videoId: String(videoId),
         title: String(title),
         channelName: String(channelName),
@@ -45,7 +47,8 @@ export async function POST(request: NextRequest) {
         startTime: Number(startTime) || null,
         endTime: Number(endTime) || null,
         isClip: Boolean(isClip),
-        notebookId: notebookId ? String(notebookId) : null
+        notebookId: notebookId ? String(notebookId) : null,
+        updatedAt: new Date()
       }
     })
 

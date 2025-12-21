@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { sanitizeVideoId, isValidYouTubeVideoId } from '@/lib/youtube-utils'
+import { v4 as uuidv4 } from 'uuid'
 
 export async function GET() {
   try {
@@ -83,12 +84,14 @@ export async function POST(request: NextRequest) {
       // Create new record with validated data
       watchedVideo = await db.watchedVideo.create({
         data: {
+          id: uuidv4(),
           videoId: sanitizedVideoId,
           title: title || 'Unknown Video',
           channelName: channelName || 'Unknown Channel',
           thumbnail: thumbnail || '',
           duration,
-          viewCount: viewCount?.toString() || null
+          viewCount: viewCount?.toString() || null,
+          updatedAt: new Date()
         }
       })
     }
